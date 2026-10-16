@@ -7,7 +7,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::{
-    extract::{Request, State},
+    extract::{FromRequestParts, Request, State},
+    http::request::Parts,
     http::{header, HeaderValue, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -33,10 +34,11 @@ use crate::storage::Database;
 
 use super::approval::{AgentApprovalManager, ApprovalOutcome, ApprovalRequest};
 use super::guard::{self, GuardConfig, GUARD_CONFIG_KEY};
+use super::pairing::{AuthenticatedAgent, PairingRegistry};
+use super::pairing_http::{audit_label, handle_pair, require_paired_agent, PairRateLimiter};
 use super::tools::get_compact_tool_definitions;
 
-include!("pairing_http.rs");
-
+/// MCP protocol version
 pub const MCP_PROTOCOL_VERSION: &str = "2024-11-05";
 
 /// Server name for MCP identification
@@ -56,7 +58,8 @@ pub struct McpState {
     terminal_input_emitter: Option<Arc<dyn Fn(TerminalInputEvent) + Send + Sync>>,
     approvals: Option<Arc<AgentApprovalManager>>,
     agent_input_tracker: Arc<guard::SharedAgentInputTracker>,
-    pairing_registry: Option<Arc<std::sync::Mutex<super::pairing::PairingRegistry>>>,
+    pub(super) pairing_registry: Option<Arc<std::sync::Mutex<PairingRegistry>>>,
+    pub(super) pairing_limiter: Arc<std::sync::Mutex<PairRateLimiter>>,
 }
 
 impl McpState {
@@ -70,12 +73,13 @@ impl McpState {
             approvals: None,
             agent_input_tracker,
             pairing_registry: None,
+            pairing_limiter: Arc::new(std::sync::Mutex::new(PairRateLimiter::default())),
         }
     }
 
     pub fn with_pairing_registry(
         mut self,
-        registry: Arc<std::sync::Mutex<super::pairing::PairingRegistry>>,
+        registry: Arc<std::sync::Mutex<PairingRegistry>>,
     ) -> Self {
         self.pairing_registry = Some(registry);
         self
@@ -182,6 +186,11 @@ pub struct AgentActivityEvent {
     pub status: AgentActivityStatus,
     pub session_id: Option<String>,
     pub timestamp: i64,
+    /// Which paired Agent caused this operation. `None` for records written
+    /// before LAN Agents existed and for operations from the local loopback
+    /// gateway, where there is only one caller.
+    #[serde(default)]
+    pub agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -260,33 +269,26 @@ impl McpServer {
 
     pub fn with_pairing_registry(
         mut self,
-        registry: Arc<std::sync::Mutex<super::pairing::PairingRegistry>>,
+        registry: Arc<std::sync::Mutex<PairingRegistry>>,
     ) -> Self {
         self.state = self.state.with_pairing_registry(registry);
         self
     }
 
+    /// HTTP surface for a LAN-facing service: every MCP route requires a paired
+    /// Agent bearer token, and only `/health` and `/pair` stay reachable without
+    /// one. Pairing is additionally bounded by the per-peer request limiter.
     pub fn router_with_pairing(&self) -> Router {
+        const MAX_REQUEST_BYTES: usize = 16 * 1024 * 1024;
         let state = self.state.clone();
-        let pair_state = state.clone();
         Router::new()
             .route("/health", get(handle_health))
-            .route(
-                "/pair",
-                post(move |Json(request): Json<PairRequest>| {
-                    handle_pair(pair_state.clone(), request)
-                }),
-            )
+            .route("/pair", post(handle_pair))
             .route("/", post(handle_jsonrpc))
             .route("/mcp", post(handle_jsonrpc))
             .with_state(state.clone())
-            .layer(middleware::from_fn_with_state(
-                state
-                    .pairing_registry
-                    .clone()
-                    .expect("pairing registry required"),
-                require_paired_agent,
-            ))
+            .layer(middleware::from_fn_with_state(state, require_paired_agent))
+            .layer(axum::extract::DefaultBodyLimit::max(MAX_REQUEST_BYTES))
     }
 
     pub fn router(&self, bearer_token: String) -> Router {
@@ -412,10 +414,47 @@ const INTERNAL_ERROR: i32 = -32603;
 
 // === Request Handler ===
 
+/// The paired Agent that authenticated the current request. Requests arriving
+/// through the loopback desktop gateway carry no paired identity, so the
+/// rejection type is infallible and the audit label falls back to `local`.
+pub struct RequestAgent(Option<AuthenticatedAgent>);
+
+#[async_trait::async_trait]
+impl<S> FromRequestParts<S> for RequestAgent
+where
+    S: Send + Sync,
+{
+    type Rejection = std::convert::Infallible;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        Ok(Self(parts.extensions.get::<AuthenticatedAgent>().cloned()))
+    }
+}
+
 async fn handle_jsonrpc(
     State(state): State<McpState>,
+    RequestAgent(agent): RequestAgent,
     Json(request): Json<JsonRpcRequest>,
-) -> impl IntoResponse {
+) -> Response {
+    let agent_label = audit_label(agent.as_ref());
+
+    // JSON-RPC notifications carry no id and must not receive a response body.
+    if request.id.is_none() {
+        if request.jsonrpc != "2.0" || !request.method.starts_with("notifications/") {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(JsonRpcResponse::error(
+                    None,
+                    INVALID_REQUEST,
+                    "Expected a JSON-RPC notification".to_string(),
+                    None,
+                )),
+            )
+                .into_response();
+        }
+        return StatusCode::ACCEPTED.into_response();
+    }
+
     // Validate JSON-RPC version
     if request.jsonrpc != "2.0" {
         return (
@@ -426,7 +465,8 @@ async fn handle_jsonrpc(
                 "Invalid JSON-RPC version".to_string(),
                 None,
             )),
-        );
+        )
+            .into_response();
     }
 
     // Route to appropriate handler
@@ -435,7 +475,7 @@ async fn handle_jsonrpc(
         "notifications/initialized" => Ok(json!({})),
         "ping" => Ok(json!({})),
         "tools/list" => handle_tools_list().await,
-        "tools/call" => handle_tools_call(&state, request.params).await,
+        "tools/call" => handle_tools_call(&state, request.params, Some(&agent_label)).await,
         _ => Err((
             METHOD_NOT_FOUND,
             format!("Unknown method: {}", request.method),
@@ -446,11 +486,16 @@ async fn handle_jsonrpc(
         Ok(value) => (
             StatusCode::OK,
             Json(JsonRpcResponse::success(request.id, value)),
-        ),
-        Err((code, message)) => (
-            StatusCode::OK,
-            Json(JsonRpcResponse::error(request.id, code, message, None)),
-        ),
+        )
+            .into_response(),
+        Err((code, message)) => {
+            log::warn!("[MCP] {agent_label} called {}: {message}", request.method);
+            (
+                StatusCode::OK,
+                Json(JsonRpcResponse::error(request.id, code, message, None)),
+            )
+                .into_response()
+        }
     }
 }
 
@@ -482,6 +527,7 @@ async fn handle_tools_list() -> Result<Value, (i32, String)> {
 async fn handle_tools_call(
     state: &McpState,
     params: Option<Value>,
+    agent: Option<&str>,
 ) -> Result<Value, (i32, String)> {
     let params = params.ok_or((INVALID_PARAMS, "Missing params".to_string()))?;
 
@@ -506,11 +552,12 @@ async fn handle_tools_call(
             status: AgentActivityStatus::Started,
             session_id: session_id.clone(),
             timestamp: chrono::Utc::now().timestamp_millis(),
+            agent: agent.map(str::to_string),
         })
         .map_err(|error| (INTERNAL_ERROR, error))?;
 
     // Execute the tool
-    let result = execute_tool(state, name, &arguments).await;
+    let result = execute_tool(state, name, &arguments, agent).await;
 
     match result {
         Ok(content) => {
@@ -528,6 +575,7 @@ async fn handle_tools_call(
                 status: AgentActivityStatus::Succeeded,
                 session_id,
                 timestamp: chrono::Utc::now().timestamp_millis(),
+                agent: agent.map(str::to_string),
             }) {
                 log::error!("Operation completed; completion audit failed: {error}");
             }
@@ -546,6 +594,7 @@ async fn handle_tools_call(
                 status: AgentActivityStatus::Failed,
                 session_id,
                 timestamp: chrono::Utc::now().timestamp_millis(),
+                agent: agent.map(str::to_string),
             }) {
                 log::error!("Failed operation completion audit could not be saved: {error}");
             }
@@ -609,9 +658,10 @@ pub async fn execute_tool_public(
     state: &McpState,
     name: &str,
     args: &Value,
+    agent: Option<&str>,
 ) -> Result<String, String> {
     // Both transports use the exact same guarded/audited entry point.
-    let response = handle_tools_call(state, Some(json!({"name": name, "arguments": args})))
+    let response = handle_tools_call(state, Some(json!({"name": name, "arguments": args})), agent)
         .await
         .map_err(|(_, message)| message)?;
     let content = response["content"][0]["text"]
@@ -625,7 +675,12 @@ pub async fn execute_tool_public(
     }
 }
 
-async fn execute_tool(state: &McpState, name: &str, args: &Value) -> Result<String, String> {
+async fn execute_tool(
+    state: &McpState,
+    name: &str,
+    args: &Value,
+    agent: Option<&str>,
+) -> Result<String, String> {
     match name {
         "plugin_list" => serde_json::to_string(&crate::plugins::agent::list(
             &state.database,
@@ -705,7 +760,7 @@ async fn execute_tool(state: &McpState, name: &str, args: &Value) -> Result<Stri
         "session_attach" => tool_session_attach(state, args).await,
         "session_detach" => tool_session_detach(state, args).await,
         "session_kill" => tool_session_kill(state, args).await,
-        "session_send_input" => tool_session_send_input(state, args).await,
+        "session_send_input" => tool_session_send_input(state, args, agent).await,
         "session_read" => tool_session_read(state, args).await,
         "session_resize" => tool_session_resize(state, args).await,
 
@@ -1140,7 +1195,11 @@ async fn tool_session_kill(state: &McpState, args: &Value) -> Result<String, Str
     }
 }
 
-async fn tool_session_send_input(state: &McpState, args: &Value) -> Result<String, String> {
+async fn tool_session_send_input(
+    state: &McpState,
+    args: &Value,
+    agent: Option<&str>,
+) -> Result<String, String> {
     let session_id = args
         .get("session_id")
         .and_then(Value::as_str)
@@ -1238,6 +1297,7 @@ async fn tool_session_send_input(state: &McpState, args: &Value) -> Result<Strin
             status: AgentActivityStatus::Started,
             session_id: Some(resolved_session_id.clone()),
             timestamp: chrono::Utc::now().timestamp_millis(),
+            agent: agent.map(str::to_string),
         };
         if let Err(error) = state.emit_activity(event.clone()) {
             state.agent_input_tracker.restore(tracker_checkpoint).await;
@@ -2221,6 +2281,22 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_transport_without_an_approval_ui_fails_closed() {
+        let temp = tempfile::tempdir().unwrap();
+        let database = Arc::new(Database::new_at(temp.path().join("guard.db")).unwrap());
+        let session_manager = Arc::new(SessionManager::new(database.clone()));
+        let state = McpState::new(database, session_manager);
+        let error = state
+            .require_approval("exec", None, "rm -rf /", vec!["destructive".to_string()])
+            .await
+            .expect_err("headless transports must not self-approve");
+        assert!(
+            error.contains("no approval UI is available"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[tokio::test]
     async fn gateway_rejects_missing_bearer_token() {
         let response = protected_health_router("secret")
             .oneshot(HttpRequest::get("/health").body(Body::empty()).unwrap())
@@ -2306,9 +2382,14 @@ mod tests {
         let database = Arc::new(Database::new_at(temp.path().join("stdio.db")).unwrap());
         let manager = Arc::new(SessionManager::new(database.clone()));
         let state = McpState::new(database.clone(), manager);
-        let catalog = execute_tool_public(&state, "plugin_list", &json!({"installed_only":false}))
-            .await
-            .unwrap();
+        let catalog = execute_tool_public(
+            &state,
+            "plugin_list",
+            &json!({"installed_only": false}),
+            None,
+        )
+        .await
+        .unwrap();
         assert_eq!(
             serde_json::from_str::<Vec<Value>>(&catalog).unwrap().len(),
             crate::plugins::builtin_catalog().unwrap().len()
@@ -2321,7 +2402,8 @@ mod tests {
         assert!(execute_tool_public(
             &state,
             "exec",
-            &json!({"session_id":"absent","command":command})
+            &json!({"session_id":"absent","command":command}),
+            None
         )
         .await
         .is_err());

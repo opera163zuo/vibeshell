@@ -8,11 +8,23 @@ The Linux server owns SSH connections, saved server profiles, host-key verificat
 
 ## Current status
 
-This is a work in progress on branch `feature/lan-mcp-gateway` in the `opera163zuo/vibeshell` fork. A draft PR is open: https://github.com/opera163zuo/vibeshell/pull/1
+Branch `feature/lan-mcp-gateway` in the `opera163zuo/vibeshell` fork; draft PR: https://github.com/opera163zuo/vibeshell/pull/1
 
-Implemented scaffolding includes an expiring one-time pairing code, random per-Agent bearer tokens stored as hashes, revocation metadata, device-key encryption for the persisted registry, a CLI `mcp-serve` entry point, listener policy checks, and a draft Ubuntu/Debian systemd unit.
+Phases 0-4 are implemented and verified end-to-end on a Debian 13 host against a local sshd fixture:
 
-**The service is not usable yet.** HTTP MCP and pairing route integration have not passed end-to-end verification. The latest Gateway/router wiring changes timed out during build/test attempts. Do not install the draft unit, expose a port, or treat current pairing scaffolding as a security-reviewed service.
+- The scaffold that did not compile (`include!("pairing_http.rs")` inside `server.rs`) is fixed; pairing HTTP is a real module now, and the desktop gateway is back to loopback-only.
+- `vibeshell mcp serve` runs headless: Streamable-HTTP JSON-RPC on `/mcp` (`initialize`, `notifications/initialized` answered with `202`, `ping`, `tools/list`, `tools/call`), `/health`, `/pair`.
+- Pairing codes are one-time, 5-minute, 5-attempt, constant-time compared, per-peer rate limited, and persisted so an administrator can mint a code from a different process than the running service.
+- Agent bearer tokens are issued once, stored only as SHA-256 hashes in the device-encrypted registry, and reloaded from disk before every request, so revoke and rotate take effect immediately.
+- Risky commands fail closed on this transport because there is no approval UI; every audited action records the paired Agent identity.
+- `vibeshell mcp credential set|clear` and `vibeshell mcp hostkey probe|trust|list` let a headless server actually reach a target machine without a GUI, with secrets accepted only on stdin and host keys pinned only after the operator repeats the fingerprint.
+- systemd unit, backup/restore and firewall/TLS procedures are documented in `docs/LAN-MCP-UBUNTU-DEBIAN.md`.
+
+Not yet delivered, and required before this is called production-ready:
+
+- TLS terminates outside the process only (reverse proxy or documented cleartext-VLAN guidance); there is no in-process HTTPS.
+- No `Origin`/browser-origin rejection and no per-Agent session or server allowlists — paired Agents share one database and session manager, so they are not isolated tenants.
+- Linux/Ubuntu service lifecycle was exercised locally; Phase 5 cross-OS Hermes verification (macOS, Windows, and a second Linux Agent) has not been run.
 
 ## Functional requirements
 
@@ -37,19 +49,21 @@ Implemented scaffolding includes an expiring one-time pairing code, random per-A
 
 ## Implementation phases
 
-### Phase 0 — Stabilize the branch
+Status: Phase 0-4 are implemented and locally verified (see *Current status*). Phase 5 is outstanding.
+
+### Phase 0 — Stabilize the branch — done
 
 - Build and test the currently pushed commit from a clean checkout.
 - Fix malformed wiring or revert unsafe/partial route changes.
 - Keep an explicit incomplete status until all acceptance tests pass.
 
-### Phase 1 — MCP transport
+### Phase 1 — MCP transport — done
 
 - Wire `mcp-serve` to a real Axum HTTP server using the existing MCP JSON-RPC handler.
 - Support `initialize`, `notifications/initialized`, `ping`, `tools/list`, and `tools/call` over the supported MCP HTTP transport.
 - Add integration tests that start the listener on an ephemeral loopback port and exercise those methods.
 
-### Phase 2 — Pairing and authentication
+### Phase 2 — Pairing and authentication — done
 
 - Add a separate pairing endpoint, unauthenticated only while presenting a valid one-time code.
 - Make pairing atomically consume the code and issue a token once.
@@ -57,20 +71,20 @@ Implemented scaffolding includes an expiring one-time pairing code, random per-A
 - Test valid token, missing token, invalid token, revoked token, expired code, repeated code, attempt-limit, and persisted restart behavior.
 - Never print a bearer token. Display the pairing code locally; redact it from logs after expiry.
 
-### Phase 3 — Linux service lifecycle
+### Phase 3 — Linux service lifecycle — partial
 
 - Add configuration for bind address, port, state/database path, logs, and TLS/proxy mode.
 - Add a systemd unit with a dedicated user, explicit writable state path, restart policy, restrictive umask, and safe shutdown.
 - Document install, configuration, firewall, TLS, pairing, health-check, upgrade, and rollback on Ubuntu/Debian.
-- Verify service lifecycle on real Ubuntu and Debian environments (or CI VMs), not just macOS builds.
+- Verify service lifecycle on real Ubuntu and Debian environments (or CI VMs), not just macOS builds. **Outstanding: only Debian 13 was exercised here; a real Ubuntu host or CI VM is still needed.**
 
-### Phase 4 — Agent management and audit
+### Phase 4 — Agent management and audit — done
 
 - Add admin-only local CLI commands to list/revoke/rename paired Agents and rotate credentials.
 - Ensure encrypted at-rest records survive restarts and backup/restore, and fail closed on decryption/corruption instead of silently resetting the registry.
 - Record Agent identity with each MCP action in the audit trail.
 
-### Phase 5 — Cross-platform Hermes verification
+### Phase 5 — Cross-platform Hermes verification — outstanding
 
 - Configure a Hermes Agent on Linux, macOS, and Windows to use the same remote MCP URL with separate Agent tokens.
 - Verify `tools/list`, harmless SSH inspection, SFTP read, and an explicitly approved mutating command.

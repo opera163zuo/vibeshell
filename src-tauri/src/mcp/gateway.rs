@@ -163,18 +163,13 @@ impl AgentGateway {
                     *thread_live.lock().expect("gateway status lock poisoned") = Some(info.clone());
                     let _ = ready_tx.send(Ok(info));
 
-                    let mut pairing_registry =
-                        super::pairing::PairingRegistry::with_database(database.clone());
-                    let now = chrono::Utc::now().timestamp();
-                    let pairing_code = pairing_registry.create_code(now);
-                    eprintln!("LAN pairing code: {pairing_code}");
-                    let pairing_registry = Arc::new(std::sync::Mutex::new(pairing_registry));
+                    // The desktop gateway stays loopback-only with its manifest
+                    // token; LAN pairing belongs to `vibeshell mcp-serve`.
                     let server = McpServer::new(database, session_manager)
                         .with_activity_emitter(activity_emitter)
                         .with_terminal_input_emitter(terminal_input_emitter)
                         .with_approvals(approvals)
-                        .with_agent_input_tracker(agent_input_tracker)
-                        .with_pairing_registry(pairing_registry);
+                        .with_agent_input_tracker(agent_input_tracker);
                     let serve_result = axum::serve(listener, server.router(token))
                         .with_graceful_shutdown(async {
                             let _ = shutdown_rx.await;

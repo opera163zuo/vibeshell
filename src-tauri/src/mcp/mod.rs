@@ -10,7 +10,10 @@
 pub mod approval;
 pub mod gateway;
 pub mod guard;
+#[cfg(test)]
+mod lan_test;
 pub mod pairing;
+pub mod pairing_http;
 pub mod server;
 pub mod stdio;
 pub mod tools;

@@ -1168,6 +1168,7 @@ impl IpcServer {
                 summary,
                 status: AgentActivityStatus::Started,
                 timestamp: chrono::Utc::now().timestamp_millis(),
+                agent: None,
             })
             .collect();
         for event in &events {

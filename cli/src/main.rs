@@ -8,6 +8,7 @@ mod command_input;
 mod commands;
 mod daemon;
 mod ipc_support;
+mod mcp_hostkey;
 mod mcp_serve;
 mod session_alias;
 mod terminal;
@@ -57,8 +58,11 @@ enum Commands {
     /// Show version information
     Version,
 
-    /// Serve a LAN-accessible MCP endpoint (configure with service env vars).
-    McpServe,
+    /// Run the MCP network service, or administer the Agents paired with it
+    Mcp {
+        #[command(subcommand)]
+        command: mcp_serve::McpCommand,
+    },
 
     /// Show GPLv3 terms, copyright notices and source information
     License,
@@ -485,7 +489,7 @@ pub fn main_entry() -> Result<()> {
     let cli = Cli::parse();
     if !matches!(
         cli.command,
-        Some(Commands::McpServe) | Some(Commands::Uninstall(_))
+        Some(Commands::Mcp { .. }) | Some(Commands::Uninstall(_))
     ) && std::env::var_os("VIBESHELL_SKIP_SKILL_AUTO_INSTALL").is_none()
     {
         let _ = vibeshell_core::install::install_to_all();
@@ -516,7 +520,7 @@ fn dispatch(command: Option<Commands>) -> Result<()> {
                 _ => bail!("Unexpected sensitive input response"),
             }
         }
-        Some(Commands::McpServe) => mcp_serve::run(),
+        Some(Commands::Mcp { command }) => mcp_serve::run(command),
         Some(Commands::License) => {
             println!(
                 "{}\n{}",
@@ -657,17 +661,38 @@ mod tests {
 
     #[test]
     fn runs_cli_entrypoint() {
-        let parsed = Cli::try_parse_from(["vibeshell", "mcp-serve"]);
-        assert!(parsed.is_ok(), "vibeshell mcp-serve should parse");
         let _entrypoint: fn() -> anyhow::Result<()> = super::main_entry;
     }
 
     #[test]
-    fn routes_mcp_serve_to_the_network_service() {
-        let error = super::dispatch(Some(Commands::McpServe)).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("Network MCP serving is not wired yet"));
+    fn parses_the_mcp_service_and_admin_commands() {
+        for argv in [
+            vec!["vibeshell", "mcp", "serve"],
+            vec!["vibeshell", "mcp", "pair-code"],
+            vec!["vibeshell", "mcp", "agents"],
+            vec!["vibeshell", "mcp", "revoke", "1a2b"],
+            vec!["vibeshell", "mcp", "rename", "1a2b", "hermes-office"],
+            vec!["vibeshell", "mcp", "rotate", "1a2b"],
+            vec![
+                "vibeshell",
+                "mcp",
+                "hostkey",
+                "trust",
+                "10.0.0.5",
+                "--port",
+                "22",
+                "--fingerprint",
+                "SHA256:abc",
+            ],
+        ] {
+            let parsed = Cli::try_parse_from(argv.clone());
+            assert!(parsed.is_ok(), "{argv:?} should parse");
+        }
+    }
+
+    #[test]
+    fn the_mcp_command_group_rejects_unknown_subcommands() {
+        assert!(Cli::try_parse_from(["vibeshell", "mcp", "teleport"]).is_err());
     }
 
     #[test]

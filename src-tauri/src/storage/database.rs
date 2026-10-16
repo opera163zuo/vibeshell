@@ -1711,6 +1711,7 @@ mod tests {
                 status: AgentActivityStatus::Started,
                 session_id: Some("session".into()),
                 timestamp: index,
+                agent: None,
             })
             .unwrap();
         }
@@ -1762,6 +1763,7 @@ mod tests {
                 status: AgentActivityStatus::Started,
                 session_id: None,
                 timestamp: 1,
+                agent: None,
             };
             db.agent_activity_record(&event).unwrap();
             event.status = AgentActivityStatus::Succeeded;

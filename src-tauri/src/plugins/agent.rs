@@ -178,6 +178,7 @@ pub async fn execute(
         ),
         status: AgentActivityStatus::Started,
         timestamp: chrono::Utc::now().timestamp_millis(),
+        agent: None,
     };
     db.agent_activity_record(&event)
         .map_err(|e| e.to_string())?;

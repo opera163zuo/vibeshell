@@ -202,7 +202,7 @@ async fn handle_tool_call(state: &McpState, params: Option<Value>) -> Result<Val
     let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
 
     // Reuse the existing tool execution from the HTTP server
-    let result = super::server::execute_tool_public(state, name, &arguments).await;
+    let result = super::server::execute_tool_public(state, name, &arguments, None).await;
 
     match result {
         Ok(content) => Ok(json!({
