@@ -107,7 +107,36 @@ Three steps, each on the side that owns the decision:
 
 Then the Agent calls `session_create` and the SSH/SFTP tools as usual.
 
-## 5. Reaching beyond loopback
+## 5. Verify before exposing it
+
+`scripts/test-lan-mcp-gateway.sh` re-checks the gateway against a throwaway state
+directory under `target/`. It never reads your saved servers, credentials or
+paired Agents, and it contacts no SSH host.
+
+```bash
+bash scripts/test-lan-mcp-gateway.sh                  # free port, detected IPv4
+bash scripts/test-lan-mcp-gateway.sh 192.168.1.20     # name the interface address
+```
+
+It asserts 18 checks in four groups:
+
+1. **Boot guard** — a non-loopback bind with no paired Agent must refuse to start.
+2. **Transport and auth** — health, `401` with no token and with a forged one,
+   one-time code exchange plus a rejected replay, `initialize`, `202` with an empty
+   body for notifications, `tools/list`, a real `tools/call`, `-32601` for an
+   unknown method, `413` at the body limit, and a service log containing neither
+   the pairing code nor the issued token.
+3. **Audit at rest** — every `agent_activity` row written by the run carries the
+   `enc:v1:` prefix.
+4. **LAN and revocation** — the listener opens on the named address only because an
+   Agent is already paired, a second Agent pairs over that address, and a revoked
+   token is rejected on its very next request without restarting the service.
+
+Re-run it after an upgrade or a unit change; failing here is cheaper than failing
+on a live Agent. The address argument is positional, and the LAN group is skipped
+with a notice when the host has no global IPv4 address.
+
+## 6. Reaching beyond loopback
 
 Clear text HTTP over a network is not acceptable, and the service does not do TLS
 itself. Put a TLS-terminating proxy in front and bind the service to loopback,
@@ -141,7 +170,7 @@ mcp.example.internal {
 }
 ```
 
-## 6. Backups
+## 7. Backups
 
 `/var/lib/vibeshell` (the `XDG_DATA_HOME` root the unit assigns) holds
 `com.vibeshell.desktop/vibeshell.db`, its `ssh_credentials.key`/`.salt` device
@@ -155,7 +184,7 @@ sudo tar --mode='go-rwx' -czf /root/vibeshell-state.tar.gz -C /var/lib vibeshell
 sudo systemctl start vibeshell-mcp.service
 ```
 
-## 7. What this service does not do
+## 8. What this service does not do
 
 - **No self-approval.** Risky commands are gated by the human approval UI, which
   a headless process does not have. Such a call fails closed with

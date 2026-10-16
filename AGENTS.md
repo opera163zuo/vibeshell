@@ -173,6 +173,7 @@ cd src-tauri && cargo test   # Run tests
 
 - **Rust tests:** `cargo test` from the repo root (single Cargo workspace: `src-tauri`, `cli`, `plugins`) — unit tests live inside modules (`storage`, `ssh`, `sftp`, `mcp`, `ipc`, `install`, `local_shell`, …), integration tests in `src-tauri/tests/`
 - **SSH integration tests:** run `bash scripts/test-ssh-compatibility.sh` for a generated-key, loopback-only Docker fixture. Other ignored tests require their own explicit external fixtures; never run them wholesale against saved user data.
+- **LAN MCP gateway:** `bash scripts/test-lan-mcp-gateway.sh [address]` drives a real `vibeshell mcp serve` listener (pairing, bearer auth, body limit, audit-at-rest, revocation) inside a throwaway state directory under `target/`; it never opens the operator's database. Network tests stay in `src-tauri/src/mcp/lan_test.rs` (`cfg(test)`) because `Crypto::device()` only yields a deterministic test key there.
 - **Frontend tests:** `npm test` (Vitest, see `vitest.config.ts`) — `*.test.ts` files colocated with stores/components; CI runs them
 - **Formatting:** `cargo fmt --check` gates CI — run `cargo fmt` before committing Rust changes
 
