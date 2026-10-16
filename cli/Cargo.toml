@@ -9,6 +9,7 @@ name = "vibeshell"
 path = "src/main.rs"
 
 [dependencies]
+axum = { version = "0.7", features = ["json"] }
 vibeshell-core = { path = "../src-tauri", package = "vibeshell-desktop" }
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.28"

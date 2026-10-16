@@ -10,6 +10,7 @@
 pub mod approval;
 pub mod gateway;
 pub mod guard;
+pub mod pairing;
 pub mod server;
 pub mod stdio;
 pub mod tools;

@@ -8,6 +8,7 @@ mod command_input;
 mod commands;
 mod daemon;
 mod ipc_support;
+mod mcp_serve;
 mod session_alias;
 mod terminal;
 
@@ -55,6 +56,9 @@ struct Cli {
 enum Commands {
     /// Show version information
     Version,
+
+    /// Serve a LAN-accessible MCP endpoint (configure with service env vars).
+    McpServe,
 
     /// Show GPLv3 terms, copyright notices and source information
     License,
@@ -474,17 +478,23 @@ struct UninstallArgs {
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
+    main_entry()
+}
 
-    // The native binary carries the canonical Skill. Keep agent directories
-    // configured without requiring a separate Node/npm installation step.
-    if !matches!(&cli.command, Some(Commands::Uninstall(_)))
-        && std::env::var_os("VIBESHELL_SKIP_SKILL_AUTO_INSTALL").is_none()
+pub fn main_entry() -> Result<()> {
+    let cli = Cli::parse();
+    if !matches!(
+        cli.command,
+        Some(Commands::McpServe) | Some(Commands::Uninstall(_))
+    ) && std::env::var_os("VIBESHELL_SKIP_SKILL_AUTO_INSTALL").is_none()
     {
         let _ = vibeshell_core::install::install_to_all();
     }
+    dispatch(cli.command)
+}
 
-    match cli.command {
+fn dispatch(command: Option<Commands>) -> Result<()> {
+    match command {
         Some(Commands::Plugins { command }) => commands::plugins::run(command),
         Some(Commands::SendSecret { session_id, enter }) => {
             use std::io::{IsTerminal, Read};
@@ -506,6 +516,7 @@ fn main() -> Result<()> {
                 _ => bail!("Unexpected sensitive input response"),
             }
         }
+        Some(Commands::McpServe) => mcp_serve::run(),
         Some(Commands::License) => {
             println!(
                 "{}\n{}",
@@ -642,6 +653,21 @@ mod tests {
         let parsed = Cli::try_parse_from(["vibeshell", "license"]).unwrap();
         assert!(matches!(parsed.command, Some(Commands::License)));
         assert!(include_str!("../../LICENSE").contains("Version 3, 29 June 2007"));
+    }
+
+    #[test]
+    fn runs_cli_entrypoint() {
+        let parsed = Cli::try_parse_from(["vibeshell", "mcp-serve"]);
+        assert!(parsed.is_ok(), "vibeshell mcp-serve should parse");
+        let _entrypoint: fn() -> anyhow::Result<()> = super::main_entry;
+    }
+
+    #[test]
+    fn routes_mcp_serve_to_the_network_service() {
+        let error = super::dispatch(Some(Commands::McpServe)).unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("Network MCP serving is not wired yet"));
     }
 
     #[test]

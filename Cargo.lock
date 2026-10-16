@@ -6996,6 +6996,7 @@ name = "vshell"
 version = "1.1.0"
 dependencies = [
  "anyhow",
+ "axum",
  "clap",
  "crossterm",
  "interprocess",

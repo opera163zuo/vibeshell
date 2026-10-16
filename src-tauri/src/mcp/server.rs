@@ -35,7 +35,8 @@ use super::approval::{AgentApprovalManager, ApprovalOutcome, ApprovalRequest};
 use super::guard::{self, GuardConfig, GUARD_CONFIG_KEY};
 use super::tools::get_compact_tool_definitions;
 
-/// MCP protocol version
+include!("pairing_http.rs");
+
 pub const MCP_PROTOCOL_VERSION: &str = "2024-11-05";
 
 /// Server name for MCP identification
@@ -55,6 +56,7 @@ pub struct McpState {
     terminal_input_emitter: Option<Arc<dyn Fn(TerminalInputEvent) + Send + Sync>>,
     approvals: Option<Arc<AgentApprovalManager>>,
     agent_input_tracker: Arc<guard::SharedAgentInputTracker>,
+    pairing_registry: Option<Arc<std::sync::Mutex<super::pairing::PairingRegistry>>>,
 }
 
 impl McpState {
@@ -67,7 +69,16 @@ impl McpState {
             terminal_input_emitter: None,
             approvals: None,
             agent_input_tracker,
+            pairing_registry: None,
         }
+    }
+
+    pub fn with_pairing_registry(
+        mut self,
+        registry: Arc<std::sync::Mutex<super::pairing::PairingRegistry>>,
+    ) -> Self {
+        self.pairing_registry = Some(registry);
+        self
     }
 
     pub fn with_activity_emitter(
@@ -245,6 +256,37 @@ impl McpServer {
     ) -> Self {
         self.state = self.state.with_agent_input_tracker(tracker);
         self
+    }
+
+    pub fn with_pairing_registry(
+        mut self,
+        registry: Arc<std::sync::Mutex<super::pairing::PairingRegistry>>,
+    ) -> Self {
+        self.state = self.state.with_pairing_registry(registry);
+        self
+    }
+
+    pub fn router_with_pairing(&self) -> Router {
+        let state = self.state.clone();
+        let pair_state = state.clone();
+        Router::new()
+            .route("/health", get(handle_health))
+            .route(
+                "/pair",
+                post(move |Json(request): Json<PairRequest>| {
+                    handle_pair(pair_state.clone(), request)
+                }),
+            )
+            .route("/", post(handle_jsonrpc))
+            .route("/mcp", post(handle_jsonrpc))
+            .with_state(state.clone())
+            .layer(middleware::from_fn_with_state(
+                state
+                    .pairing_registry
+                    .clone()
+                    .expect("pairing registry required"),
+                require_paired_agent,
+            ))
     }
 
     pub fn router(&self, bearer_token: String) -> Router {
