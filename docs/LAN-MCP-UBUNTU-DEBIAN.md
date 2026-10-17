@@ -130,6 +130,15 @@ with a notice when the host has no global IPv4 address.
 
 The service binds to the private LAN address configured in `/etc/vibeshell/mcp.env`; the reverse proxy runs on the same host and terminates HTTPS before forwarding to `127.0.0.1:8765`. Do not bind the MCP service itself to an externally reachable cleartext port.
 
+Four rules are enforced at start-up (`validate_listener`), so a default or a typo can never expose the port:
+
+- a loopback bind is always allowed;
+- any other address needs `VIBESHELL_MCP_ALLOW_LAN=true` in the environment file;
+- `0.0.0.0` and `::` are refused — name one interface address, e.g. `VIBESHELL_MCP_BIND=192.168.1.20:8765`;
+- a non-loopback bind with zero active paired Agents is refused, so pairing has to happen first.
+
+`bash scripts/test-lan-mcp-gateway.sh` covers the first and last of these; restrict which hosts may connect with your own firewall rules.
+
 ## 7. Backups
 
 `/var/lib/vibeshell` (the `XDG_DATA_HOME` root the unit assigns) holds
