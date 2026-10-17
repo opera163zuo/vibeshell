@@ -19,8 +19,9 @@ ExecStart=/usr/local/bin/vibeshell mcp serve
 # dedicated state switch, so the XDG directory is redirected there instead; the
 # database, device keys and session logs all resolve below it.
 StateDirectory=vibeshell
-Environment=XDG_DATA_HOME=%d
-Environment=XDG_STATE_HOME=%d
+StateDirectoryMode=0700
+Environment=XDG_DATA_HOME=/var/lib/vibeshell
+Environment=XDG_STATE_HOME=/var/lib/vibeshell
 
 Restart=on-failure
 RestartSec=3

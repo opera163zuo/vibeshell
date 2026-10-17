@@ -51,22 +51,18 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.verified_package(response.geturl.return_value, digest)
 
-    def test_updater_manifest_requires_every_platform_and_preserves_asset_names(self):
+    def test_updater_manifest_is_linux_only_and_preserves_linux_asset_names(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             command = ['node', str(SCRIPTS / 'generate-latest-json.js'), tmp, '1.1.0', 'v1.1.0', 'owner/repo']
-            self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
-            names = ['VibeShell-1.1.0-windows-x64-client-setup.exe',
-                     'VibeShell-1.1.0-macos-arm64-VibeShell.app.tar.gz',
-                     'VibeShell-1.1.0-macos-x64-VibeShell.app.tar.gz',
-                     'VibeShell-1.1.0-linux-x64-client.AppImage']
+            names = ['VibeShell-1.1.0-linux-x64-client.AppImage']
             for name in names:
                 (root / name).write_bytes(b'artifact')
                 (root / (name + '.sig')).write_text('fixture-signature')
             subprocess.run(command, capture_output=True, check=True)
             manifest = json.loads((root / 'latest.json').read_text())
             self.assertEqual(manifest['version'], '1.1.0')
-            self.assertEqual(set(manifest['platforms']), {'windows-x86_64', 'darwin-aarch64', 'darwin-x86_64', 'linux-x86_64'})
+            self.assertEqual(set(manifest['platforms']), {'linux-x86_64'})
             self.assertEqual({entry['url'].rsplit('/', 1)[1] for entry in manifest['platforms'].values()}, set(names))
 
     def test_cli_archive_contains_notices_and_skill_references(self):
@@ -92,10 +88,9 @@ class ReleaseTests(unittest.TestCase):
                 for suffix in ['/LICENSE', '/NOTICE', '/licenses/legacy-MIT.txt', '/skills/vibeshell/references/test.md']:
                     self.assertTrue(any(name.endswith(suffix) for name in names), suffix)
 
-    def test_all_targets_have_distinct_archive_names(self):
+    def test_release_collector_accepts_only_linux_targets(self):
         module = load("collect-release")
-        self.assertEqual(len(module.TARGETS), 4)
-        self.assertEqual(len(set(module.TARGETS.values())), 4)
+        self.assertEqual(module.TARGETS, {"x86_64-unknown-linux-gnu": "linux-x64"})
 
 
 if __name__ == "__main__":

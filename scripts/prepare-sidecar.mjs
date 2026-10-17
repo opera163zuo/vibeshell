@@ -41,14 +41,10 @@ const target =
   process.env.CARGO_BUILD_TARGET ??
   hostTargetTriple();
 
-if (target === 'universal-apple-darwin') {
-  throw new Error(
-    'Build each macOS architecture separately; universal-apple-darwin is not a Cargo target triple.',
-  );
-}
 
 const profile = args.includes('--debug') ? 'debug' : 'release';
-const extension = target.includes('windows') ? '.exe' : '';
+if (!target.includes('linux')) throw new Error('VibeShell release builds support Linux targets only.');
+const extension = '';
 const binaryName = `vibeshell${extension}`;
 const cargoArgs = [
   'build',
@@ -87,7 +83,7 @@ const destination = join(
 
 mkdirSync(destinationDir, { recursive: true });
 copyFileSync(source, destination);
-if (!target.includes('windows')) {
+if (target.includes('linux')) {
   chmodSync(destination, 0o755);
 }
 

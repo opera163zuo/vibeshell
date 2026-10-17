@@ -66,7 +66,8 @@ print(d if not isinstance(d, (dict, list)) else json.dumps(d))
 ' "$@"; }
 
 rpc() { # rpc <base> <token> <request>
-  curl -s -m 8 -X POST "http://$1/mcp" -H "Authorization: Bearer $2" \
+  local token=$2
+  curl -s -m 8 -X POST "http://$1/mcp" -H "Authorization: Bearer $token" \
     -H 'Content-Type: application/json' -d "$3"
 }
 

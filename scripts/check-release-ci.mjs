@@ -7,8 +7,6 @@ export const REQUIRED_JOBS = [
   'Frontend Check',
   'Clippy Lint',
   'Rust Check (ubuntu-22.04)',
-  'Rust Check (windows-latest)',
-  'Rust Check (macos-latest)',
 ];
 
 export function latestManualCiRun(payload, sha, repository) {

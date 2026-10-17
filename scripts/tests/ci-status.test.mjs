@@ -24,7 +24,7 @@ function fixture(overrides = {}) {
   return state;
 }
 
-test('initialization marks all five required contexts pending, never green', async () => {
+test('initialization marks required contexts pending, never green', async () => {
   const state = fixture();
   await reportCiStatuses({ ...options, phase: 'start' }, state.request);
   assert.equal(state.posts.length, REQUIRED_JOBS.length);

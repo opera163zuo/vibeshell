@@ -2,7 +2,7 @@
 
 ## Branch contract
 
-`dev` is the default branch for all normal PRs. `main` receives only release promotions from this repository's `dev`. `master` is historical. Branch protection still requires PR Target, Frontend Check, Clippy Lint and all three Rust Check jobs; force pushes and branch deletion are disallowed on active branches.
+`dev` is the default branch for all normal PRs. `main` receives only release promotions from this repository's `dev`. `master` is historical. Required checks are PR Target, Frontend Check, Clippy Lint and the Ubuntu Linux Rust Check.
 
 **Both CI compilation and release packaging/publication are manual-only.** A push, PR or version tag starts neither workflow. The metadata-only PR Target workflow remains automatic. There is no auto-increment bot commit, and no workflow automatically dispatches another workflow.
 
@@ -39,9 +39,9 @@ Never move or recreate an existing tag. After the tag's manual CI run has succee
 gh workflow run release.yml --ref main -f tag="$TAG" -f publish=false
 ```
 
-The workflow only accepts dispatches from `main`. It validates that the tag resolves to a commit on `main` and that its version matches every application manifest. The latest manual CI run for that exact commit must have succeeded in this repository's CI workflow, including frontend, Clippy and Linux/Windows/macOS Rust jobs. An old successful check, an automatic run, a skipped platform or a newer failed attempt is insufficient. CI run/job validation uses the current gate from `main`, even when a selected tag predates that helper.
+The workflow only accepts dispatches from `main`. It validates that the tag resolves to a commit on `main` and that its version matches every application manifest. The latest manual CI run for that exact commit must have succeeded in this repository's CI workflow, including frontend, Clippy and Linux Rust jobs. An old successful check, an automatic run, a skipped job or a newer failed attempt is insufficient. CI run/job validation uses the current gate from `main`, even when a selected tag predates that helper.
 
-Release validates updater signing, creates/retains a draft, builds desktop and native CLI packages for Windows x64, macOS arm64/x64 and Linux x64, and assembles matching source materials. Only after every platform, source bundle, signature and checksum check succeeds are the complete assets uploaded. With the default `publish=false`, the release stays a draft and is not marked latest.
+Release validates updater signing, creates/retains a draft, builds Linux x64 desktop and native CLI packages, and assembles matching source materials. macOS and Windows desktop/CLI packages are not built or distributed. Only after Linux, source bundle, signature and checksum checks succeed are the assets uploaded. With the default `publish=false`, the release stays a draft and is not marked latest.
 
 ## Publish explicitly
 
@@ -59,10 +59,10 @@ A failed or partial run must remain a draft. Do not mark it latest or overwrite 
 
 `TAURI_SIGNING_PRIVATE_KEY` and optional `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` belong in GitHub Actions secrets. They must match the public updater key already shipped to users. Validate cryptographically; matching a comment's key ID is not enough. Never print or replace the key just to make CI pass.
 
-Apple Developer ID signing/notarization requires the separately configured Apple secrets. Without them, macOS artifacts use local ad-hoc resource signatures and the release notes say so. Rebuild and sign updater archives after any modification to the application bundle; a signed old archive is not the repaired application.
+macOS and Windows build/signing workflows are not used: the published desktop and native CLI artifacts target Linux x64 only. Rebuild and sign updater archives after any modification to the application bundle; a signed old archive is not the repaired application.
 
 Distributions must include LICENSE, NOTICE and legacy attribution. The source bundle combines the exact Git tree with vendored Rust sources and integrity-checked npm package archives from the lockfile. Include the build scripts, dependency manifests and license notices; `SOURCE-README.txt` explains reconstruction. Do not publish private audit records, runtime databases, keys, caches or files outside the tagged source tree.
 
-## Installed-app validation
+## Linux installed-app validation
 
 The GitHub version, a compiled artifact and the installed application are different facts. Do not describe an installed app as updated until the GUI, sidecar and independent CLI match and the new UI has been exercised. Back up existing data consistently and obtain permission before closing active SSH sessions. Never point regression tests at a user's saved-credential store.

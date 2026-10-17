@@ -128,19 +128,9 @@ export function isNewerVersion(candidate: string, current: string | null): boole
   return current !== null && compareVersions(candidate, current) > 0;
 }
 
-function getPlatformAssetPriority(userAgent = navigator.userAgent): string[] {
-  const agent = userAgent.toLowerCase();
-
-  if (agent.includes('windows')) {
-    return ['.msi', '.exe', '.zip'];
-  }
-  if (agent.includes('mac os') || agent.includes('macintosh')) {
-    return ['.dmg', '.pkg', '.app.tar.gz', '.zip'];
-  }
-  if (agent.includes('linux') || agent.includes('x11')) {
-    return ['.appimage', '.deb', '.rpm', '.tar.gz'];
-  }
-  return ['.dmg', '.msi', '.appimage', '.deb', '.zip', '.tar.gz'];
+function getPlatformAssetPriority(): string[] {
+  // Published VibeShell builds are Linux-only.
+  return ['.appimage', '.deb', '.rpm', '.tar.gz'];
 }
 
 function isMetadataAsset(assetName: string): boolean {
@@ -153,12 +143,9 @@ function isMetadataAsset(assetName: string): boolean {
   );
 }
 
-export function selectPreferredAsset(
-  assets: ReleaseAsset[],
-  userAgent = navigator.userAgent
-): ReleaseAsset | null {
+export function selectPreferredAsset(assets: ReleaseAsset[]): ReleaseAsset | null {
   const installableAssets = assets.filter((asset) => !isMetadataAsset(asset.name));
-  const priorities = getPlatformAssetPriority(userAgent);
+  const priorities = getPlatformAssetPriority();
 
   for (const extension of priorities) {
     const asset = installableAssets.find((candidate) =>

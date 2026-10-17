@@ -1,10 +1,10 @@
 # Native VibeShell CLI
 
-The `vibeshell` binary is the headless SSH/SFTP client and local daemon shipped with VibeShell. It shares the same data model as the desktop application but does not require a window system, Node.js, Electron, or a running desktop process.
+The `vibeshell` binary is the Linux headless SSH/SFTP client and LAN MCP service, targeting Ubuntu/Debian servers. Hermes Agents on other operating systems can connect remotely through MCP HTTP. VibeShell does not provide macOS or Windows desktop/CLI distributions.
 
 ## Install a release archive
 
-Linux and macOS:
+Linux only:
 
 ```bash
 ./install.sh
@@ -12,13 +12,7 @@ Linux and macOS:
 
 The default destination is `~/.local/bin/vibeshell`. Override it with `VIBESHELL_INSTALL_DIR=/usr/local/bin ./install.sh` when appropriate.
 
-Windows PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-Both installers verify the native binary and trigger its built-in, idempotent Skill installer. The canonical VibeShell Skill is then written to every detected coding-agent directory and to `~/.agents/skills/vibeshell` without installing Node.js or a separate npm package.
+The installer verifies the native binary and trigger its built-in, idempotent Skill installer. The canonical VibeShell Skill is then written to every detected coding-agent directory and to `~/.agents/skills/vibeshell` without installing Node.js or a separate npm package.
 
 ## Use on a headless server
 
@@ -70,9 +64,8 @@ VibeShell 1.1.0 is GPL-3.0-only. Release archives include LICENSE, NOTICE and le
 cargo build --release --locked --package vshell --bin vibeshell
 ```
 
-To prepare the target-suffixed binary consumed by Tauri desktop packaging:
+To prepare the Linux target-suffixed binary consumed by Tauri desktop packaging:
 
 ```bash
 node scripts/prepare-sidecar.mjs
-node scripts/prepare-sidecar.mjs --target aarch64-apple-darwin
 ```

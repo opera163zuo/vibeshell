@@ -95,15 +95,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bundles: nsis,msi
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            bundles: app,dmg
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            bundles: app,dmg
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bundles: appimage,deb
@@ -111,7 +102,6 @@ jobs:
     env:
       TARGET: ${{ matrix.target }}
       BUNDLES: ${{ matrix.bundles }}
-      MACOSX_DEPLOYMENT_TARGET: '11.0'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -135,51 +125,15 @@ jobs:
           rustup default stable
           rustup target add "$TARGET"
       - run: npm ci
-      - name: Build native CLI and desktop
+      - name: Build Linux native CLI and desktop
         shell: bash
         env:
-          VIBESHELL_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          VIBESHELL_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          VIBESHELL_APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          VIBESHELL_APPLE_ID: ${{ secrets.APPLE_ID }}
-          VIBESHELL_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          VIBESHELL_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-            indirect="VIBESHELL_$name"
-            if [[ -n "${!indirect:-}" ]]; then export "$name=${!indirect}"; fi
-          done
           node scripts/prepare-sidecar.mjs --target "$TARGET"
           npx --no-install tauri build --ci --target "$TARGET" --bundles "$BUNDLES" --config src-tauri/tauri.sidecar.conf.json -- --locked
-      - name: Finalize macOS resources and updater archive
-        if: runner.os == 'macOS'
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          bundle="target/$TARGET/release/bundle"
-          app="$bundle/macos/VibeShell.app"
-          if [[ -z "$APPLE_CERTIFICATE" && -z "$APPLE_SIGNING_IDENTITY" ]]; then
-            codesign --force --sign - "$app/Contents/MacOS/vibeshell"
-            codesign --force --sign - "$app"
-            staging=$(mktemp -d)
-            ditto "$app" "$staging/VibeShell.app"
-            ln -s /Applications "$staging/Applications"
-            for dmg in "$bundle"/dmg/*.dmg; do
-              hdiutil create -volname VibeShell -srcfolder "$staging" -ov -format UDZO "$dmg"
-            done
-          fi
-          codesign --verify --deep --strict --verbose=2 "$app"
-          archive="$bundle/macos/VibeShell.app.tar.gz"
-          tar -czf "$archive" -C "$bundle/macos" VibeShell.app
-          npx --no-install tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" "$archive"
       - name: Collect artifacts and licensed CLI archive
         shell: bash
         run: python scripts/collect-release.py "$TARGET"
@@ -223,8 +177,6 @@ jobs:
       TAG: ${{ needs.prepare.outputs.tag }}
       VERSION: ${{ needs.prepare.outputs.version }}
       PUBLISH_RELEASE: ${{ inputs.publish }}
-      HAS_APPLE_SIGNING: ${{ secrets.APPLE_CERTIFICATE != '' || secrets.APPLE_SIGNING_IDENTITY != '' }}
-      HAS_APPLE_NOTARIZATION: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -254,14 +206,7 @@ jobs:
           gh release view "$TAG" --json isDraft > "$RUNNER_TEMP/release.json"
           node -e 'if (!JSON.parse(require("node:fs").readFileSync(process.argv[1])).isDraft) throw new Error("Release is no longer a draft")' "$RUNNER_TEMP/release.json"
           cp CHANGELOG.md "$RUNNER_TEMP/notes.md"
-          printf '\n## Downloads and source\n\nDesktop and native CLI assets are accompanied by VibeShell-Source-%s.tar.gz and SHA256SUMS.txt. The source bundle contains the exact tagged tree, vendored Rust dependencies, locked npm archives, build scripts and license notices.\n' "$VERSION" >> "$RUNNER_TEMP/notes.md"
-          if [[ "$HAS_APPLE_SIGNING" != 'true' ]]; then
-            printf '\nmacOS builds use ad-hoc signatures, not Developer ID signatures or Apple notarization.\n' >> "$RUNNER_TEMP/notes.md"
-          elif [[ "$HAS_APPLE_NOTARIZATION" != 'true' ]]; then
-            printf '\nApple signing is configured; Apple notarization credentials were not configured for this build.\n' >> "$RUNNER_TEMP/notes.md"
-          else
-            printf '\nApple signing and notarization were configured; successful bundling completed before publication.\n' >> "$RUNNER_TEMP/notes.md"
-          fi
+          printf '\n## Downloads and source\n\nLinux desktop and native CLI assets are accompanied by VibeShell-Source-%s.tar.gz and SHA256SUMS.txt. The source bundle contains the exact tagged tree, vendored Rust dependencies, locked npm archives, build scripts and license notices.\n' "$VERSION" >> "$RUNNER_TEMP/notes.md"
           gh release upload "$TAG" assets/* --clobber
           if [[ "$PUBLISH_RELEASE" == 'true' ]]; then
             gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest

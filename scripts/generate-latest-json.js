@@ -13,7 +13,7 @@ if (!assetsDir || !version || !tagName || !repository) {
 }
 
 const requiredPlatforms = (process.env.REQUIRED_UPDATER_PLATFORMS ??
-  'windows-x86_64,darwin-aarch64,darwin-x86_64,linux-x86_64')
+  'linux-x86_64')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
@@ -29,17 +29,6 @@ function walkFiles(dir) {
 function inferPlatform(assetName) {
   const name = assetName.toLowerCase();
 
-  if (name.includes('windows') || name.includes('nsis') || name.endsWith('.msi') || name.endsWith('.exe')) {
-    return 'windows-x86_64';
-  }
-
-  if (name.includes('darwin') || name.includes('macos') || name.endsWith('.dmg')) {
-    if (name.includes('aarch64') || name.includes('arm64')) {
-      return 'darwin-aarch64';
-    }
-    return 'darwin-x86_64';
-  }
-
   if (name.includes('linux') || name.includes('appimage') || name.endsWith('.deb') || name.endsWith('.rpm')) {
     return 'linux-x86_64';
   }
@@ -52,14 +41,7 @@ function scoreAsset(assetName) {
   let score = 0;
 
   if (name.endsWith('.tar.gz')) score += 80;
-  if (name.endsWith('.zip')) score += 70;
-  // Tauri names NSIS installers "*-setup.exe" (no "nsis" in the name); the
-  // NSIS exe must outrank .msi so Windows clients get the NSIS updater path.
-  if (name.endsWith('-setup.exe')) score += 25;
-  if (name.includes('nsis')) score += 20;
   if (name.includes('appimage')) score += 15;
-  if (name.endsWith('.dmg')) score += 10;
-  if (name.endsWith('.msi')) score += 10;
   if (name.endsWith('.deb')) score += 5;
 
   return score;

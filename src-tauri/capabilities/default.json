@@ -3,8 +3,6 @@
   "identifier": "default",
   "description": "Default capabilities for VibeShell",
   "platforms": [
-    "macOS",
-    "windows",
     "linux"
   ],
   "remote": {

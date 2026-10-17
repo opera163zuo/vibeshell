@@ -130,17 +130,11 @@ Optional encrypted **Gist/WebDAV sync** carries server metadata, groups, snippet
 
 SSH host identity is checked before authentication, including the real destination behind a jump host. Credentials and agent activity use encrypted local storage. That is not OS Keychain custody or protection from a compromised local account. A correct private key does not justify accepting an unexpected server fingerprint.
 
-## Start with a server you already use
+## Linux server and cross-platform agents
 
-Get the desktop installer or standalone CLI from [Releases](https://github.com/veithly/vibeshell/releases).
+The Linux-hosted service targets Ubuntu/Debian servers. Remote Hermes Agents can connect from any operating system with MCP HTTP support. VibeShell does not provide macOS or Windows desktop or native CLI packages.
 
-| Platform | Desktop | Native CLI |
-| --- | --- | --- |
-| macOS Apple Silicon / Intel | Architecture-specific `.dmg` | `.tar.gz` |
-| Windows x64 | `.exe` / `.msi` | `.zip` |
-| Linux x64 | `.AppImage` / `.deb` | `.tar.gz` |
-
-The desktop includes a CLI sidecar. Standalone CLI archives include `install.sh` / `install.ps1`; inspect the script before running it. The native Rust CLI itself does not need Node.js. [CLI installation](cli/README.md)
+[Linux server installation and LAN MCP setup](docs/LAN-MCP-UBUNTU-DEBIAN.md) · [Standalone CLI installation](cli/README.md)
 
 ```bash
 vibeshell import auto --dry-run    # Review, then run without --dry-run to import.
@@ -155,7 +149,7 @@ Replace `my-server` with a saved name. Use an alias returned by `sessions` with 
 
 The CLI can start a daemon when needed; the GUI can attach to its sessions. The process owning a connection must remain alive: daemon-owned sessions can outlive the GUI, while GUI-owned ones end when that GUI exits. Upgrade the desktop and CLI together, and save ongoing work before restarting.
 
-Apple signing/notarization details are in each release's notes. An ad-hoc signature is not Apple notarization. Mobile targets remain experimental. Common OpenSSH paths are tested, but not every MFA flow, hardware token or SSH implementation. Proposed CLI server-create/delete and Teleport support are not part of the current 1.1.0 release.
+Mobile targets remain experimental. Common OpenSSH paths are tested, but not every MFA flow, hardware token or SSH implementation. Proposed CLI server-create/delete and Teleport support are not part of the current 1.1.0 release.
 
 ## Build, contribute, or explore the implementation
 

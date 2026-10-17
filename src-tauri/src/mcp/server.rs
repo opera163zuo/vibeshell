@@ -619,7 +619,6 @@ fn activity_summary(name: &str, args: &Value) -> String {
         "session_send_input" => {
             Some("Terminal input submission; complete commands are recorded separately")
         }
-        "plugin_execute" => args.get("actionId").and_then(Value::as_str),
         "sftp_ls" | "sftp_mkdir" | "sftp_rm" | "sftp_read" | "sftp_write" | "get_content"
         | "edit_file" | "add_file" => args.get("path").and_then(Value::as_str),
         "sftp_upload" | "sftp_upload_directory" | "sftp_sync_directory" => args
@@ -682,71 +681,6 @@ async fn execute_tool(
     agent: Option<&str>,
 ) -> Result<String, String> {
     match name {
-        "plugin_list" => serde_json::to_string(&crate::plugins::agent::list(
-            &state.database,
-            args.get("installed_only")
-                .and_then(Value::as_bool)
-                .unwrap_or(true),
-        )?)
-        .map_err(|e| e.to_string()),
-        "plugin_describe" => {
-            let data = crate::plugins::agent::describe(
-                &state.database,
-                args.get("plugin_id")
-                    .and_then(Value::as_str)
-                    .ok_or("Missing plugin_id")?,
-                args.get("reference")
-                    .and_then(Value::as_bool)
-                    .unwrap_or(false),
-            )?;
-            match data {
-                Value::String(text) => Ok(text),
-                other => serde_json::to_string(&other).map_err(|e| e.to_string()),
-            }
-        }
-        "plugin_execute" => {
-            let mut request: crate::plugins::PluginExecuteRequest =
-                serde_json::from_value(args.clone())
-                    .map_err(|e| format!("Invalid plugin request: {e}"))?;
-            // Never treat a model-provided confirmed=true as human approval.
-            request.confirmed = false;
-            if !crate::plugins::agent::is_local(&state.session_manager, &request.session_id).await {
-                request.session_id = resolve_session(state, &request.session_id)
-                    .await?
-                    .id
-                    .clone();
-            }
-            let prepared = crate::plugins::agent::prepare(
-                &state.database,
-                &request,
-                crate::plugins::agent::is_local(&state.session_manager, &request.session_id).await,
-            )?;
-            if prepared.requires_confirmation {
-                state
-                    .require_approval(
-                        "plugin_execute",
-                        Some(&request.session_id),
-                        &prepared.command,
-                        vec![format!(
-                            "Plugin action {}/{} requires approval",
-                            request.plugin_id, request.action_id
-                        )],
-                    )
-                    .await?;
-                request.confirmed = true;
-            }
-            serde_json::to_string(
-                &crate::plugins::agent::execute(
-                    &state.database,
-                    &state.session_manager,
-                    request,
-                    "mcp.plugin",
-                    Some(&prepared.command),
-                )
-                .await?,
-            )
-            .map_err(|e| e.to_string())
-        }
         // Server Management
         "server_list" => tool_server_list(state, args).await,
         "server_add" => tool_server_add(state, args).await,

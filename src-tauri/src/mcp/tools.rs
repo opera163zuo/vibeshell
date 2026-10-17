@@ -32,19 +32,14 @@ impl ToolDefinition {
     }
 }
 
-/// Returns all tool definitions for the MCP server
+/// Returns the SSH, session, command and SFTP tools required by the headless service.
 pub fn get_tool_definitions() -> Vec<ToolDefinition> {
     vec![
-        plugin_list_tool(),
-        plugin_describe_tool(),
-        plugin_execute_tool(),
-        // === Server Management Tools ===
         server_list_tool(),
         server_add_tool(),
         server_get_tool(),
         server_update_tool(),
         server_delete_tool(),
-        // === Session Management Tools ===
         session_list_tool(),
         session_create_tool(),
         session_attach_tool(),
@@ -53,10 +48,8 @@ pub fn get_tool_definitions() -> Vec<ToolDefinition> {
         session_send_input_tool(),
         session_read_tool(),
         session_resize_tool(),
-        // === Command Execution Tools ===
         exec_tool(),
         remote_rg_tool(),
-        // === SFTP Operations Tools ===
         sftp_ls_tool(),
         sftp_upload_tool(),
         sftp_upload_directory_tool(),
@@ -91,14 +84,6 @@ fn compact_description(name: &str) -> String {
     match name {
         "session_send_input" => "Send visible terminal input (approval-gated).".to_string(),
         "session_read" => "Read recent visible terminal output.".to_string(),
-        "plugin_list" => "List installed plugins and live reference commands.".to_string(),
-        "plugin_describe" => {
-            "Read action input schemas; reference=true returns usage documentation.".to_string()
-        }
-        "plugin_execute" => {
-            "Run an installed/enabled plugin action on a session; human approval is enforced."
-                .to_string()
-        }
         "exec" => "Run isolated SSH command (approval-gated).".to_string(),
         "server_list" => "List saved servers.".to_string(),
         "session_list" => "List sessions.".to_string(),
@@ -119,25 +104,6 @@ fn compact_schema(value: &mut Value) {
         Value::Array(items) => items.iter_mut().for_each(compact_schema),
         _ => {}
     }
-}
-
-fn plugin_list_tool() -> ToolDefinition {
-    ToolDefinition::new("plugin_list", "Discover current plugin installation, enablement and reference commands. No settings or secrets are returned.",
-        json!({"type":"object","properties":{"installed_only":{"type":"boolean","default":true}},"additionalProperties":false}))
-}
-
-fn plugin_describe_tool() -> ToolDefinition {
-    ToolDefinition::new("plugin_describe", "Read a plugin's exact action schemas, or its current Markdown usage reference. Works for native and imported plugins.",
-        json!({"type":"object","properties":{"plugin_id":{"type":"string"},"reference":{"type":"boolean","default":false}},"required":["plugin_id"],"additionalProperties":false}))
-}
-
-fn plugin_execute_tool() -> ToolDefinition {
-    ToolDefinition::new("plugin_execute", "Run one installed/enabled plugin action on an existing session. Read plugin_describe first. Risky actions require approval in the human UI; the model cannot grant itself approval. No passwords in inputs.",
-        json!({"type":"object","properties":{
-            "pluginId":{"type":"string"},"actionId":{"type":"string"},"sessionId":{"type":"string"},
-            "inputs":{"type":"object","description":"Must match this action's inputSchema from plugin_describe"},
-            "trySudo":{"type":"boolean","default":false}
-        },"required":["pluginId","actionId","sessionId"],"additionalProperties":false}))
 }
 
 // === Server Management Tools ===
@@ -968,10 +934,10 @@ mod tests {
     fn test_get_tool_definitions() {
         let tools = get_tool_definitions();
 
-        // Includes the three shared plugin discovery/execution tools.
-        assert_eq!(tools.len(), 31);
+        // The headless service only exposes SSH/session/command/SFTP operations.
+        assert_eq!(tools.len(), 28);
         for name in ["plugin_list", "plugin_describe", "plugin_execute"] {
-            assert!(tools.iter().any(|tool| tool.name == name));
+            assert!(!tools.iter().any(|tool| tool.name == name));
         }
 
         // Check that all tools have non-empty names and descriptions
@@ -1025,7 +991,7 @@ mod tests {
     #[test]
     fn compact_definitions_drop_repeated_schema_prose() {
         let tools = get_compact_tool_definitions();
-        assert_eq!(tools.len(), 31);
+        assert_eq!(tools.len(), 28);
         let encoded = serde_json::to_string(&tools).unwrap();
         assert!(!encoded.contains("Filter servers by group ID"));
         assert!(!encoded.contains("\"default\""));

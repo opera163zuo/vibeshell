@@ -49,27 +49,17 @@ sudo systemctl enable --now vibeshell-mcp.service
 curl -s http://127.0.0.1:8765/health
 
 sudo -u vibeshell XDG_DATA_HOME=/var/lib/vibeshell vibeshell mcp pair-code
-# One-time pairing code: 447772  (valid 300 s, usable once, never logged)
+# One-time pairing code is printed locally; valid for five minutes and one use.
 ```
 
-The Agent exchanges the code for its own bearer token. The token is returned
-exactly once and only its SHA-256 hash is stored:
+The Agent exchanges the code for its own bearer token. The token is returned once; only its hash is stored. Pair from a trusted private network and configure HTTPS at a trusted reverse proxy before allowing remote traffic.
 
-```bash
-curl -s -X POST http://127.0.0.1:8765/pair \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"hermes-macos","code":"447772"}'
-# {"agentId":"8045…","name":"hermes-macos","token":"vsh_…","tokenType":"Bearer"}
-```
-
-Point the client at `http://127.0.0.1:8765/mcp` with an
-`Authorization: Bearer <token>` header. Every MCP route requires that header;
-only `/health` and `/pair` are reachable without it.
+Point the Agent at `http://127.0.0.1:8765/mcp` behind the local TLS proxy, using the issued token in the `Authorization: Bearer …` header. Every MCP route requires that header; only `/health` and `/pair` are unauthenticated.
 
 ```bash
 sudo -u vibeshell XDG_DATA_HOME=/var/lib/vibeshell vibeshell mcp agents
-sudo -u vibeshell XDG_DATA_HOME=/var/lib/vibeshell vibeshell mcp revoke 8045
-sudo -u vibeshell XDG_DATA_HOME=/var/lib/vibeshell vibeshell mcp rotate 8045
+sudo -u vibeshell XDG_DATA_HOME=/var/lib/vibeshell vibeshell mcp revoke <agent-id>
+sudo -u vibeshell XDG_DATA_HOME=/var/lib/vibeshell vibeshell mcp rotate <agent-id>
 ```
 
 Revocation and rotation take effect on the Agent's next request — the service
@@ -138,37 +128,7 @@ with a notice when the host has no global IPv4 address.
 
 ## 6. Reaching beyond loopback
 
-Clear text HTTP over a network is not acceptable, and the service does not do TLS
-itself. Put a TLS-terminating proxy in front and bind the service to loopback,
-or bind a specific private address deliberately:
-
-```ini
-VIBESHELL_MCP_BIND=192.168.1.20:8765
-VIBESHELL_MCP_ALLOW_LAN=true
-```
-
-Both conditions are enforced at start-up, and pairing must already have happened:
-
-- loopback binds are always allowed;
-- `0.0.0.0` / `::` is refused — name one interface address;
-- a non-loopback address without `VIBESHELL_MCP_ALLOW_LAN=true` is refused;
-- a non-loopback address with zero active paired Agents is refused.
-
-Restrict who may connect, for example:
-
-```bash
-sudo apt-get install -y nftables
-sudo nft add-table ip vibeshell
-sudo nft add-chain ip vibeshell input tcp dport 8765 ip saddr 192.168.1.0/24 accept
-```
-
-Caddy terminating TLS for the Agent side:
-
-```
-mcp.example.internal {
-  reverse_proxy 127.0.0.1:8765
-}
-```
+The service binds to the private LAN address configured in `/etc/vibeshell/mcp.env`; the reverse proxy runs on the same host and terminates HTTPS before forwarding to `127.0.0.1:8765`. Do not bind the MCP service itself to an externally reachable cleartext port.
 
 ## 7. Backups
 

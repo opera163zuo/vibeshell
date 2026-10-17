@@ -6,16 +6,12 @@ from pathlib import Path
 import shutil
 import tarfile
 import tempfile
-import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 TARGETS = {
-    "aarch64-apple-darwin": "macos-arm64",
-    "x86_64-apple-darwin": "macos-x64",
-    "x86_64-pc-windows-msvc": "windows-x64",
     "x86_64-unknown-linux-gnu": "linux-x64",
 }
-EXTENSIONS = (".dmg", ".exe", ".msi", ".AppImage", ".deb", ".rpm", ".tar.gz", ".zip", ".sig")
+EXTENSIONS = (".AppImage", ".deb", ".tar.gz", ".sig")
 
 
 def main():
@@ -36,7 +32,7 @@ def main():
         if destination.exists():
             raise RuntimeError(f"Duplicate artifact name: {destination.name}")
         shutil.copy2(path, destination)
-    binary = build / ("vibeshell.exe" if "windows" in slug else "vibeshell")
+    binary = build / "vibeshell"
     if not binary.is_file():
         raise RuntimeError("Native CLI binary is missing")
     with tempfile.TemporaryDirectory(prefix="vibeshell-cli-") as tmp:
@@ -48,19 +44,12 @@ def main():
         shutil.copytree(ROOT / "licenses", directory / "licenses")
         shutil.copytree(ROOT / "skills/vibeshell", directory / "skills/vibeshell")
         shutil.copy2(ROOT / "cli/README.md", directory / "README.md")
-        if "windows" in slug:
-            shutil.copy2(ROOT / "scripts/install-cli.ps1", directory / "install.ps1")
-            with zipfile.ZipFile(output / f"{directory.name}.zip", "w", zipfile.ZIP_DEFLATED) as archive:
-                for path in directory.rglob("*"):
-                    if path.is_file():
-                        archive.write(path, path.relative_to(directory.parent))
-        else:
-            script = directory / "install.sh"
-            shutil.copy2(ROOT / "scripts/install-cli.sh", script)
-            script.chmod(0o755)
-            (directory / binary.name).chmod(0o755)
-            with tarfile.open(output / f"{directory.name}.tar.gz", "w:gz") as archive:
-                archive.add(directory, arcname=directory.name)
+        script = directory / "install.sh"
+        shutil.copy2(ROOT / "scripts/install-cli.sh", script)
+        script.chmod(0o755)
+        (directory / binary.name).chmod(0o755)
+        with tarfile.open(output / f"{directory.name}.tar.gz", "w:gz") as archive:
+            archive.add(directory, arcname=directory.name)
     print(f"Collected {len(artifacts)} desktop files and one licensed CLI archive for {slug}")
 
 

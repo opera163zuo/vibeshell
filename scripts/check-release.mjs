@@ -37,6 +37,15 @@ assert.match(read('LICENSE'), /GNU GENERAL PUBLIC LICENSE\s+Version 3, 29 June 2
 assert.match(read('licenses/legacy-MIT.txt'), /MIT License/);
 assert.match(read('NOTICE'), /GPL-3.0-only/);
 assert(!pkg.dependencies?.gsap && !pkg.dependencies?.['@gsap/react']);
+assert(!pkg.scripts?.['build:msi'], 'Windows installer build script must be removed');
+const ciWorkflow = read('.github/workflows/ci.yml');
+const releaseWorkflow = read('.github/workflows/release.yml');
+assert(!/windows-latest|macos-latest|x86_64-pc-windows-msvc|apple-darwin|APPLE_CERTIFICATE|MACOSX_DEPLOYMENT_TARGET/.test(ciWorkflow + releaseWorkflow), 'Release/CI must not build or sign macOS/Windows artifacts');
+assert.match(read('README.md'), /does not provide macOS or Windows desktop or native CLI packages/);
+assert.match(read('README.zh-CN.md'), /不提供 macOS 或 Windows 桌面版和原生 CLI 安装包/);
+assert.match(read('cli/README.md'), /Linux only/);
+assert.doesNotMatch(read('scripts/generate-latest-json.js'), /windows-x86_64|darwin-aarch64|darwin-x86_64/);
+assert.match(read('README.ja.md'), /macOS \/ Windows 向けのデスクトップ版およびネイティブ CLI パッケージは提供しません/);
 const canonical = read('skills/vibeshell/SKILL.md');
 const ids = readdirSync(resolve(root, 'plugins/builtin'), { withFileTypes: true })
   .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();

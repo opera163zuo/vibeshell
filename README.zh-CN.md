@@ -130,17 +130,11 @@ vibeshell plugins run server-performance status --session SESSION_ID --inputs '{
 
 SSH 在认证前检查服务器身份，经过跳板时也验证实际目标。凭据和 Agent 操作历史采用本地加密存储，但不是 OS Keychain 托管，也不能抵挡已被攻陷的本机账户。私钥正确，并不是接受陌生服务器指纹的理由。
 
-## 从你已有的服务器开始
+## Linux 服务器与跨平台 Agent
 
-在 [Releases](https://github.com/veithly/vibeshell/releases) 下载对应平台的桌面包或独立 CLI。
+VibeShell 服务端面向 Ubuntu/Debian Linux 服务器。只要支持 MCP HTTP，Hermes Agent 可从不同操作系统远程连接；项目不提供 macOS 或 Windows 桌面版和原生 CLI 安装包。
 
-| 平台 | 桌面安装包 | 原生 CLI |
-| --- | --- | --- |
-| macOS Apple Silicon / Intel | 对应架构 `.dmg` | `.tar.gz` |
-| Windows x64 | `.exe` / `.msi` | `.zip` |
-| Linux x64 | `.AppImage` / `.deb` | `.tar.gz` |
-
-桌面内置 CLI；独立 CLI 压缩包附带 `install.sh` / `install.ps1`，请阅读后执行。Rust 原生 CLI 本身不依赖 Node.js。[CLI 安装说明](cli/README.md)
+[Linux 服务端与局域网 MCP 安装说明](docs/LAN-MCP-UBUNTU-DEBIAN.md) · [独立 CLI 说明](cli/README.md)
 
 ```bash
 vibeshell import auto --dry-run    # 审阅后去掉 --dry-run 正式导入。
@@ -155,7 +149,7 @@ vibeshell sftp my-server ls /srv/app
 
 CLI 可按需启动 daemon，GUI 能接入已有会话。连接依赖实际持有它的进程：daemon 的会话可在 GUI 关闭后继续，GUI 自己持有的连接则会随该进程退出而结束。升级时应让桌面与 CLI 保持一致，重启前保存正在做的工作。
 
-Apple 签名和公证以每次发布说明为准，ad-hoc 签名不是 Apple 公证。移动端仍是实验性支持，常见 OpenSSH 测试也不能覆盖每一种 MFA、硬件令牌或 SSH 实现。提议中的 CLI 新建/删除服务器和 Teleport 不属于当前 1.1.0 发布内容。
+VibeShell 桌面包和原生 CLI 仅面向 Linux 发布。移动端仍是实验性支持，常见 OpenSSH 测试也不能覆盖每一种 MFA、硬件令牌或 SSH 实现。提议中的 CLI 新建/删除服务器和 Teleport 不属于当前 1.1.0 发布内容。
 
 ## 自己运行，或者参与开发
 

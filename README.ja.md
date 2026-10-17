@@ -130,17 +130,11 @@ vibeshell plugins run server-performance status --session SESSION_ID --inputs '{
 
 SSH は認証前にホストを検証し、踏み台経由でも実際の接続先を確認します。認証情報と Agent 履歴はローカル暗号化保存ですが、OS Keychain 保管や侵害済みローカルアカウントからの保護ではありません。正しい秘密鍵があっても、想定外のホスト指紋を無条件で許可してはいけません。
 
-## いつものサーバーから始める
+## Linux サーバーとクロスプラットフォーム Agent
 
-[Releases](https://github.com/veithly/vibeshell/releases) から対応するデスクトップまたは CLI を取得できます。
+VibeShell サービスは Ubuntu/Debian Linux サーバーを対象とします。MCP HTTP 対応の Hermes Agent は異なる OS からリモート接続できます。macOS / Windows 向けのデスクトップ版およびネイティブ CLI パッケージは提供しません。
 
-| プラットフォーム | デスクトップ | ネイティブ CLI |
-| --- | --- | --- |
-| macOS Apple Silicon / Intel | アーキテクチャ別 `.dmg` | `.tar.gz` |
-| Windows x64 | `.exe` / `.msi` | `.zip` |
-| Linux x64 | `.AppImage` / `.deb` | `.tar.gz` |
-
-デスクトップは CLI を同梱します。独立 CLI の `install.sh` / `install.ps1` は内容を読んでから実行してください。Rust の CLI 自体は Node.js に依存しません。[CLI インストール](cli/README.md)
+[Linux サーバーと LAN MCP のセットアップ](docs/LAN-MCP-UBUNTU-DEBIAN.md) · [CLI ガイド](cli/README.md)
 
 ```bash
 vibeshell import auto --dry-run    # 確認後に --dry-run を外して取り込みます。
@@ -155,7 +149,7 @@ vibeshell sftp my-server ls /srv/app
 
 CLI は必要に応じて daemon を起動し、GUI は既存セッションに接続できます。接続の所有プロセスは生きている必要があります。daemon 所有の接続は GUI 終了後も継続できますが、GUI 所有の接続はその終了で切れます。デスクトップと CLI は一緒に更新し、再起動前に作業を保存してください。
 
-Apple 署名/公証の状況は各リリースノートを参照してください。ad-hoc 署名は Apple 公証ではありません。モバイルは実験的で、全 MFA、ハードウェアトークン、SSH 実装への対応を保証しません。提案中の CLI サーバー作成/削除と Teleport は現在の 1.1.0 には含まれません。
+VibeShell のデスクトップ版とネイティブ CLI は Linux 向けのみ提供します。モバイルは実験的で、全 MFA、ハードウェアトークン、SSH 実装への対応を保証しません。提案中の CLI サーバー作成/削除と Teleport は現在の 1.1.0 には含まれません。
 
 ## 動かす、開発する、実装を読む
 

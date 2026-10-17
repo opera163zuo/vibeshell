@@ -65,10 +65,7 @@ fn capabilities_separate_desktop_and_mobile_permissions() {
     let desktop = read_json(&desktop_path);
     let mobile = read_json(&mobile_path);
 
-    assert_eq!(
-        desktop["platforms"],
-        serde_json::json!(["macOS", "windows", "linux"])
-    );
+    assert_eq!(desktop["platforms"], serde_json::json!(["linux"]));
     assert_eq!(mobile["platforms"], serde_json::json!(["iOS", "android"]));
 
     let mobile_permissions = mobile["permissions"]
