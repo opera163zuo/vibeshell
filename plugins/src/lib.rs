@@ -331,7 +331,7 @@ pub fn agent_reference(manifest: &PluginManifest) -> Result<String, String> {
             action["description"].as_str().unwrap_or_default(), manifest.id, id,
             serde_json::to_string_pretty(&action).map_err(|e| e.to_string())?));
     }
-    document.push_str("## MCP equivalent\n\nUse `plugin_list` for installed state, `plugin_describe` with `plugin_id` and optional `reference: true` for this reference, and `plugin_execute` with `pluginId`, `actionId`, `sessionId`, and `inputs`. Gateway execution obtains required approval from the human; a model-supplied confirmation flag is not approval. SSH trust checks remain enabled.\n");
+    document.push_str("## Running this from the MCP service\n\nThe networked MCP endpoint exposes SSH, session, command and SFTP tools only; plugin actions are not part of that surface. Run the command above with `exec`, or send it with `session_send_input` on an existing session. Both stay approval-gated, and because the headless service has no approval UI an action that needs approval fails closed there — use the desktop app or `vibeshell plugins run` for those. A model-supplied confirmation flag is never approval, and SSH host-key checks remain enforced.\n");
     Ok(document)
 }
 

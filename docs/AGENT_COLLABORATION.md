@@ -45,13 +45,9 @@ vibeshell plugins run server-performance status --session SESSION_ID --inputs '{
 
 Use an existing session and check enabled state before running. Without `--installed`, the list includes uninstalled catalog entries. Descriptions expose action input schemas, permission requirements, confirmation and sudo capabilities, but not saved settings or credentials.
 
-| MCP tool | Parameters | Result |
-| --- | --- | --- |
-| `plugin_list` | `installed_only` (default true) | Current install/enabled state and documentation entry points |
-| `plugin_describe` | `plugin_id`, `reference` | Action schemas; `reference: true` returns Markdown |
-| `plugin_execute` | `pluginId`, `actionId`, `sessionId`, `inputs`, optional `trySudo` | Bounded output, duration and truncation state, or an error |
+Plugin actions are reached through the CLI above or the desktop UI. The networked MCP service advertises only SSH, session, command and SFTP tools, so an Agent on that transport runs the documented command with `exec` or `session_send_input` instead.
 
-Execution checks installed/enabled state, granted and declared permissions, session type and inputs. It never installs or enables a plugin as a side effect. CLI `--confirm` is only appropriate after the person approves the exact operation; sudo is a separate explicit opt-in. MCP obtains approval from the human gateway, and rechecks that the command has not changed during review.
+Execution checks installed/enabled state, granted and declared permissions, session type and inputs. It never installs or enables a plugin as a side effect. CLI `--confirm` is only appropriate after the person approves the exact operation; sudo is a separate explicit opt-in. The desktop gateway obtains approval from the human and rechecks that the command has not changed during review; the headless service has no approval UI and fails such a call closed.
 
 Nonzero command exits are errors. SSH output and runtime are bounded; the plugin then applies its UTF-8-safe output cap. It does not use a `head` pipeline that would hide the command's exit status. Local execution drains stdout/stderr concurrently, closes unused stdin and bounds captured output and time.
 

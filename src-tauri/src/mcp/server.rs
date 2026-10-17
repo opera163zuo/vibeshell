@@ -2316,18 +2316,12 @@ mod tests {
         let database = Arc::new(Database::new_at(temp.path().join("stdio.db")).unwrap());
         let manager = Arc::new(SessionManager::new(database.clone()));
         let state = McpState::new(database.clone(), manager);
-        let catalog = execute_tool_public(
-            &state,
-            "plugin_list",
-            &json!({"installed_only": false}),
-            None,
-        )
-        .await
-        .unwrap();
-        assert_eq!(
-            serde_json::from_str::<Vec<Value>>(&catalog).unwrap().len(),
-            crate::plugins::builtin_catalog().unwrap().len()
-        );
+        let catalog = execute_tool_public(&state, "server_list", &json!({}), None)
+            .await
+            .unwrap();
+        assert!(serde_json::from_str::<Vec<Value>>(&catalog)
+            .unwrap()
+            .is_empty());
         let command = format!("printf '{}'\nwhoami", "界".repeat(500));
         assert_eq!(
             activity_summary("exec", &json!({"command":command})),

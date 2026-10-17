@@ -271,7 +271,7 @@ mod tests {
                 reference,
                 crate::plugins::agent_reference(&manifest).unwrap()
             );
-            assert!(reference.contains("## MCP equivalent"));
+            assert!(reference.contains("## Running this from the MCP service"));
             for action in crate::plugins::agent_actions(&manifest) {
                 assert!(reference.contains(&format!("## `{}`", action["id"].as_str().unwrap())));
             }

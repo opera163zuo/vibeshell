@@ -344,10 +344,11 @@ settings, saved credentials or sudo passwords.
 Local sessions require a GUI-owned service that can access that local session.
 Remote native performance collection currently assumes Linux `/proc`.
 
-MCP exposes the same operations as `plugin_list`, `plugin_describe` and
-`plugin_execute`. `plugin_describe` with `reference: true` returns the full
-reference; `plugin_execute` uses camelCase `pluginId`, `actionId`, `sessionId`
-and `inputs`. Clients MUST discover schemas rather than guessing action IDs.
+The CLI and the desktop UI expose these operations; the networked MCP service
+deliberately does not, because it serves SSH, session, command and SFTP tools
+only. `vibeshell plugins describe` returns the machine-readable action schemas
+and `vibeshell plugins docs` regenerates the full reference. Clients MUST
+discover schemas rather than guessing action IDs.
 
 The main VibeShell Skill MUST contain discovery instructions and a compact
 index of built-in reference documents, but MUST NOT inline every action's
