@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod acl_tests;
 pub mod cloud_sync;
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-pub mod coding_agent;
 pub mod commands;
 pub mod dbconn;
 pub mod install;
@@ -31,6 +29,7 @@ pub use storage::Database;
 use commands::{
     add_group,
     add_server,
+    agent_activity_list,
     // Agent command guard
     cancel_agent_auto_approve,
     clear_fingerprints,
@@ -43,10 +42,6 @@ use commands::{
     cloud_sync_lock,
     cloud_sync_now,
     cloud_sync_status,
-    coding_agent_launch,
-    coding_agent_list,
-    coding_agent_workspace_diff,
-    coding_agent_workspace_status,
     credential_status,
     db_connection_columns,
     db_connection_databases,
@@ -74,11 +69,6 @@ use commands::{
     get_server_status,
     get_servers,
     get_session_recording_id,
-    history_clear,
-    history_delete,
-    history_list,
-    history_record,
-    history_set_favorite,
     install_to_tool,
     is_session_recording,
     list_fingerprints,
@@ -103,14 +93,6 @@ use commands::{
     // Dialog commands
     pick_ssh_key_file,
     pick_workspace_directory,
-    plugin_execute,
-    plugin_export,
-    plugin_import,
-    plugin_install,
-    plugin_list,
-    plugin_set_enabled,
-    plugin_uninstall,
-    plugin_update_settings,
     probe_host_key,
     read_ssh_key_file,
     resolve_agent_approval,
@@ -147,24 +129,11 @@ use commands::{
     sftp_upload_directory,
     sftp_upload_file,
     sftp_write_file,
-    snippet_add,
-    snippet_delete,
     // Snippet commands
-    snippet_list,
-    snippet_search,
-    snippet_update,
     // Logging/recording commands
     start_recording,
     stop_recording,
-    tunnel_config_add,
-    tunnel_config_delete,
     // Tunnel commands
-    tunnel_config_list,
-    tunnel_config_update,
-    tunnel_list_active,
-    tunnel_start,
-    tunnel_stop,
-    tunnel_stop_all_for_session,
     uninstall_from_tool,
     update_server,
     verify_fingerprint,
@@ -419,7 +388,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::history::agent_activity_list,
+            agent_activity_list,
             open_devtools,
             commands::workspace_window::workspace_pointer_state,
             commands::workspace_window::workspace_exit,
@@ -443,10 +412,6 @@ pub fn run() {
             cloud_sync_status,
             cloud_sync_now,
             // Coding agents launched inside VibeShell PTYs
-            coding_agent_list,
-            coding_agent_launch,
-            coding_agent_workspace_status,
-            coding_agent_workspace_diff,
             db_connection_list,
             db_connection_save,
             db_connection_delete,
@@ -458,14 +423,6 @@ pub fn run() {
             db_connection_query,
             db_session_detect,
             // Plugin marketplace commands
-            plugin_list,
-            plugin_install,
-            plugin_import,
-            plugin_export,
-            plugin_uninstall,
-            plugin_set_enabled,
-            plugin_update_settings,
-            plugin_execute,
             // Session commands
             session_list,
             session_create,
@@ -552,26 +509,8 @@ pub fn run() {
             local_shell_kill,
             local_shell_kill_all,
             // Snippet commands
-            snippet_list,
-            snippet_add,
-            snippet_update,
-            snippet_delete,
-            snippet_search,
             // Command history commands
-            history_list,
-            history_record,
-            history_set_favorite,
-            history_delete,
-            history_clear,
             // Tunnel commands
-            tunnel_config_list,
-            tunnel_config_add,
-            tunnel_config_update,
-            tunnel_config_delete,
-            tunnel_start,
-            tunnel_stop,
-            tunnel_list_active,
-            tunnel_stop_all_for_session,
             // Recording/logging commands
             start_recording,
             stop_recording,

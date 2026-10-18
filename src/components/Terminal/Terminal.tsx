@@ -12,7 +12,7 @@ import { MobileKeyBar } from './MobileKeyBar';
 import { useCompletion } from './useCompletion';
 import { applyTrackedInput, getClickedInputPosition, getCursorMoveSequence } from './inputCursor';
 import { ContextMenu, type ContextMenuItem } from '../ContextMenu';
-import { fireAndForgetInvoke, flushInputBatch } from '../../lib/tauri';
+import { flushInputBatch } from '../../lib/tauri';
 
 type ConnectionStatus = 'initializing' | 'listening' | 'receiving' | 'error';
 
@@ -166,13 +166,6 @@ function useSessionServerId(sessionId: string | undefined): string | undefined {
   });
 }
 
-function useIsCodingAgentSession(sessionId: string | undefined): boolean {
-  return useSessionStore((state) => {
-    if (!sessionId) return false;
-    return state.sessions.find((session) => session.id === sessionId)?.purpose === 'coding_agent';
-  });
-}
-
 interface TerminalProps {
   sessionId?: string;
   onData?: (data: string) => void;
@@ -219,8 +212,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     const sessionType = useSessionType(sessionId);
     const serverId = useSessionServerId(sessionId);
     const isLocalShell = sessionType === 'local';
-    const isCodingAgent = useIsCodingAgentSession(sessionId);
-    const rawInputRef = useRef(isCodingAgent);
 
     const sendInputForSession = isLocalShell ? sendLocalShellInput : sendInput;
     const sendInputFastForSession = isLocalShell ? sendLocalShellInputFast : sendInputFast;
@@ -261,16 +252,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       completionActionsRef.current = completionActions;
     }, [completionActions]);
 
-    useEffect(() => {
-      rawInputRef.current = isCodingAgent;
-      if (isCodingAgent) {
-        inputBufferRef.current = '';
-        cursorPositionRef.current = 0;
-        completionActionsRef.current.hideCompletions();
-        completionActionsRef.current.clearGhostText();
-      }
-    }, [isCodingAgent]);
-
     const sessionIdRef = useRef(sessionId);
     const serverIdRef = useRef(serverId);
     useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
@@ -307,11 +288,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         cursorPositionRef.current = 0;
         completionActionsRef.current.hideCompletions();
         completionActionsRef.current.clearGhostText();
-        if (!isLocalShell && !isCodingAgent && serverIdRef.current) {
-          fireAndForgetInvoke('history_record', {
-            input: { serverId: serverIdRef.current, command: normalized },
-          });
-        }
       },
     }), []);
 
@@ -717,7 +693,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         const target = event.target instanceof Element ? event.target : null;
         if (
           !sid ||
-          rawInputRef.current ||
           event.button !== 0 ||
           event.altKey ||
           event.ctrlKey ||
@@ -776,9 +751,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
 
       xterm.attachCustomKeyEventHandler((event: KeyboardEvent) => {
         if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'o') return false;
-        if (rawInputRef.current) {
-          return true;
-        }
         if (event.ctrlKey && event.code === 'Space' && event.type === 'keydown') {
           event.preventDefault();
           const cs = completionStateRef.current;
@@ -797,15 +769,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       });
 
       xterm.onData((data) => {
-        if (rawInputRef.current) {
-          const sid = sessionIdRef.current;
-          if (sid) {
-            sendInputFastRef.current(sid, data);
-          }
-          onDataRef.current?.(data);
-          return;
-        }
-
         const compState = completionStateRef.current;
         const compActions = completionActionsRef.current;
 
@@ -865,15 +828,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         cursorPositionRef.current = trackedInput.cursor;
 
         if (data === '\r' || data === '\n') {
-          const command = previousBuffer.trim();
-          if (command) {
-            compActions.addToHistory(command);
-            if (!isLocalShell && !isCodingAgent && serverIdRef.current) {
-              fireAndForgetInvoke('history_record', {
-                input: { serverId: serverIdRef.current, command },
-              });
-            }
-          }
           compActions.hideCompletions();
           compActions.clearGhostText();
         } else if (data === '\x7f' || data === '\b') {
@@ -1109,7 +1063,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
           items={completionState.items}
           selectedIndex={completionState.selectedIndex}
           position={completionState.position}
-          visible={!isCodingAgent && completionState.visible}
+          visible={completionState.visible}
           onSelect={handleCompletionSelect}
           onSelectionChange={completionActions.setSelectedIndex}
           onClose={completionActions.hideCompletions}

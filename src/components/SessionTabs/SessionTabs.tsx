@@ -1,21 +1,17 @@
 import { useState, useCallback, memo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, X, Loader2, AlertCircle, Wifi, Monitor, Circle, RefreshCw, Code2, ExternalLink, Save } from 'lucide-react';
+import { Plus, X, Loader2, AlertCircle, Wifi, Monitor, Circle, RefreshCw, ExternalLink, Save } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ContextMenu, type ContextMenuItem } from '../ContextMenu';
 import { useSessionStore, type Session, type SessionState, type SessionType } from '../../stores/sessionStore';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useFileWorkspaceStore, type FileWorkspaceTab as FileTabModel } from '../../stores/fileWorkspaceStore';
-import { usePluginWorkspaceStore, type PluginWorkspaceTab } from '../../stores/pluginWorkspaceStore';
-import { usePluginStore } from '../../stores/pluginStore';
-import { localizedPluginName } from '../../plugins/pluginUtils';
-import { openDetachedWindow, useDetachedOwnership, canCloseWorkspaceSession, type DetachTarget } from '../../lib/detach';
-import { sessionPaneId, pluginPaneId, filePaneId } from '../../lib/paneIds';
+import { openDetachedWindow, useDetachedOwnership, canCloseWorkspaceSession } from '../../lib/detach';
+import { sessionPaneId, filePaneId } from '../../lib/paneIds';
 import type { DockSide } from '../../lib/docking';
 import { beginTabDragOnMouseDown } from '../../lib/tabDragController';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { FileIcon } from '../SftpPanel/FileIcon';
-import { PluginIcon } from '../PluginIcon';
 import { OpenLocalFilesButton } from '../OpenLocalFilesButton';
 
 interface SessionTabsProps {
@@ -28,7 +24,7 @@ interface SessionTabsProps {
   /** Drop a dragged tab onto a terminal pane edge: split that pane. */
   onPaneDropTab?: (
     paneId: string,
-    kind: 'session' | 'file' | 'plugin',
+    kind: 'session' | 'file',
     tabId: string,
     direction: 'row' | 'column',
     side?: DockSide
@@ -43,8 +39,7 @@ interface SessionTabsProps {
  */
 function getStateIndicator(
   state: SessionState,
-  sessionType: SessionType = 'ssh',
-  purpose?: Session['purpose']
+  sessionType: SessionType = 'ssh'
 ) {
   switch (state) {
     case 'connecting':
@@ -52,9 +47,6 @@ function getStateIndicator(
     case 'connected':
       // Show different icon for local vs SSH
       if (sessionType === 'local') {
-        if (purpose === 'coding_agent') {
-          return <Code2 className="w-3 h-3 text-tokyo-cyan" />;
-        }
         return <Monitor className="w-3 h-3 text-tokyo-cyan" />;
       }
       return <Wifi className="w-3 h-3 text-tokyo-cyan" />;
@@ -63,9 +55,6 @@ function getStateIndicator(
     case 'disconnected':
     default:
       if (sessionType === 'local') {
-        if (purpose === 'coding_agent') {
-          return <Code2 className="w-3 h-3 text-tokyo-comment" />;
-        }
         return <span className="w-2 h-2 rounded-full bg-tokyo-cyan" />;
       }
       return <span className="w-2 h-2 rounded-full bg-tokyo-comment" />;
@@ -149,7 +138,7 @@ const SessionTab = memo(function SessionTab({
     >
       {/* Status Indicator */}
       <span className="flex-shrink-0">
-        {getStateIndicator(session.state, session.sessionType, session.purpose)}
+        {getStateIndicator(session.state, session.sessionType)}
       </span>
 
       {/* Server Name */}
@@ -259,106 +248,6 @@ const FileTab = memo(function FileTab({ tab, isActive, onSelect, onClose, onReor
   );
 });
 
-interface PluginTabChipProps {
-  tab: PluginWorkspaceTab;
-  label: string;
-  iconName: string;
-  isActive: boolean;
-  onSelect: () => void;
-  onClose: () => void;
-  onDetach: (target: DetachTarget, at?: { x: number; y: number }) => unknown;
-  onReorder: (draggedId: string) => void;
-  onPaneDrop?: (paneId: string, direction: 'row' | 'column', side?: DockSide) => void;
-}
-
-/**
- * Plugin workspace tab. Drag it onto another tab to reorder, onto a terminal
- * pane edge to split, or out of the window to open it in its own OS window.
- */
-const PluginTabChip = memo(function PluginTabChip({
-  tab,
-  label,
-  iconName,
-  isActive,
-  onSelect,
-  onClose,
-  onDetach,
-  onReorder,
-  onPaneDrop,
-}: PluginTabChipProps) {
-  const detachTarget: DetachTarget = {
-    kind: 'plugin',
-    pluginId: tab.pluginId,
-    sessionId: tab.sessionId,
-    serverName: tab.serverName,
-    sessionType: tab.sessionType,
-  };
-
-  return (
-    <div
-      data-tab-kind="plugin"
-      data-tab-id={tab.id}
-      onMouseDown={(event) => beginTabDragOnMouseDown(event, {
-        kind: 'plugin',
-        id: tab.id,
-        onReorderOver: onReorder,
-        onPaneDrop,
-        onTearOut: (at) => onDetach(detachTarget, at),
-      })}
-      className={cn(
-        'session-tab-item group flex h-8 min-w-[120px] max-w-[240px] cursor-grab select-none items-center gap-2 rounded-lg border px-2.5',
-        'transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-tokyo-blue',
-        isActive
-          ? 'bg-tokyo-bg border-tokyo-cyan text-tokyo-fg'
-          : 'bg-transparent border-transparent text-tokyo-comment hover:border-tokyo-selection hover:bg-tokyo-bg-hl hover:text-tokyo-fg'
-      )}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-      role="tab"
-      aria-selected={isActive}
-      tabIndex={0}
-      title={label}
-    >
-      <PluginIcon name={iconName} className="h-3.5 w-3.5 flex-shrink-0" />
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
-      <button
-        className={cn(
-          'session-tab-action flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md',
-          'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus:opacity-100',
-          'hover:bg-tokyo-bg-hl focus:outline-none focus:ring-1 focus:ring-tokyo-blue'
-        )}
-        onClick={(event) => {
-          event.stopPropagation();
-          onDetach(detachTarget);
-        }}
-        aria-label="Open in new window"
-        title="Open in new window"
-      >
-        <ExternalLink className="h-3.5 w-3.5" />
-      </button>
-      <button
-        className={cn(
-          'session-tab-action flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md',
-          'opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus:opacity-100',
-          'hover:bg-tokyo-bg-hl focus:outline-none focus:ring-1 focus:ring-tokyo-blue'
-        )}
-        onClick={(event) => {
-          event.stopPropagation();
-          onClose();
-        }}
-        aria-label={`Close ${label}`}
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
-});
-
 /**
  * Context menu for session tabs. Owns the item list only; presentation,
  * viewport clamping and dismissal live in the shared ContextMenu.
@@ -452,19 +341,10 @@ export function SessionTabs({ onNewSession, onReconnectSession, onOpenSessionInW
     closeTab: closeFileTab,
     moveTabBefore: moveFileTabBefore,
   } = useFileWorkspaceStore();
-  const {
-    tabs: pluginTabs,
-    activeTabId: activePluginTabId,
-    activateTab: activatePluginTab,
-    closeTab: closePluginTab,
-    moveTabBefore: movePluginTabBefore,
-  } = usePluginWorkspaceStore();
-  const plugins = usePluginStore((state) => state.plugins);
   const { isRecording, startRecording, stopRecording } = useRecordingStore();
   const owners = useDetachedOwnership((state) => state.owners);
   const visibleSessions = sessions.filter((session) => !owners[sessionPaneId(session.id)]);
   const visibleFiles = fileTabs.filter((tab) => !owners[filePaneId(tab.id)]);
-  const visiblePlugins = pluginTabs.filter((tab) => !owners[pluginPaneId(tab.id)]);
 
   // Confirmation dialog state
   const [confirmClose, setConfirmClose] = useState<Session | null>(null);
@@ -474,25 +354,15 @@ export function SessionTabs({ onNewSession, onReconnectSession, onOpenSessionInW
 
   const handleSelectSession = useCallback((sessionId: string) => {
     activateFileTab(null);
-    activatePluginTab(null);
     setActiveSession(sessionId);
-  }, [activateFileTab, activatePluginTab, setActiveSession]);
+  }, [activateFileTab, setActiveSession]);
 
   const handleSelectFile = useCallback((tab: FileTabModel) => {
     if (sessions.some((session) => session.id === tab.sessionId)) {
       setActiveSession(tab.sessionId);
     }
-    activatePluginTab(null);
     activateFileTab(tab.id);
-  }, [activateFileTab, activatePluginTab, sessions, setActiveSession]);
-
-  const handleSelectPlugin = useCallback((tab: PluginWorkspaceTab) => {
-    if (sessions.some((session) => session.id === tab.sessionId)) {
-      setActiveSession(tab.sessionId);
-    }
-    activateFileTab(null);
-    activatePluginTab(tab.id);
-  }, [activateFileTab, activatePluginTab, sessions, setActiveSession]);
+  }, [activateFileTab, sessions, setActiveSession]);
 
   const handleCloseFile = useCallback((tab: FileTabModel) => {
     if (tab.dirty && !window.confirm(t('fileWorkspace.discardChanges'))) return;
@@ -571,11 +441,9 @@ export function SessionTabs({ onNewSession, onReconnectSession, onOpenSessionInW
   const confirmCloseDirtyFileCount = confirmClose
     ? fileTabs.filter((tab) => tab.sessionId === confirmClose.id && tab.dirty).length
     : 0;
-  const confirmCloseMessage = confirmClose?.purpose === 'coding_agent'
-    ? t('codingAgent.closeConfirm', { name: confirmClose?.serverName })
-    : confirmClose?.sessionType === 'local'
-      ? t('session.closeLocalShellConfirm', { name: confirmClose?.serverName })
-      : t('session.closeSessionConfirm', { name: confirmClose?.serverName });
+  const confirmCloseMessage = confirmClose?.sessionType === 'local'
+    ? t('session.closeLocalShellConfirm', { name: confirmClose?.serverName })
+    : t('session.closeSessionConfirm', { name: confirmClose?.serverName });
 
   return (
     <>
@@ -587,14 +455,14 @@ export function SessionTabs({ onNewSession, onReconnectSession, onOpenSessionInW
               <i />
               <i />
             </span>
-            <span className="session-rail-count">{visibleSessions.length + visibleFiles.length + visiblePlugins.length}</span>
+            <span className="session-rail-count">{visibleSessions.length + visibleFiles.length}</span>
           </div>
 
           {visibleSessions.map((session) => (
             <SessionTab
               key={session.id}
               session={session}
-              isActive={activeFileTabId === null && activePluginTabId === null && activeSessionId === session.id}
+              isActive={activeFileTabId === null && activeSessionId === session.id}
               isRecording={isRecording(session.id)}
               onSelect={() => handleSelectSession(session.id)}
               onReconnect={() => handleReconnect(session)}
@@ -627,31 +495,6 @@ export function SessionTabs({ onNewSession, onReconnectSession, onOpenSessionInW
               onPaneDrop={onPaneDropTab ? (paneId, direction, side) => onPaneDropTab(paneId, 'file', tab.id, direction, side) : undefined}
             />
           ))}
-
-          {visiblePlugins.map((tab) => {
-            const plugin = plugins.find((candidate) => candidate.manifest.id === tab.pluginId);
-            return (
-              <PluginTabChip
-                key={tab.id}
-                tab={tab}
-                label={plugin
-                  ? `${localizedPluginName(t, plugin)} · ${tab.serverName}`
-                  : `${tab.pluginId} · ${tab.serverName}`}
-                iconName={plugin?.manifest.icon ?? 'plug'}
-                isActive={activeFileTabId === null && activePluginTabId === tab.id}
-                onSelect={() => handleSelectPlugin(tab)}
-                onClose={() => closePluginTab(tab.id)}
-                onDetach={(target, at) => openDetachedWindow(
-                  target,
-                  { drag: !!at }
-                )}
-                onReorder={(targetId) => movePluginTabBefore(tab.id, targetId)}
-                onPaneDrop={onPaneDropTab
-                  ? (paneId, direction, side) => onPaneDropTab(paneId, 'plugin', tab.id, direction, side)
-                  : undefined}
-              />
-            );
-          })}
 
           <button
             className={cn(
@@ -690,15 +533,11 @@ export function SessionTabs({ onNewSession, onReconnectSession, onOpenSessionInW
       {/* Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmClose !== null}
-        title={confirmClose?.purpose === 'coding_agent'
-          ? t('codingAgent.close')
-          : confirmClose?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
+        title={confirmClose?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
         message={confirmCloseDirtyFileCount > 0
           ? `${confirmCloseMessage}\n\n${t('fileWorkspace.sessionUnsavedWarning', { count: confirmCloseDirtyFileCount })}`
           : confirmCloseMessage}
-        confirmLabel={confirmClose?.purpose === 'coding_agent'
-          ? t('codingAgent.close')
-          : confirmClose?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
+        confirmLabel={confirmClose?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
         cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={handleConfirmClose}

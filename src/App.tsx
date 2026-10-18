@@ -1,24 +1,13 @@
 import { useCallback, useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Zap,
   FolderOpen,
   Settings as SettingsIcon,
   ArrowLeft,
-  Terminal as TerminalIcon,
-  ArrowRightLeft,
-  Columns2,
-  ExternalLink,
-  Rows2,
   PanelRightClose,
-  Loader2,
+  ExternalLink,
   X,
   Bot,
-  Code2,
-  FileDiff,
-  Blocks,
-  Store,
-  History,
 } from 'lucide-react';
 import { Mosaic, MosaicWindow, type MosaicNode, type MosaicBranch } from 'react-mosaic-component2';
 import 'react-mosaic-component2/react-mosaic-component.css';
@@ -31,10 +20,10 @@ import { useNotificationStore } from './stores/notificationStore';
 import { useThemeSync } from './lib/useThemeSync';
 import { listenForLocalFileRequests, openLocalFiles } from './lib/localFiles';
 import {
-  openDetachedWindow, useDetachedOwnership, detachTargetKey, hydrateTransfer, canCloseWorkspaceSession,
-  releaseDetached, readDetachedLayout, WORKSPACE_QUITTING_EVENT, type TransferSnapshot,
+  openDetachedWindow, useDetachedOwnership, detachTargetKey, canCloseWorkspaceSession,
+  readDetachedLayout, WORKSPACE_QUITTING_EVENT, type TransferSnapshot,
 } from './lib/detach';
-import { dockPane, replaceLeaf, type DockSide, type PanePlacement } from './lib/docking';
+import { replaceLeaf, type PanePlacement } from './lib/docking';
 import { receiveWindowDrops } from './lib/nativeDock';
 import { trackWindowGeometry, captureWindowGeometry } from './lib/windowGeometry';
 import { restoreWorkspaceLayout, restoreWorkspaceWindows, saveWorkspaceLayout } from './lib/workspacePersistence';
@@ -46,44 +35,25 @@ import { AddServerDialog } from './components/AddServerDialog';
 import { EditServerDialog } from './components/EditServerDialog';
 import { ConnectDialog } from './components/ConnectDialog';
 import { SelectServerDialog } from './components/SelectServerDialog';
-import { QuickCommandDialog } from './components/QuickCommandDialog';
-import { CommandHistoryDialog } from './components/CommandHistoryDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { Notifications } from './components/Notifications';
 import { AgentActivityPanel, AgentActivityNotice } from './components/AgentActivityPanel';
 import { AgentApprovalDialog } from './components/AgentApprovalDialog';
-import { WorkspaceChangesPanel } from './components/WorkspaceChangesPanel';
-import { MobileWorkspaceActions } from './components/MobileWorkspaceActions';
 import { WorkspaceToolbar } from './components/WorkspaceToolbar';
 import { FingerprintVerificationDialog, FingerprintManagerDialog } from './components/FingerprintDialog';
-import { SnippetManagerDialog } from './components/SnippetManager/SnippetManagerDialog';
-import { TunnelPanelDialog } from './components/TunnelPanel/TunnelPanelDialog';
 import { ServerSidebar } from './components/ServerSidebar/ServerSidebar';
 import { useServerStore, type Server } from './stores/serverStore';
 import { useRuntimeCapabilitiesStore } from './stores/runtimeCapabilitiesStore';
-import { useMediaQuery } from './lib/useMediaQuery';
-import { usePluginStore } from './stores/pluginStore';
-import {
-  usePluginWorkspaceStore,
-  type PluginWorkspaceTab,
-} from './stores/pluginWorkspaceStore';
 import { useFileWorkspaceStore } from './stores/fileWorkspaceStore';
-import { SessionPluginDock } from './components/SessionPluginDock';
-import { PluginPanel } from './components/PluginPanel';
-import { PluginTabLauncher } from './components/PluginTabLauncher';
 import { PaneDropZone } from './components/PaneDropZone';
 import {
   parsePaneId,
   filePaneId,
-  pluginPaneId,
   sessionPaneId,
   SESSION_PANE_PREFIX,
-  PLUGIN_PANE_PREFIX,
 } from './lib/paneIds';
 import type { TerminalHandle } from './components/Terminal';
 import {
-  MAX_TERMINAL_PANES,
-  addPane,
   removePane,
   pruneLeaves,
   getLeaves,
@@ -91,20 +61,15 @@ import {
 } from './lib/mosaicTree';
 
 const Settings = lazy(() => import('./components/Settings').then((mod) => ({ default: mod.Settings })));
-const PluginMarketplace = lazy(() => import('./components/PluginMarketplace').then((mod) => ({ default: mod.PluginMarketplace })));
 const Terminal = lazy(() => import('./components/Terminal').then((mod) => ({ default: mod.Terminal })));
 const FileWorkspace = lazy(() => import('./components/FileWorkspace').then((mod) => ({ default: mod.FileWorkspace })));
-const PluginWorkspaceView = lazy(() => import('./components/PluginPanel/PluginWorkspaceView').then((mod) => ({ default: mod.PluginWorkspaceView })));
 
 function activateWorkspacePane(id: string): void {
   const pane = parsePaneId(id);
   const files = useFileWorkspaceStore.getState();
-  const plugins = usePluginWorkspaceStore.getState();
   files.activateTab(pane.kind === 'file' ? pane.id : null);
-  plugins.activateTab(pane.kind === 'plugin' ? pane.id : null);
   const sessionId = pane.kind === 'session' ? pane.id
-    : pane.kind === 'file' ? files.tabs.find((tab) => tab.id === pane.id)?.sessionId
-    : plugins.tabs.find((tab) => tab.id === pane.id)?.sessionId;
+    : files.tabs.find((tab) => tab.id === pane.id)?.sessionId;
   if (sessionId && useSessionStore.getState().sessions.some(session => session.id === sessionId)) {
     useSessionStore.getState().setActiveSession(sessionId);
   }
@@ -122,7 +87,7 @@ function App() {
     syncRemoteSessions,
     createLocalShellSession,
   } = useSessionStore();
-  const { currentView, goToMain, goToSettings, goToPlugins } = useNavigationStore();
+  const { currentView, goToMain, goToSettings } = useNavigationStore();
   const { warning: notifyWarning, error: notifyError } = useNotificationStore();
   const { checkForUpdates, markVersionNotified } = useUpdateStore();
   const servers = useServerStore((state) => state.servers);
@@ -130,37 +95,23 @@ function App() {
   const fetchGroups = useServerStore((state) => state.fetchGroups);
   const runtimeCapabilities = useRuntimeCapabilitiesStore((state) => state.capabilities);
   const loadRuntimeCapabilities = useRuntimeCapabilitiesStore((state) => state.load);
-  const isCompactWorkspace = useMediaQuery('(max-width: 767px)');
-  const fetchPlugins = usePluginStore((state) => state.fetchPlugins);
-  const plugins = usePluginStore((state) => state.plugins);
   const fileTabs = useFileWorkspaceStore((state) => state.tabs);
   const activeFileTabId = useFileWorkspaceStore((state) => state.activeTabId);
   const activateFileTab = useFileWorkspaceStore((state) => state.activateTab);
   const closeFileTab = useFileWorkspaceStore((state) => state.closeTab);
-  const pluginTabs = usePluginWorkspaceStore((state) => state.tabs);
-  const activePluginTabId = usePluginWorkspaceStore((state) => state.activeTabId);
-  const activatePluginTab = usePluginWorkspaceStore((state) => state.activateTab);
-  const closePluginTab = usePluginWorkspaceStore((state) => state.closeTab);
 
   const [isAddServerOpen, setIsAddServerOpen] = useState(false);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
-  const [isQuickCommandOpen, setIsQuickCommandOpen] = useState(false);
-  const [isCommandHistoryOpen, setIsCommandHistoryOpen] = useState(false);
   const [isEditServerOpen, setIsEditServerOpen] = useState(false);
   const [isSelectServerOpen, setIsSelectServerOpen] = useState(false);
-  const [sessionLauncherTab, setSessionLauncherTab] = useState<'agent' | 'local' | 'ssh' | undefined>();
-  const [isSnippetManagerOpen, setIsSnippetManagerOpen] = useState(false);
-  const [isTunnelPanelOpen, setIsTunnelPanelOpen] = useState(false);
+  const [sessionLauncherTab, setSessionLauncherTab] = useState<'local' | 'ssh' | undefined>();
   const [isSftpOpen, setIsSftpOpen] = useState(false);
   const [isAgentActivityOpen, setIsAgentActivityOpen] = useState(false);
-  const [isWorkspaceChangesOpen, setIsWorkspaceChangesOpen] = useState(false);
-  const [isPluginDockOpen, setIsPluginDockOpen] = useState(false);
   const [serverToConnect, setServerToConnect] = useState<Server | null>(null);
   const [connectForceNew, setConnectForceNew] = useState(false);
   const [serverToEdit, setServerToEdit] = useState<Server | null>(null);
   const [sessionToClose, setSessionToClose] = useState<string | null>(null);
   const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null>(null);
-  const [isCreatingTerminalPane, setIsCreatingTerminalPane] = useState(false);
   const [workspaceReady, setWorkspaceReady] = useState(!('__TAURI_INTERNALS__' in window));
   const workspaceInitialized = useRef(!('__TAURI_INTERNALS__' in window));
   const detachedOwners = useDetachedOwnership((state) => state.owners);
@@ -174,7 +125,6 @@ function App() {
   const terminalRefs = useRef<Map<string, TerminalHandle>>(new Map());
   const sftpPanelRef = useRef<SftpPanelHandle>(null);
   const sessionBootstrapRef = useRef<Promise<void> | null>(null);
-  const terminalPaneCreationRef = useRef(false);
 
   useThemeSync();
 
@@ -199,10 +149,6 @@ function App() {
   useEffect(() => {
     void loadRuntimeCapabilities();
   }, [loadRuntimeCapabilities]);
-
-  useEffect(() => {
-    void fetchPlugins();
-  }, [fetchPlugins]);
 
   useEffect(() => {
     void Promise.all([fetchServers(), fetchGroups()]);
@@ -364,7 +310,7 @@ function App() {
       catch (error) { notifyError(t('workspaceLayout.saveFailed'), String(error)); }
     }, 200);
     return () => clearTimeout(timer);
-  }, [workspaceReady, mosaicTree, sessions, fileTabs, pluginTabs, detachedOwners, activeSessionId, activeFileTabId, activePluginTabId, notifyError, t]);
+  }, [workspaceReady, mosaicTree, sessions, fileTabs, detachedOwners, activeSessionId, activeFileTabId, notifyError, t]);
 
   const closeInactiveSession = useCallback(async (session: Session) => {
     if (!canCloseWorkspaceSession(session.id)) return false;
@@ -398,12 +344,6 @@ function App() {
         return;
       }
 
-      if (isCtrl && event.key.toLowerCase() === 'w' && activePluginTabId) {
-        event.preventDefault();
-        closePluginTab(activePluginTabId);
-        return;
-      }
-
       const target = event.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
@@ -414,10 +354,6 @@ function App() {
           case 'n':
             event.preventDefault();
             setIsAddServerOpen(true);
-            break;
-          case 'k':
-            event.preventDefault();
-            setIsQuickCommandOpen(true);
             break;
           case ',':
             event.preventDefault();
@@ -459,10 +395,6 @@ function App() {
     () => fileTabs.find((tab) => tab.id === activeFileTabId) ?? null,
     [activeFileTabId, fileTabs]
   );
-  const activePluginTab = useMemo(
-    () => pluginTabs.find((tab) => tab.id === activePluginTabId) ?? null,
-    [activePluginTabId, pluginTabs]
-  );
 
   useEffect(() => {
     if (
@@ -474,27 +406,10 @@ function App() {
     }
   }, [activeFileTab, activeSessionId, sessions, setActiveSession]);
 
-  useEffect(() => {
-    if (
-      activePluginTab
-      && activeSessionId !== activePluginTab.sessionId
-      && sessions.some((session) => session.id === activePluginTab.sessionId)
-    ) {
-      setActiveSession(activePluginTab.sessionId);
-    }
-  }, [activePluginTab, activeSessionId, sessions, setActiveSession]);
-
-  useEffect(() => {
-    if (activeSession?.purpose !== 'coding_agent') {
-      setIsWorkspaceChangesOpen(false);
-    }
-  }, [activeSession?.purpose]);
-
   // Selecting a new page in a split replaces only the focused pane, never the entire layout.
   useEffect(() => {
     if (!workspaceReady) return;
     const selected = activeFileTabId ? filePaneId(activeFileTabId)
-      : activePluginTabId ? pluginPaneId(activePluginTabId)
       : activeSessionId ? sessionPaneId(activeSessionId) : null;
     if (!selected || detachedOwners[selected]) return;
     setMosaicTree((current) => {
@@ -505,33 +420,30 @@ function App() {
         focusedPaneRef.current = selected;
         return replaceLeaf(current, target, selected);
       }
-      // Standalone file/plugin pages keep their previous terminal alive until explicitly split.
+      // Standalone file pages keep their previous terminal alive until explicitly split.
       return parsePaneId(selected).kind === 'session' ? selected : current;
     });
-  }, [workspaceReady, activeSessionId, activeFileTabId, activePluginTabId, detachedOwners]);
+  }, [workspaceReady, activeSessionId, activeFileTabId, detachedOwners]);
 
   useEffect(() => {
     if (!workspaceReady) return;
     const valid = new Set(sessions.map((session) => sessionPaneId(session.id)));
-    for (const tab of pluginTabs) valid.add(pluginPaneId(tab.id));
     for (const tab of fileTabs) valid.add(filePaneId(tab.id));
     for (const id of Object.keys(detachedOwners)) valid.delete(id);
     const fallback = activeSessionId && valid.has(sessionPaneId(activeSessionId))
       ? sessionPaneId(activeSessionId) : [...valid][0] ?? null;
     setMosaicTree((current) => pruneLeaves(current, valid) ?? fallback);
     const selected = activeFileTabId ? filePaneId(activeFileTabId)
-      : activePluginTabId ? pluginPaneId(activePluginTabId)
       : activeSessionId ? sessionPaneId(activeSessionId) : null;
     if (selected && detachedOwners[selected]) {
       const next = getLeaves(treeRef.current).find((id) => valid.has(id)) ?? fallback;
       if (next) activateWorkspacePane(next);
-      else { activateFileTab(null); activatePluginTab(null); setActiveSession(null); }
+      else { activateFileTab(null); setActiveSession(null); }
     }
-  }, [workspaceReady, sessions, pluginTabs, fileTabs, detachedOwners, activeSessionId, activeFileTabId, activePluginTabId, activateFileTab, activatePluginTab, setActiveSession]);
+  }, [workspaceReady, sessions, fileTabs, detachedOwners, activeSessionId, activeFileTabId, activateFileTab, setActiveSession]);
 
   const handleConnected = useCallback((sessionId: string) => {
     activateFileTab(null);
-    activatePluginTab(null);
     setActiveSession(sessionId);
 
     // The Terminal component attaches after its event listener is ready so
@@ -539,7 +451,7 @@ function App() {
     setTimeout(() => {
       terminalRefs.current.get(sessionId)?.focus();
     }, 100);
-  }, [activateFileTab, activatePluginTab, setActiveSession]);
+  }, [activateFileTab, setActiveSession]);
 
   const handleConnect = useCallback(async (server: Server, options?: { forceNew?: boolean }) => {
     const forceNew = options?.forceNew ?? false;
@@ -602,59 +514,6 @@ function App() {
     setIsSelectServerOpen(true);
   }, []);
 
-  const handleOpenCodingAgent = useCallback(() => {
-    setSessionLauncherTab('agent');
-    setIsSelectServerOpen(true);
-  }, []);
-
-  const handleCodingAgentLaunched = useCallback((sessionId: string) => {
-    activateFileTab(null);
-    activatePluginTab(null);
-    setActiveSession(sessionId);
-    setMosaicTree(sessionPaneId(sessionId));
-    window.setTimeout(() => terminalRefs.current.get(sessionId)?.focus(), 100);
-  }, [activateFileTab, activatePluginTab, setActiveSession]);
-
-  const handleSplitPane = useCallback(async (direction: 'row' | 'column') => {
-    if (terminalPaneCreationRef.current) return;
-
-    const storeState = useSessionStore.getState();
-    const currentTree = mosaicTree;
-    if (currentTree !== null && countLeaves(currentTree) >= MAX_TERMINAL_PANES) {
-      notifyWarning(t('session.splitLimitTitle'), t('session.splitLimitMessage'));
-      return;
-    }
-
-    const targetId = storeState.activeSessionId;
-    if (!targetId) return;
-
-    terminalPaneCreationRef.current = true;
-    setIsCreatingTerminalPane(true);
-
-    try {
-      const sourceSession = storeState.sessions.find((session) => session.id === targetId);
-      const shellId = sourceSession?.sessionType === 'local' && sourceSession.purpose !== 'coding_agent'
-        ? sourceSession.serverId
-        : undefined;
-      const session = await createLocalShellSession(shellId, 80, 24);
-      if (!session) return;
-
-      setMosaicTree((current) => addPane(current, sessionPaneId(targetId), sessionPaneId(session.id), direction));
-      // Keep the current pane active so repeated splits build outward from the
-      // same origin pane instead of chaining off each newly-created pane.
-      // The new pane is still immediately usable — clicking it focuses it.
-    } catch (error) {
-      console.error('[App] Failed to create terminal pane:', error);
-      notifyError(
-        t('session.splitFailedTitle'),
-        error instanceof Error ? error.message : t('session.splitFailedMessage')
-      );
-    } finally {
-      terminalPaneCreationRef.current = false;
-      setIsCreatingTerminalPane(false);
-    }
-  }, [createLocalShellSession, mosaicTree, notifyError, notifyWarning, setActiveSession, t]);
-
   const handleRemoveTerminalPane = useCallback((paneId: string) => {
     setMosaicTree((current) => {
       if (countLeaves(current) <= 1) return current;
@@ -674,86 +533,6 @@ function App() {
   const handleCollapseTerminalPanes = useCallback(() => {
     if (activeSessionId) setMosaicTree(sessionPaneId(activeSessionId));
   }, [activeSessionId]);
-
-  // Split a plugin tab into the mosaic layout next to the active terminal.
-  const handleSplitPluginTab = useCallback((tabId: string, direction: 'row' | 'column') => {
-    const paneId = pluginPaneId(tabId);
-    if (mosaicTree !== null && getLeaves(mosaicTree).includes(paneId)) return;
-    if (mosaicTree !== null && countLeaves(mosaicTree) >= MAX_TERMINAL_PANES) {
-      notifyWarning(t('session.splitLimitTitle'), t('session.splitLimitMessage'));
-      return;
-    }
-
-    const leaves = mosaicTree !== null ? getLeaves(mosaicTree) : [];
-    const target = activeSessionId && leaves.includes(sessionPaneId(activeSessionId))
-      ? sessionPaneId(activeSessionId)
-      : leaves[0] ?? null;
-
-    setMosaicTree((current) => addPane(current, target, paneId, direction));
-    // Switch back to the terminal view so the split result is visible.
-    activateFileTab(null);
-  }, [mosaicTree, activeSessionId, notifyWarning, t, activateFileTab]);
-
-  const handlePaneDropTab = useCallback((targetPaneId: string, kind: 'session' | 'plugin' | 'file', tabId: string, direction: 'row' | 'column', side?: DockSide) => {
-    const paneId = kind === 'file' ? filePaneId(tabId) : kind === 'plugin' ? pluginPaneId(tabId) : sessionPaneId(tabId);
-    const base = getLeaves(treeRef.current).includes(targetPaneId) ? treeRef.current : targetPaneId;
-    const next = dockPane(base, targetPaneId, paneId, side ?? (direction === 'row' ? 'right' : 'bottom'));
-    if (next === base && targetPaneId !== paneId) {
-      notifyWarning(t('session.splitLimitTitle'), t('session.splitLimitMessage'));
-      return;
-    }
-    treeRef.current = next;
-    focusedPaneRef.current = paneId;
-    setMosaicTree(next);
-    activateWorkspacePane(paneId);
-  }, [notifyWarning, t]);
-
-  dockReceiverRef.current = (snapshot, placement) => {
-    const id = detachTargetKey(snapshot.target);
-    const current = treeRef.current;
-    const base = placement && !getLeaves(current).includes(placement.paneId) ? placement.paneId : current;
-    const next = placement ? dockPane(base, placement.paneId, id, placement.side)
-      : getLeaves(current).includes(id) ? current
-      : countLeaves(current) > 1 ? replaceLeaf(current, focusedPaneRef.current && getLeaves(current).includes(focusedPaneRef.current) ? focusedPaneRef.current : getLeaves(current)[0], id)
-      : id;
-    if (placement && next === base && !getLeaves(base).includes(id)) {
-      notifyWarning(t('session.splitLimitTitle'), t('session.splitLimitMessage'));
-      return false;
-    }
-    hydrateTransfer(snapshot);
-    releaseDetached(snapshot.target);
-    treeRef.current = next;
-    focusedPaneRef.current = id;
-    setMosaicTree(next);
-    activateWorkspacePane(id);
-    try { saveWorkspaceLayout(next, id); } catch (error) { notifyError(t('workspaceLayout.saveFailed'), String(error)); }
-    return true;
-  };
-
-  const handleOpenPluginTab = useCallback((pluginId: string) => {
-    const session = activeSession ?? sessions.find((candidate) => candidate.state === 'connected');
-    if (!session) {
-      notifyWarning(t('plugins.workspace'), t('plugins.openTabNeedsSession'));
-      return;
-    }
-    usePluginWorkspaceStore.getState().openPluginTab({
-      pluginId,
-      sessionId: session.id,
-      sessionType: session.sessionType,
-      serverName: session.serverName,
-    });
-    activateFileTab(null);
-  }, [activeSession, sessions, notifyWarning, t, activateFileTab]);
-
-  const handleClosePluginTab = useCallback((tab: PluginWorkspaceTab) => {
-    closePluginTab(tab.id);
-    // If the tab was split into the layout, drop its pane as well.
-    setMosaicTree((current) => (
-      current === null || !getLeaves(current).includes(pluginPaneId(tab.id))
-        ? current
-        : removePane(current, pluginPaneId(tab.id))
-    ));
-  }, [closePluginTab]);
 
   const handleNewSessionForServer = useCallback((server: Server) => {
     handleConnect(server, { forceNew: true });
@@ -777,35 +556,6 @@ function App() {
     } catch (error) { notifyError(t('workspaceLayout.saveFailed'), String(error)); }
   }, [workspaceReady, notifyError, t]);
 
-  const handleQuickCommand = useCallback(() => {
-    setIsQuickCommandOpen(true);
-  }, []);
-
-  const handleOpenCommandHistory = useCallback(() => {
-    if (!activeSession || activeSession.sessionType !== 'ssh') {
-      notifyWarning(t('commandHistory.title'), t('commandHistory.connectFirst'));
-      return;
-    }
-    setIsCommandHistoryOpen(true);
-  }, [activeSession, notifyWarning, t]);
-
-  const handleUseHistoryCommand = useCallback((command: string) => {
-    if (!activeSessionId || activeSession?.sessionType !== 'ssh') return;
-    terminalRefs.current.get(activeSessionId)?.sendCommand(command);
-  }, [activeSession?.sessionType, activeSessionId]);
-
-  const handleOpenSnippets = useCallback(() => {
-    setIsSnippetManagerOpen(true);
-  }, []);
-
-  const handleOpenTunnels = useCallback(() => {
-    if (!activeSession) {
-      notifyWarning('No Active Session', 'Connect to a server first to manage tunnels.');
-      return;
-    }
-    setIsTunnelPanelOpen(true);
-  }, [activeSession, notifyWarning]);
-
   const handleOpenSftp = useCallback(() => {
     if (!activeSession) {
       notifyWarning('No Active Session', 'Connect to a server first to use SFTP.');
@@ -819,7 +569,6 @@ function App() {
 
     if (!isSftpOpen) {
       setIsAgentActivityOpen(false);
-      setIsWorkspaceChangesOpen(false);
     }
     sftpPanelRef.current?.toggle();
   }, [activeSession, isSftpOpen, notifyWarning]);
@@ -831,27 +580,10 @@ function App() {
         sftpPanelRef.current?.toggle();
       }
       if (next) {
-        setIsWorkspaceChangesOpen(false);
-      }
+        }
       return next;
     });
   }, [isSftpOpen]);
-
-  const handleOpenWorkspaceChanges = useCallback(() => {
-    if (activeSession?.purpose !== 'coding_agent' || !activeSession.cwd) {
-      notifyWarning(t('workspaceChanges.title'), t('workspaceChanges.noWorkspace'));
-      return;
-    }
-
-    setIsWorkspaceChangesOpen((current) => {
-      const next = !current;
-      if (next) {
-        setIsAgentActivityOpen(false);
-        if (isSftpOpen) sftpPanelRef.current?.toggle();
-      }
-      return next;
-    });
-  }, [activeSession, isSftpOpen, notifyWarning, t]);
 
   const handleSftpCollapsedChange = useCallback((collapsed: boolean) => {
     setIsSftpOpen(!collapsed);
@@ -887,27 +619,18 @@ function App() {
   }, []);
 
   const isSettingsView = currentView === 'settings';
-  const isPluginsView = currentView === 'plugins';
   const isOverlayView = currentView !== 'main';
   const sessionToCloseObj = sessionToClose ? sessions.find((s) => s.id === sessionToClose) : null;
   const sessionToCloseDirtyFileCount = sessionToClose
     ? fileTabs.filter((tab) => tab.sessionId === sessionToClose && tab.dirty).length
     : 0;
-  const sessionToCloseMessage = sessionToCloseObj?.purpose === 'coding_agent'
-    ? t('codingAgent.closeConfirm', { name: sessionToCloseObj?.serverName })
-    : sessionToCloseObj?.sessionType === 'local'
-      ? t('session.closeLocalShellConfirm', { name: sessionToCloseObj?.serverName })
-      : t('session.closeSessionConfirm', { name: sessionToCloseObj?.serverName });
+  const sessionToCloseMessage = sessionToCloseObj?.sessionType === 'local'
+    ? t('session.closeLocalShellConfirm', { name: sessionToCloseObj?.serverName })
+    : t('session.closeSessionConfirm', { name: sessionToCloseObj?.serverName });
   const canRemoveTerminalPane = countLeaves(mosaicTree) > 1;
-  const pluginPaneLeaves = useMemo(
-    () => new Set(getLeaves(mosaicTree).filter((leaf) => leaf.startsWith(PLUGIN_PANE_PREFIX))),
-    [mosaicTree]
-  );
-  const activePluginTabPinned = activePluginTab !== null
-    && pluginPaneLeaves.has(pluginPaneId(activePluginTab.id));
   const filePaneLeaves = new Set(getLeaves(mosaicTree).filter((leaf) => parsePaneId(leaf).kind === 'file'));
   const terminalAreaHidden = (activeFileTab !== null && !filePaneLeaves.has(filePaneId(activeFileTab.id)) && !detachedOwners[filePaneId(activeFileTab.id)])
-    || (activePluginTab !== null && !activePluginTabPinned && !detachedOwners[pluginPaneId(activePluginTab.id)]);
+;
 
   return (
     <div className="app-shell h-screen flex flex-col bg-tokyo-bg">
@@ -915,7 +638,6 @@ function App() {
         activeSessionName={activeSession?.serverName}
         activeSessionType={activeSession?.sessionType}
         activeSessionState={activeSession?.state}
-        activeSessionPurpose={activeSession?.purpose}
       />
       <div
         className="app-shell absolute inset-x-0 bottom-0 top-9 z-10 flex flex-col bg-tokyo-bg"
@@ -936,18 +658,13 @@ function App() {
             <span className="text-sm">{t('common.back')}</span>
           </button>
           <h1 className="ml-4 text-tokyo-fg font-semibold">
-            {isPluginsView ? t('plugins.marketplace') : t('settings.title')}
+            {t('settings.title')}
           </h1>
         </header>
         <div className="flex-1 overflow-y-auto bg-tokyo-bg">
           {isSettingsView && (
             <Suspense fallback={<div className="h-full bg-tokyo-bg" />}>
               <Settings />
-            </Suspense>
-          )}
-          {isPluginsView && (
-            <Suspense fallback={<div className="h-full bg-tokyo-bg" />}>
-              <PluginMarketplace />
             </Suspense>
           )}
         </div>
@@ -973,224 +690,23 @@ function App() {
               onNewSession={handleNewSession}
               onReconnectSession={handleReconnectSession}
               onOpenSessionInWindow={handleOpenSessionInWindow}
-              onPaneDropTab={handlePaneDropTab}
               onSaveLayout={() => { void handleSaveLayout(); }}
               rightActions={(
-                runtimeCapabilities.isMobile || isCompactWorkspace ? (
-                  <MobileWorkspaceActions
-                    isSftpOpen={isSftpOpen}
-                    sftpDisabled={!activeSession}
-                    labels={{
-                      sftp: t('sidebar.sftp'),
-                      more: t('common.more'),
-                    }}
-                    menuItems={[
-                      {
-                        id: 'quick-command',
-                        label: t('sidebar.quickCmd'),
-                        icon: <Zap className="h-4 w-4" />,
-                        onSelect: handleQuickCommand,
-                      },
-                      {
-                        id: 'command-history',
-                        label: t('sidebar.history'),
-                        icon: <History className="h-4 w-4" />,
-                        disabled: !activeSession || activeSession.sessionType !== 'ssh',
-                        pressed: isCommandHistoryOpen,
-                        onSelect: handleOpenCommandHistory,
-                      },
-                      {
-                        id: 'snippets',
-                        label: t('sidebar.snippets'),
-                        icon: <TerminalIcon className="h-4 w-4" />,
-                        onSelect: handleOpenSnippets,
-                      },
-                      ...(runtimeCapabilities.localShell ? [{
-                        id: 'coding-agent',
-                        label: t('codingAgent.start'),
-                        icon: <Code2 className="h-4 w-4" />,
-                        onSelect: handleOpenCodingAgent,
-                      }] : []),
-                      {
-                        id: 'workspace-changes',
-                        label: t('workspaceChanges.title'),
-                        icon: <FileDiff className="h-4 w-4" />,
-                        disabled: activeSession?.purpose !== 'coding_agent' || !activeSession.cwd,
-                        pressed: isWorkspaceChangesOpen,
-                        onSelect: handleOpenWorkspaceChanges,
-                      },
-                      ...(runtimeCapabilities.agentGateway ? [{
-                        id: 'agent-activity',
-                        label: t('agentActivity.title'),
-                        icon: <Bot className="h-4 w-4" />,
-                        pressed: isAgentActivityOpen,
-                        onSelect: handleOpenAgentActivity,
-                      }] : []),
-                      {
-                        id: 'plugin-workspace',
-                        label: t('plugins.workspace'),
-                        icon: <Blocks className="h-4 w-4" />,
-                        disabled: !activeSession,
-                        pressed: isPluginDockOpen,
-                        onSelect: () => setIsPluginDockOpen((open) => !open),
-                      },
-                      {
-                        id: 'plugin-marketplace',
-                        label: t('plugins.marketplace'),
-                        icon: <Store className="h-4 w-4" />,
-                        onSelect: goToPlugins,
-                      },
-                      {
-                        id: 'settings',
-                        label: t('sidebar.settings'),
-                        icon: <SettingsIcon className="h-4 w-4" />,
-                        onSelect: goToSettings,
-                      },
-                    ]}
-                    onToggleSftp={handleOpenSftp}
-                  />
-                ) : (
-                  <div className="flex flex-shrink-0 items-center gap-0.5 border-l border-tokyo-bg-hl pl-1.5">
-                  {/* High-frequency session actions stay as direct buttons */}
-                  <button className="icon-button tooltip-button" data-tooltip={`${t('sidebar.quickCmd')} (Ctrl+K)`} onClick={handleQuickCommand} aria-label={t('sidebar.quickCmd')}>
-                    <Zap className="h-4 w-4" />
-                  </button>
-                  <button
-                    className={cn('icon-button tooltip-button', isCommandHistoryOpen && 'is-active')}
-                    data-tooltip={t('sidebar.history')}
-                    onClick={handleOpenCommandHistory}
-                    disabled={!activeSession || activeSession.sessionType !== 'ssh'}
-                    aria-pressed={isCommandHistoryOpen}
-                    aria-label={t('sidebar.history')}
-                  >
-                    <History className="h-4 w-4" />
-                  </button>
-                  <button
-                    className={cn('icon-button tooltip-button', isSftpOpen && 'is-active')}
-                    data-tooltip={t('sidebar.sftp')}
-                    onClick={handleOpenSftp}
-                    disabled={!activeSession}
-                    aria-pressed={isSftpOpen}
-                    aria-label={t('sidebar.sftp')}
-                  >
-                    <FolderOpen className="h-4 w-4" />
-                  </button>
-                  {runtimeCapabilities.localShell && (
-                    <>
-                      <button
-                        className="icon-button tooltip-button"
-                        data-tooltip={isCreatingTerminalPane ? t('session.creatingPane') : t('session.splitHorizontal')}
-                        onClick={() => { void handleSplitPane('row'); }}
-                        disabled={isCreatingTerminalPane}
-                        aria-label={isCreatingTerminalPane ? t('session.creatingPane') : t('session.splitHorizontal')}
-                      >
-                        {isCreatingTerminalPane
-                          ? <Loader2 className="h-4 w-4 animate-spin" />
-                          : <Columns2 className="h-4 w-4" />}
-                      </button>
-                      <button
-                        className="icon-button tooltip-button"
-                        data-tooltip={isCreatingTerminalPane ? t('session.creatingPane') : t('session.splitVertical')}
-                        onClick={() => { void handleSplitPane('column'); }}
-                        disabled={isCreatingTerminalPane}
-                        aria-label={isCreatingTerminalPane ? t('session.creatingPane') : t('session.splitVertical')}
-                      >
-                        {isCreatingTerminalPane
-                          ? <Loader2 className="h-4 w-4 animate-spin" />
-                          : <Rows2 className="h-4 w-4" />}
-                      </button>
-                    </>
-                  )}
-                  {activeSession && (
-                    <button
-                      className="icon-button tooltip-button"
-                      data-tooltip={t('session.openInWindow')}
-                      aria-label={t('session.openInWindow')}
-                      onClick={() => handleOpenSessionInWindow(activeSession)}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </button>
-                  )}
-                  <PluginTabLauncher
-                    sessionType={activeSession ? activeSession.sessionType : null}
-                    onOpenPluginTab={handleOpenPluginTab}
-                  />
-                  {/* Lower-frequency actions collapse into an overflow menu */}
-                  <WorkspaceToolbar
-                    label={t('common.more')}
-                    anyPressed={isWorkspaceChangesOpen || isAgentActivityOpen || isPluginDockOpen}
-                    items={[
-                      ...(runtimeCapabilities.backgroundTunnels ? [{
-                        id: 'tunnels',
-                        label: t('sidebar.tunnels'),
-                        icon: <ArrowRightLeft className="h-4 w-4" />,
-                        onSelect: handleOpenTunnels,
-                      }] : []),
-                      {
-                        id: 'snippets',
-                        label: t('sidebar.snippets'),
-                        icon: <TerminalIcon className="h-4 w-4" />,
-                        onSelect: handleOpenSnippets,
-                      },
-                      {
-                        id: 'command-history',
-                        label: t('sidebar.history'),
-                        icon: <History className="h-4 w-4" />,
-                        disabled: !activeSession || activeSession.sessionType !== 'ssh',
-                        pressed: isCommandHistoryOpen,
-                        onSelect: handleOpenCommandHistory,
-                      },
-                      ...(runtimeCapabilities.localShell ? [{
-                        id: 'coding-agent',
-                        label: t('codingAgent.start'),
-                        icon: <Code2 className="h-4 w-4" />,
-                        onSelect: handleOpenCodingAgent,
-                      }] : []),
-                      {
-                        id: 'workspace-changes',
-                        label: t('workspaceChanges.title'),
-                        icon: <FileDiff className="h-4 w-4" />,
-                        disabled: activeSession?.purpose !== 'coding_agent' || !activeSession.cwd,
-                        pressed: isWorkspaceChangesOpen,
-                        onSelect: handleOpenWorkspaceChanges,
-                      },
-                      ...(runtimeCapabilities.agentGateway ? [{
-                        id: 'agent-activity',
-                        label: t('agentActivity.title'),
-                        icon: <Bot className="h-4 w-4" />,
-                        pressed: isAgentActivityOpen,
-                        onSelect: handleOpenAgentActivity,
-                      }] : []),
-                      {
-                        id: 'plugin-workspace',
-                        label: t('plugins.workspace'),
-                        icon: <Blocks className="h-4 w-4" />,
-                        disabled: !activeSession,
-                        pressed: isPluginDockOpen,
-                        onSelect: () => setIsPluginDockOpen((open) => !open),
-                      },
-                      ...(runtimeCapabilities.localShell && mosaicTree !== null && countLeaves(mosaicTree) > 1 ? [{
-                        id: 'close-splits',
-                        label: t('session.closeSplits'),
-                        icon: <PanelRightClose className="h-4 w-4" />,
-                        onSelect: handleCollapseTerminalPanes,
-                      }] : []),
-                      {
-                        id: 'plugin-marketplace',
-                        label: t('plugins.marketplace'),
-                        icon: <Store className="h-4 w-4" />,
-                        onSelect: goToPlugins,
-                      },
-                      {
-                        id: 'settings',
-                        label: t('sidebar.settings'),
-                        icon: <SettingsIcon className="h-4 w-4" />,
-                        onSelect: goToSettings,
-                      },
-                    ]}
-                  />
-                  </div>
-                )
+                <WorkspaceToolbar
+                  label={t('common.more')}
+                  anyPressed={isAgentActivityOpen}
+                  items={[
+                    { id: 'sftp', label: t('sidebar.sftp'), icon: <FolderOpen className="h-4 w-4" />, disabled: !activeSession, onSelect: handleOpenSftp },
+                    ...(runtimeCapabilities.agentGateway ? [{
+                      id: 'agent-activity', label: t('agentActivity.title'), icon: <Bot className="h-4 w-4" />,
+                      pressed: isAgentActivityOpen, onSelect: handleOpenAgentActivity,
+                    }] : []),
+                    ...(runtimeCapabilities.localShell && mosaicTree !== null && countLeaves(mosaicTree) > 1 ? [{
+                      id: 'close-splits', label: t('session.closeSplits'), icon: <PanelRightClose className="h-4 w-4" />, onSelect: handleCollapseTerminalPanes,
+                    }] : []),
+                    { id: 'settings', label: t('sidebar.settings'), icon: <SettingsIcon className="h-4 w-4" />, onSelect: goToSettings },
+                  ]}
+                />
               )}
             />
 
@@ -1207,27 +723,6 @@ function App() {
                   <div key={tab.id} data-pane-id={filePaneId(tab.id)} className={cn('relative min-h-0 flex-1', activeFileTabId === tab.id ? 'block' : 'hidden')}>
                     <Suspense fallback={<div className="h-full bg-tokyo-bg" />}>
                       <FileWorkspace tab={tab} isActive={activeFileTabId === tab.id} />
-                    </Suspense>
-                  </div>
-                ))}
-                {pluginTabs.filter((tab) => !pluginPaneLeaves.has(pluginPaneId(tab.id)) && !detachedOwners[pluginPaneId(tab.id)]).map((tab) => (
-                  <div
-                    data-pane-id={pluginPaneId(tab.id)}
-                    key={tab.id}
-                    className={cn(
-                      'relative min-h-0 flex-1',
-                      activePluginTabId === tab.id && activeFileTab === null && !pluginPaneLeaves.has(pluginPaneId(tab.id))
-                        ? 'block'
-                        : 'hidden'
-                    )}
-                  >
-                    <Suspense fallback={<div className="h-full bg-tokyo-bg" />}>
-                      <PluginWorkspaceView
-                        tab={tab}
-                        plugin={plugins.find((candidate) => candidate.manifest.id === tab.pluginId)}
-                        onClose={() => handleClosePluginTab(tab)}
-                        onSplit={handleSplitPluginTab}
-                      />
                     </Suspense>
                   </div>
                 ))}
@@ -1255,52 +750,6 @@ function App() {
                               </MosaicWindow>
                             );
                           }
-
-                          if (pane.kind === 'plugin') {
-                            const tab = pluginTabs.find((candidate) => candidate.id === pane.id);
-                            const plugin = tab
-                              ? plugins.find((candidate) => candidate.manifest.id === tab.pluginId)
-                              : undefined;
-                            const pluginName = plugin
-                              ? t(`plugins.catalog.${plugin.manifest.id}.name`, { defaultValue: plugin.manifest.name })
-                              : tab?.pluginId ?? id;
-                            const paneTitle = tab ? `${pluginName} · ${tab.serverName}` : pluginName;
-                            return (
-                              <MosaicWindow<string>
-                                path={path}
-                                title={paneTitle}
-                                draggable
-                                toolbarControls={canRemoveTerminalPane ? [
-                                  <button
-                                    key="close"
-                                    className="icon-button h-5 w-5"
-                                    onClick={() => handleRemoveTerminalPane(id)}
-                                    aria-label={t('session.removePane', { name: paneTitle })}
-                                    title={t('session.removePane', { name: paneTitle })}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>,
-                                ] : []}
-                              >
-                                <PaneDropZone paneId={id}>
-                                  {tab && plugin ? (
-                                    <PluginPanel
-                                      stateKey={tab.id}
-                                      plugin={plugin}
-                                      sessionId={tab.sessionId}
-                                      sessionType={tab.sessionType}
-                                      variant="workspace"
-                                    />
-                                  ) : (
-                                    <div className="flex h-full items-center justify-center text-xs text-tokyo-comment">
-                                      {t('plugins.tabPluginMissing')}
-                                    </div>
-                                  )}
-                                </PaneDropZone>
-                              </MosaicWindow>
-                            );
-                          }
-
                           const session = sessions.find((s) => s.id === pane.id);
                           const serverName = session?.serverName ?? t('session.localShell');
                           return (
@@ -1348,16 +797,6 @@ function App() {
                         }}
                       />
                     </div>
-                    {activeSession && (
-                      <SessionPluginDock
-                        sessionId={activeSession.id}
-                        sessionType={activeSession.sessionType}
-                        open={isPluginDockOpen}
-                        onClose={() => setIsPluginDockOpen(false)}
-                        onOpenMarketplace={goToPlugins}
-                        onOpenPluginTab={handleOpenPluginTab}
-                      />
-                    )}
                     </>
                   ) : (
                     <div className="h-full bg-tokyo-bg" aria-label={t('session.localShell')} />
@@ -1372,12 +811,6 @@ function App() {
                 defaultCollapsed={true}
                 dock="right"
                 onCollapsedChange={handleSftpCollapsedChange}
-              />
-              <WorkspaceChangesPanel
-                open={isWorkspaceChangesOpen}
-                cwd={activeSession?.purpose === 'coding_agent' ? activeSession.cwd : undefined}
-                sessionName={activeSession?.purpose === 'coding_agent' ? activeSession.serverName : undefined}
-                onClose={() => setIsWorkspaceChangesOpen(false)}
               />
               {runtimeCapabilities.agentGateway && (
                 <AgentActivityPanel
@@ -1417,43 +850,24 @@ function App() {
         onConnected={handleConnected}
       />
 
-      <QuickCommandDialog
-        isOpen={isQuickCommandOpen}
-        onClose={() => setIsQuickCommandOpen(false)}
-      />
-
-      <CommandHistoryDialog
-        isOpen={isCommandHistoryOpen}
-        serverId={activeSession?.sessionType === 'ssh' ? activeSession.serverId : undefined}
-        serverName={activeSession?.sessionType === 'ssh' ? activeSession.serverName : undefined}
-        onClose={() => setIsCommandHistoryOpen(false)}
-        onUseCommand={handleUseHistoryCommand}
-      />
-
       <SelectServerDialog
         isOpen={isSelectServerOpen}
         initialTab={sessionLauncherTab}
-        initialWorkspace={activeSession?.cwd}
         onClose={() => setIsSelectServerOpen(false)}
         onSelectServer={handleConnect}
         onAddServer={handleAddServer}
         onEditServer={handleEditServer}
         onNewSession={handleNewSessionForServer}
-        onCodingAgentLaunched={handleCodingAgentLaunched}
         connectedServerIds={connectedServerIds}
       />
 
       <ConfirmDialog
         isOpen={sessionToClose !== null}
-        title={sessionToCloseObj?.purpose === 'coding_agent'
-          ? t('codingAgent.close')
-          : sessionToCloseObj?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
+        title={sessionToCloseObj?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
         message={sessionToCloseDirtyFileCount > 0
           ? `${sessionToCloseMessage}\n\n${t('fileWorkspace.sessionUnsavedWarning', { count: sessionToCloseDirtyFileCount })}`
           : sessionToCloseMessage}
-        confirmLabel={sessionToCloseObj?.purpose === 'coding_agent'
-          ? t('codingAgent.close')
-          : sessionToCloseObj?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
+        confirmLabel={sessionToCloseObj?.sessionType === 'local' ? t('session.closeLocalShell') : t('session.closeSession')}
         cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={handleConfirmCloseSession}
@@ -1463,18 +877,6 @@ function App() {
       <FingerprintVerificationDialog />
 
       <FingerprintManagerDialog />
-
-      <SnippetManagerDialog
-        isOpen={isSnippetManagerOpen}
-        onClose={() => setIsSnippetManagerOpen(false)}
-      />
-
-      <TunnelPanelDialog
-        isOpen={isTunnelPanelOpen}
-        serverId={activeSession?.serverId || ''}
-        sessionId={activeSession?.id}
-        onClose={() => setIsTunnelPanelOpen(false)}
-      />
 
       {runtimeCapabilities.agentGateway && <AgentApprovalDialog />}
     </div>

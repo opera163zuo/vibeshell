@@ -1,10 +1,8 @@
-# Native VibeShell CLI
+# VibeShell MCP Service CLI
 
-The `vibeshell` binary is the Linux headless SSH/SFTP client and LAN MCP service, targeting Ubuntu/Debian servers. Hermes Agents on other operating systems can connect remotely through MCP HTTP. VibeShell does not provide macOS or Windows desktop/CLI distributions.
+The `vibeshell` binary runs and administers the Linux MCP service. SSH site management and manual login are provided by the desktop UI; AI Agents connect through MCP HTTP and never receive saved credentials. VibeShell does not provide macOS or Windows desktop/CLI distributions.
 
-## Install a release archive
-
-Linux only:
+## Install
 
 ```bash
 ./install.sh
@@ -12,51 +10,24 @@ Linux only:
 
 The default destination is `~/.local/bin/vibeshell`. Override it with `VIBESHELL_INSTALL_DIR=/usr/local/bin ./install.sh` when appropriate.
 
-The installer verifies the native binary and trigger its built-in, idempotent Skill installer. The canonical VibeShell Skill is then written to every detected coding-agent directory and to `~/.agents/skills/vibeshell` without installing Node.js or a separate npm package.
-
-## Use on a headless server
+## Run the MCP service
 
 ```bash
-vibeshell version
-vibeshell import auto --dry-run
-vibeshell import auto
-vibeshell servers
-vibeshell ssh <server>
-vibeshell sftp <server>
+vibeshell mcp serve
 ```
 
-Commands that need an SSH/SFTP session automatically start the native local daemon. The daemon uses a private per-user IPC endpoint and the same saved-profile database as the desktop. A GUI-owned service can also answer native CLI requests. Inspect the current owner and sessions with:
+The default listener is loopback at `127.0.0.1:8765`. For a same-user desktop deployment, install `deploy/systemd/vibeshell-mcp.user.service`; see `docs/LAN-MCP-UBUNTU-DEBIAN.md`. LAN binding requires an explicit private interface address, `VIBESHELL_MCP_ALLOW_LAN=true`, and an already paired Agent.
+
+Pair and administer Agents with:
 
 ```bash
-vibeshell daemon status
-vibeshell sessions
+vibeshell mcp pair-code
+vibeshell mcp agents
+vibeshell mcp revoke <agent-id>
+vibeshell mcp rotate <agent-id>
 ```
 
-## Import sources
-
-```bash
-vibeshell import openssh --path ~/.ssh/config
-vibeshell import tabby --path ~/.config/tabby/config.yaml
-vibeshell import putty --path ~/putty-sessions.reg
-```
-
-OpenSSH `Host`, `Include`, `IdentityFile`, `ProxyJump`, `RemoteCommand`, and `ForwardAgent` metadata are supported. Tabby SSH profiles and PuTTY sessions/registry exports are supported. Third-party stored passwords are deliberately not copied. OpenSSH-format private keys are referenced by local path and read only when a connection is established; PuTTY `.ppk` keys must first be converted to OpenSSH format.
-
-## Agent-readable plugins and license
-
-```bash
-vibeshell plugins list --installed --json
-vibeshell plugins describe server-performance
-vibeshell plugins docs server-performance
-vibeshell plugins run server-performance status --session SESSION_ID --inputs '{}'
-vibeshell license
-```
-
-Select an existing session and verify the plugin is installed and enabled first. Plugin action details are in the packaged `skills/vibeshell/references/` documents or available live through `plugins docs`; the main Skill contains discovery instructions and an index. CLI and MCP share permission and input checks. Confirmation and sudo opt-in require the person's authorization.
-
-The desktop displays Agent/CLI operations in activity history. Use shared terminal commands when collaborating with a person and independent exec for non-interfering inspection. Inputs marked as sent are not proof of remote command success. Connections require their owning process to remain alive; upgrade the GUI and CLI together rather than mixing incompatible service versions.
-
-VibeShell 1.1.0 is GPL-3.0-only. Release archives include LICENSE, NOTICE and legacy attribution; matching source materials are available beside the release binaries. Earlier MIT grants are not revoked. The software comes without warranty to the extent permitted by law.
+SSH passwords and private keys are saved through the desktop UI or provisioned by piping them to `vibeshell mcp credential set`. They are encrypted at rest and consumed by the Rust service; the MCP protocol never returns them. Sudo credentials and exact command allowlists are configured per site in the UI.
 
 ## Build from source
 
@@ -69,3 +40,5 @@ To prepare the Linux target-suffixed binary consumed by Tauri desktop packaging:
 ```bash
 node scripts/prepare-sidecar.mjs
 ```
+
+VibeShell 1.1.0 is GPL-3.0-only. Release archives include LICENSE and NOTICE. The software comes without warranty to the extent permitted by law.

@@ -1,1 +1,0 @@
-export { WorkspaceChangesPanel } from './WorkspaceChangesPanel';

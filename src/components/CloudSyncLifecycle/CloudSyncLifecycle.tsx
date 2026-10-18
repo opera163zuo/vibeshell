@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { registerCloudSyncEntityRefresh } from '../../stores/cloudSyncCoordinator';
 import { useCloudSyncStore } from '../../stores/cloudSyncStore';
 import { useServerStore } from '../../stores/serverStore';
-import { useSnippetStore } from '../../stores/snippetStore';
 
 const FOREGROUND_SYNC_INTERVAL_MS = 60_000;
 
@@ -12,13 +11,12 @@ export function CloudSyncLifecycle() {
   const syncNow = useCloudSyncStore((state) => state.syncNow);
   const fetchServers = useServerStore((state) => state.fetchServers);
   const fetchGroups = useServerStore((state) => state.fetchGroups);
-  const fetchSnippets = useSnippetStore((state) => state.fetchSnippets);
 
   useEffect(
     () => registerCloudSyncEntityRefresh(async () => {
-      await Promise.all([fetchServers(), fetchGroups(), fetchSnippets()]);
+      await Promise.all([fetchServers(), fetchGroups()]);
     }),
-    [fetchGroups, fetchServers, fetchSnippets]
+    [fetchGroups, fetchServers]
   );
 
   useEffect(() => {

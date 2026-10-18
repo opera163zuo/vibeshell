@@ -15,6 +15,18 @@ use crate::storage::Database;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 use crate::mcp::{AgentApprovalManager, ApprovalOutcome};
 
+/// Read the encrypted Agent activity history for the desktop panel.
+#[tauri::command]
+pub fn agent_activity_list(
+    db: State<'_, Arc<Database>>,
+    after: Option<i64>,
+    before: Option<i64>,
+    limit: Option<u32>,
+) -> Result<Vec<crate::storage::database::StoredAgentActivity>, String> {
+    db.agent_activity_list(after, before, limit.unwrap_or(200))
+        .map_err(|error| format!("Failed to read agent activity: {error}"))
+}
+
 const MAX_AUTO_APPROVE_HOURS: f64 = 5.0;
 
 fn auto_approve_ms(hours: Option<f64>) -> Result<Option<i64>, String> {

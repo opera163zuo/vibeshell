@@ -5,10 +5,7 @@ import { emitTo, listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useThemeSync } from '../../lib/useThemeSync';
 import { Terminal } from '../Terminal';
-import { PluginWorkspaceView } from '../PluginPanel/PluginWorkspaceView';
-import { usePluginStore } from '../../stores/pluginStore';
 import { useFileWorkspaceStore } from '../../stores/fileWorkspaceStore';
-import { usePluginWorkspaceStore } from '../../stores/pluginWorkspaceStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { captureTransfer, detachTargetKey, hydrateTransfer, readHandoff, DETACHED_READY_EVENT, WORKSPACE_QUITTING_EVENT, type DetachTarget } from '../../lib/detach';
 import { captureWindowGeometry, restoreWindowGeometry, trackWindowGeometry } from '../../lib/windowGeometry';
@@ -58,11 +55,8 @@ export function DetachedWindow({ target }: { target: DetachTarget }) {
   const merging = useRef(false);
   const geometryKey = useRef(detachTargetKey(target));
   const files = useFileWorkspaceStore((state) => state.tabs);
-  const plugins = usePluginWorkspaceStore((state) => state.tabs);
-  const catalog = usePluginStore((state) => state.plugins);
   const file = target.kind === 'file' ? files.find((tab) => tab.path === target.path && tab.sessionId === target.sessionId) : null;
-  const plugin = target.kind === 'plugin' ? plugins.find((tab) => tab.pluginId === target.pluginId && tab.sessionId === target.sessionId) : null;
-  const title = target.kind === 'terminal' ? target.title : target.kind === 'file' ? target.name : `${target.pluginId} · ${target.serverName}`;
+  const title = target.kind === 'terminal' ? target.title : target.name;
 
   const merge = useCallback(async (point?: { x: number; y: number }) => {
     if (merging.current || quitting.current) return;
@@ -91,7 +85,6 @@ export function DetachedWindow({ target }: { target: DetachTarget }) {
       if (disposed) return;
       geometryKey.current = handoff.geometryKey;
       setReady(true);
-      void usePluginStore.getState().fetchPlugins();
       const installed = await Promise.all([
         trackWindowGeometry(handoff.geometryKey, false).catch((reason) => { console.warn('[Workspace] Geometry tracking unavailable:', reason); return () => {}; }),
         listen<{ quitting: boolean }>(WORKSPACE_QUITTING_EVENT, ({ payload }) => {
@@ -152,7 +145,7 @@ export function DetachedWindow({ target }: { target: DetachTarget }) {
         {!ready ? <div role="status" className="p-4 text-sm text-tokyo-comment">{t('common.loading')}</div>
           : target.kind === 'terminal' ? <Terminal sessionId={target.sessionId} onData={() => {}} />
           : file ? <Suspense fallback={<div className="p-4">{t('common.loading')}</div>}><FileWorkspace tab={file} isActive /></Suspense>
-          : plugin ? <PluginWorkspaceView tab={plugin} plugin={catalog.find((item) => item.manifest.id === plugin.pluginId)} onClose={() => void merge()} /> : null}
+          : null}
       </main>
     </div>
   );
