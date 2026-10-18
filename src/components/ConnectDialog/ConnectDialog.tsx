@@ -28,7 +28,7 @@ function JumpHostBadge({ jumpHostId }: { jumpHostId: string }) {
 }
 
 export function ConnectDialog({ isOpen, server, forceNew = false, onClose, onConnected }: ConnectDialogProps) {
-  const { connectWithCredentials } = useSessionStore();
+  const { connectWithCredentials, connectWithSavedCredentials } = useSessionStore();
   const isMobile = useRuntimeCapabilitiesStore((state) => state.capabilities.isMobile);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -63,37 +63,14 @@ export function ConnectDialog({ isOpen, server, forceNew = false, onClose, onCon
       setUsingSavedCredentials(false);
       setIsLoadingCredentials(true);
 
-      // Try to load saved credentials
       const loadCredentials = async () => {
         try {
-          const result = await safeInvoke<{
-            id: string;
-            server_name: string;
-            auth_type: string;
-            credential: string;
-            passphrase: string | null;
-            key_path: string | null;
-            created_at: number;
-          } | null>('get_credential', { request: { serverName: server.name } });
-
-          if (result.success && result.data) {
-            const cred = result.data;
-
-            if (cred.auth_type === 'password') {
-              // Password auth - set the password
-              setPassword(cred.credential);
-              setUsingSavedCredentials(true);
-            } else if (cred.auth_type === 'key' || cred.auth_type === 'key_with_passphrase') {
-              // Key auth - set the key content and path
-              setKey(cred.key_path, cred.credential);
-              if (cred.passphrase) {
-                setPassword(cred.passphrase);
-              }
-              setUsingSavedCredentials(true);
-            }
-          }
+          const result = await safeInvoke<{ authType: string | null; hasCredential: boolean }>(
+            'credential_status', { request: { serverName: server.name } }
+          );
+          if (result.success && result.data.hasCredential) setUsingSavedCredentials(true);
         } catch (err) {
-          console.error('[ConnectDialog] Error loading credentials:', err);
+          console.error('[ConnectDialog] Error checking credential status:', err);
         } finally {
           setIsLoadingCredentials(false);
         }
@@ -123,21 +100,17 @@ export function ConnectDialog({ isOpen, server, forceNew = false, onClose, onCon
     setError(null);
 
     try {
-      // For key auth, pass the key content as credential and password as passphrase
-      // (an empty passphrase means the key is unencrypted, so send undefined).
-      // For password auth, pass the password as credential
-      const credential = isKeyAuth ? (keyContent || '') : password;
-      const passphrase = isKeyAuth && password ? password : undefined;
-
-      const session = await connectWithCredentials(
-        server.name,
-        isKeyAuth ? 'key' : 'password',
-        credential,
-        passphrase,
-        80,
-        24,
-        forceNew
-      );
+      const session = usingSavedCredentials
+        ? await connectWithSavedCredentials(server.name, 80, 24, forceNew)
+        : await connectWithCredentials(
+          server.name,
+          isKeyAuth ? 'key' : 'password',
+          isKeyAuth ? (keyContent || '') : password,
+          isKeyAuth && password ? password : undefined,
+          80,
+          24,
+          forceNew
+        );
 
       if (session) {
         onConnected(session.id);
@@ -152,7 +125,7 @@ export function ConnectDialog({ isOpen, server, forceNew = false, onClose, onCon
     } finally {
       setIsConnecting(false);
     }
-  }, [server, password, keyContent, isMobile, connectWithCredentials, forceNew, onConnected, onClose]);
+  }, [server, password, keyContent, isMobile, connectWithCredentials, connectWithSavedCredentials, usingSavedCredentials, forceNew, onConnected, onClose]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     const isKeyAuth = server?.auth_type === 'key' || server?.auth_type === 'key_with_passphrase';
@@ -225,7 +198,7 @@ export function ConnectDialog({ isOpen, server, forceNew = false, onClose, onCon
           {usingSavedCredentials && !isLoadingCredentials && (
             <div className="p-3 rounded-md bg-tokyo-green/10 border border-tokyo-green/30 text-tokyo-green text-sm flex items-center gap-2">
               <Key className="w-4 h-4" />
-              Using saved credentials. Click Connect to proceed.
+              Saved credentials available. Click Connect to proceed.
             </div>
           )}
 
@@ -321,7 +294,10 @@ export function ConnectDialog({ isOpen, server, forceNew = false, onClose, onCon
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setUsingSavedCredentials(false);
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder={isKeyAuth ? 'Enter passphrase (optional)...' : 'Enter password...'}
                 autoFocus={!isKeyAuth}
@@ -365,7 +341,7 @@ export function ConnectDialog({ isOpen, server, forceNew = false, onClose, onCon
             <button
               type="button"
               onClick={handleConnect}
-              disabled={isConnecting || isLoadingKey || isLoadingCredentials || (isKeyAuth ? !keyContent : !password)}
+              disabled={isConnecting || isLoadingKey || isLoadingCredentials || (!usingSavedCredentials && (isKeyAuth ? !keyContent : !password))}
               className={cn(
                 'px-4 py-2 rounded-md',
                 'bg-tokyo-blue text-tokyo-on-accent',

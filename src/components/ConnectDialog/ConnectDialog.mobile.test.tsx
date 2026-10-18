@@ -45,6 +45,7 @@ describe('ConnectDialog mobile key authentication', () => {
   afterEach(cleanup);
 
   it('accepts pasted key content without exposing the desktop file picker', () => {
+    safeInvokeMock.mockResolvedValue({ success: true, data: { authType: 'key', hasCredential: false } });
     render(
       <ConnectDialog
         isOpen
@@ -56,5 +57,9 @@ describe('ConnectDialog mobile key authentication', () => {
 
     expect(screen.getByRole('textbox', { name: 'SSH Private Key' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Browse' })).not.toBeInTheDocument();
+    expect(safeInvokeMock).toHaveBeenCalledWith('credential_status', {
+      request: { serverName: keyServer.name },
+    });
+    expect(safeInvokeMock.mock.calls.some(([command]) => command === 'get_credential')).toBe(false);
   });
 });

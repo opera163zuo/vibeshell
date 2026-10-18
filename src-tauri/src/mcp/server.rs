@@ -3,7 +3,8 @@
 //! Implements a JSON-RPC 2.0 server using axum that exposes VibeShell's
 //! SSH/SFTP functionality following the Model Context Protocol (MCP).
 
-use std::sync::Arc;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use axum::{
@@ -36,7 +37,9 @@ use super::approval::{AgentApprovalManager, ApprovalOutcome, ApprovalRequest};
 use super::guard::{self, GuardConfig, GUARD_CONFIG_KEY};
 use super::pairing::{AuthenticatedAgent, PairingRegistry};
 use super::pairing_http::{audit_label, handle_pair, require_paired_agent, PairRateLimiter};
-use super::tools::get_compact_tool_definitions;
+use super::tools::{
+    get_compact_agent_tool_definitions, get_compact_tool_definitions, is_agent_tool,
+};
 
 /// MCP protocol version
 pub const MCP_PROTOCOL_VERSION: &str = "2024-11-05";
@@ -60,6 +63,7 @@ pub struct McpState {
     agent_input_tracker: Arc<guard::SharedAgentInputTracker>,
     pub(super) pairing_registry: Option<Arc<std::sync::Mutex<PairingRegistry>>>,
     pub(super) pairing_limiter: Arc<std::sync::Mutex<PairRateLimiter>>,
+    agent_sessions: Arc<Mutex<HashMap<String, HashSet<String>>>>,
 }
 
 impl McpState {
@@ -74,6 +78,7 @@ impl McpState {
             agent_input_tracker,
             pairing_registry: None,
             pairing_limiter: Arc::new(std::sync::Mutex::new(PairRateLimiter::default())),
+            agent_sessions: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -133,6 +138,48 @@ impl McpState {
                 kind,
                 timestamp: chrono::Utc::now().timestamp_millis(),
             });
+        }
+    }
+
+    async fn require_agent_session(
+        &self,
+        agent: &AuthenticatedAgent,
+        session_ref: &str,
+    ) -> Result<String, String> {
+        let session = resolve_session(self, session_ref)
+            .await
+            .map_err(|_| "Agent is not authorized to access this session".to_string())?;
+        let owns_session = self
+            .agent_sessions
+            .lock()
+            .map_err(|_| "Session authorization state is unavailable".to_string())?
+            .get(&agent.id)
+            .is_some_and(|sessions| sessions.contains(&session.id));
+        if !owns_session {
+            return Err("Agent is not authorized to access this session".to_string());
+        }
+        Ok(session.id.clone())
+    }
+
+    fn record_agent_session(
+        &self,
+        agent: &AuthenticatedAgent,
+        session_id: String,
+    ) -> Result<(), String> {
+        self.agent_sessions
+            .lock()
+            .map_err(|_| "Session authorization state is unavailable".to_string())?
+            .entry(agent.id.clone())
+            .or_default()
+            .insert(session_id);
+        Ok(())
+    }
+
+    fn forget_agent_session(&self, agent: &AuthenticatedAgent, session_id: &str) {
+        if let Ok(mut sessions) = self.agent_sessions.lock() {
+            if let Some(owned) = sessions.get_mut(&agent.id) {
+                owned.remove(session_id);
+            }
         }
     }
 
@@ -474,8 +521,10 @@ async fn handle_jsonrpc(
         "initialize" => handle_initialize(request.params).await,
         "notifications/initialized" => Ok(json!({})),
         "ping" => Ok(json!({})),
-        "tools/list" => handle_tools_list().await,
-        "tools/call" => handle_tools_call(&state, request.params, Some(&agent_label)).await,
+        "tools/list" => handle_tools_list(agent.as_ref()).await,
+        "tools/call" => {
+            handle_tools_call(&state, request.params, Some(&agent_label), agent.as_ref()).await
+        }
         _ => Err((
             METHOD_NOT_FOUND,
             format!("Unknown method: {}", request.method),
@@ -515,9 +564,12 @@ async fn handle_initialize(_params: Option<Value>) -> Result<Value, (i32, String
     }))
 }
 
-/// Handle the `tools/list` method
-async fn handle_tools_list() -> Result<Value, (i32, String)> {
-    let tools = get_compact_tool_definitions();
+async fn handle_tools_list(agent: Option<&AuthenticatedAgent>) -> Result<Value, (i32, String)> {
+    let tools = if agent.is_some() {
+        get_compact_agent_tool_definitions()
+    } else {
+        get_compact_tool_definitions()
+    };
     Ok(json!({
         "tools": tools
     }))
@@ -528,6 +580,7 @@ async fn handle_tools_call(
     state: &McpState,
     params: Option<Value>,
     agent: Option<&str>,
+    paired_agent: Option<&AuthenticatedAgent>,
 ) -> Result<Value, (i32, String)> {
     let params = params.ok_or((INVALID_PARAMS, "Missing params".to_string()))?;
 
@@ -536,7 +589,51 @@ async fn handle_tools_call(
         .and_then(|v| v.as_str())
         .ok_or((INVALID_PARAMS, "Missing tool name".to_string()))?;
 
-    let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+    if paired_agent.is_some() && !is_agent_tool(name) {
+        return Err((
+            METHOD_NOT_FOUND,
+            format!("Tool '{}' is not available to paired Agents", name),
+        ));
+    }
+
+    let mut arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+    let mut authorized_session_id = None;
+    if let Some(paired_agent) = paired_agent {
+        if name == "session_create" {
+            if arguments
+                .get("server_name")
+                .and_then(Value::as_str)
+                .is_none()
+            {
+                return Err((
+                    INVALID_PARAMS,
+                    "Paired Agents must create sessions by server_name".to_string(),
+                ));
+            }
+            let mut forced_arguments = arguments.clone();
+            forced_arguments["force_new"] = json!(true);
+            arguments = forced_arguments;
+        } else if matches!(
+            name,
+            "session_send_input"
+                | "session_sudo"
+                | "session_read"
+                | "session_resize"
+                | "session_kill"
+        ) {
+            let session_id = arguments.get("session_id").and_then(Value::as_str).ok_or((
+                INVALID_PARAMS,
+                "Missing required field: session_id".to_string(),
+            ))?;
+            authorized_session_id = Some(
+                state
+                    .require_agent_session(paired_agent, session_id)
+                    .await
+                    .map_err(|message| (INVALID_PARAMS, message))?,
+            );
+        }
+    }
+
     let activity_id = Uuid::new_v4().to_string();
     let summary = activity_summary(name, &arguments);
     let session_id = arguments
@@ -557,7 +654,36 @@ async fn handle_tools_call(
         .map_err(|error| (INTERNAL_ERROR, error))?;
 
     // Execute the tool
-    let result = execute_tool(state, name, &arguments, agent).await;
+    let mut result = execute_tool(state, name, &arguments, agent, paired_agent.is_some()).await;
+
+    if result.is_ok() {
+        if let Some(paired_agent) = paired_agent {
+            if name == "session_create" {
+                let created_id = result
+                    .as_ref()
+                    .ok()
+                    .and_then(|content| serde_json::from_str::<Value>(content).ok())
+                    .and_then(|value| value.get("id").and_then(Value::as_str).map(str::to_string));
+                match created_id {
+                    Some(id) => match state.session_manager.resolve(&id).await {
+                        Ok(session) => {
+                            if let Err(error) =
+                                state.record_agent_session(paired_agent, session.id.clone())
+                            {
+                                result = Err(error);
+                            }
+                        }
+                        Err(error) => result = Err(error.to_string()),
+                    },
+                    None => result = Err("Session creation returned no session id".to_string()),
+                }
+            } else if name == "session_kill" {
+                if let Some(session_id) = authorized_session_id.as_deref() {
+                    state.forget_agent_session(paired_agent, session_id);
+                }
+            }
+        }
+    }
 
     match result {
         Ok(content) => {
@@ -660,9 +786,14 @@ pub async fn execute_tool_public(
     agent: Option<&str>,
 ) -> Result<String, String> {
     // Both transports use the exact same guarded/audited entry point.
-    let response = handle_tools_call(state, Some(json!({"name": name, "arguments": args})), agent)
-        .await
-        .map_err(|(_, message)| message)?;
+    let response = handle_tools_call(
+        state,
+        Some(json!({"name": name, "arguments": args})),
+        agent,
+        None,
+    )
+    .await
+    .map_err(|(_, message)| message)?;
     let content = response["content"][0]["text"]
         .as_str()
         .unwrap_or_default()
@@ -679,10 +810,11 @@ async fn execute_tool(
     name: &str,
     args: &Value,
     agent: Option<&str>,
+    paired_agent: bool,
 ) -> Result<String, String> {
     match name {
         // Server Management
-        "server_list" => tool_server_list(state, args).await,
+        "server_list" => tool_server_list(state, args, paired_agent).await,
         "server_add" => tool_server_add(state, args).await,
         "server_get" => tool_server_get(state, args).await,
         "server_update" => tool_server_update(state, args).await,
@@ -695,6 +827,7 @@ async fn execute_tool(
         "session_detach" => tool_session_detach(state, args).await,
         "session_kill" => tool_session_kill(state, args).await,
         "session_send_input" => tool_session_send_input(state, args, agent).await,
+        "session_sudo" => tool_session_sudo(state, args).await,
         "session_read" => tool_session_read(state, args).await,
         "session_resize" => tool_session_resize(state, args).await,
 
@@ -727,7 +860,11 @@ async fn execute_tool(
 
 // === Server Management Tool Implementations ===
 
-async fn tool_server_list(state: &McpState, args: &Value) -> Result<String, String> {
+async fn tool_server_list(
+    state: &McpState,
+    args: &Value,
+    paired_agent: bool,
+) -> Result<String, String> {
     let group_id = args.get("group_id").and_then(|v| v.as_str());
     let tags: Option<Vec<String>> = args
         .get("tags")
@@ -742,14 +879,21 @@ async fn tool_server_list(state: &McpState, args: &Value) -> Result<String, Stri
     let compact: Vec<Value> = servers
         .iter()
         .map(|server| {
-            json!({
-                "id": unique_short_id(&server.id, &server_ids),
-                "name": &server.name,
-                "host": &server.host,
-                "port": server.port,
-                "user": &server.username,
-                "auth": &server.auth_type,
-            })
+            if paired_agent {
+                json!({
+                    "id": unique_short_id(&server.id, &server_ids),
+                    "name": &server.name,
+                })
+            } else {
+                json!({
+                    "id": unique_short_id(&server.id, &server_ids),
+                    "name": &server.name,
+                    "host": &server.host,
+                    "port": server.port,
+                    "user": &server.username,
+                    "auth": &server.auth_type,
+                })
+            }
         })
         .collect();
     serde_json::to_string(&compact).map_err(|e| e.to_string())
@@ -1303,6 +1447,57 @@ fn named_key_bytes(key: &str) -> Result<&'static [u8], String> {
         "left" => Ok(b"\x1b[D"),
         _ => Err(format!("Unsupported named key: {}", key)),
     }
+}
+
+async fn tool_session_sudo(state: &McpState, args: &Value) -> Result<String, String> {
+    let session_id = args
+        .get("session_id")
+        .and_then(Value::as_str)
+        .ok_or("Missing required field: session_id")?;
+    let command = args
+        .get("command")
+        .and_then(Value::as_str)
+        .filter(|command| !command.trim().is_empty())
+        .ok_or("Missing non-empty field: command")?;
+    if command.contains('\0') {
+        return Err("Command contains a NUL byte".to_string());
+    }
+
+    let session = resolve_session(state, session_id).await?;
+    let allowed_commands = state
+        .database
+        .sudo_policy_get(&session.server_name)
+        .map_err(|error| format!("Failed to load sudo policy: {error}"))?;
+    if !allowed_commands.iter().any(|allowed| allowed == command) {
+        return Err("Sudo command is not in the server's exact allowlist".to_string());
+    }
+    let password = state
+        .database
+        .sudo_credential_get(&session.server_name)
+        .map_err(|error| format!("Failed to load configured sudo credentials: {error}"))?
+        .ok_or_else(|| {
+            format!(
+                "No sudo credential is configured for '{}'.",
+                session.server_name
+            )
+        })?;
+    let password = zeroize::Zeroizing::new(password);
+    let stdin = zeroize::Zeroizing::new(format!("{}\n{}\n", password.as_str(), command));
+    let output = session
+        .exec_command_with_stdin("sudo -S -p '' -- sh -s", Some(stdin.as_str()))
+        .await
+        .map_err(|error| {
+            let message = error.to_string();
+            if message.contains("a terminal is required")
+                || message.contains("password is required")
+            {
+                "Sudo refused non-interactive execution; no password was sent to the terminal."
+                    .to_string()
+            } else {
+                "Configured sudo command failed".to_string()
+            }
+        })?;
+    Ok(output.replace(password.as_str(), "[sudo password redacted]"))
 }
 
 async fn tool_session_read(state: &McpState, args: &Value) -> Result<String, String> {
@@ -2208,7 +2403,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_tools_list() {
-        let result = handle_tools_list().await.unwrap();
+        let result = handle_tools_list(None).await.unwrap();
         assert!(result["tools"].is_array());
         let tools = result["tools"].as_array().unwrap();
         assert!(!tools.is_empty());

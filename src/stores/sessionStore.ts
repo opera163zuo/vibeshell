@@ -169,6 +169,13 @@ interface SessionStore {
   // Tauri backend integration
   /** Connect to a server by name and create a session (without full SSH connection) */
   connectSession: (serverName: string) => Promise<Session | null>;
+  /** Connect with credentials stored by the backend without returning them to the UI. */
+  connectWithSavedCredentials: (
+    serverName: string,
+    cols?: number,
+    rows?: number,
+    forceNew?: boolean
+  ) => Promise<Session | null>;
   /** Connect to a server with credentials and start SSH session */
   connectWithCredentials: (
     serverName: string,
@@ -340,6 +347,40 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       showError('Failed to Create Session', result.error);
       return null;
     }
+  },
+
+  connectWithSavedCredentials: async (
+    serverName: string,
+    cols = 80,
+    rows = 24,
+    forceNew = false
+  ) => {
+    set({ loading: true, error: null });
+    const request = { serverName, cols, rows, forceNew };
+    let result = await safeInvoke<SessionInfo>('session_connect_saved', { request });
+    const approvedHosts = new Set<string>();
+    for (let approvals = 0; !result.success && approvals < 2; approvals += 1) {
+      const hostKeyError = parseHostKeyError(result.error.message);
+      if (!hostKeyError?.host || !hostKeyError.port || !hostKeyError.fingerprint) break;
+      const identity = JSON.stringify([hostKeyError.host, hostKeyError.port]);
+      if (approvedHosts.has(identity)) break;
+      approvedHosts.add(identity);
+      const approved = await useFingerprintStore.getState().requestHostKeyApproval({
+        host: hostKeyError.host, port: hostKeyError.port, fingerprint: hostKeyError.fingerprint,
+        algorithm: hostKeyError.keyType ?? 'unknown', serverName, status: hostKeyError.kind,
+        storedFingerprint: hostKeyError.storedFingerprint, storedAlgorithm: hostKeyError.storedKeyType,
+      });
+      if (!approved) break;
+      result = await safeInvoke<SessionInfo>('session_connect_saved', { request });
+    }
+    if (result.success) {
+      const session = mapSessionInfo(result.data);
+      set((state) => ({ sessions: upsertSession(state.sessions, session), activeSessionId: state.activeSessionId ?? session.id, loading: false }));
+      return session;
+    }
+    set({ error: result.error.message, loading: false });
+    showError('Connection Failed', result.error);
+    return null;
   },
 
   connectWithCredentials: async (

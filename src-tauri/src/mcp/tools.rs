@@ -46,6 +46,7 @@ pub fn get_tool_definitions() -> Vec<ToolDefinition> {
         session_detach_tool(),
         session_kill_tool(),
         session_send_input_tool(),
+        session_sudo_tool(),
         session_read_tool(),
         session_resize_tool(),
         exec_tool(),
@@ -66,6 +67,60 @@ pub fn get_tool_definitions() -> Vec<ToolDefinition> {
     ]
 }
 
+/// Returns the minimal tool surface available to paired HTTP Agents.
+pub fn get_agent_tool_definitions() -> Vec<ToolDefinition> {
+    const AGENT_TOOLS: &[&str] = &[
+        "server_list",
+        "session_create",
+        "session_send_input",
+        "session_sudo",
+        "session_read",
+        "session_resize",
+        "session_kill",
+    ];
+    get_tool_definitions()
+        .into_iter()
+        .filter(|tool| AGENT_TOOLS.contains(&tool.name.as_str()))
+        .map(|mut tool| {
+            if tool.name == "session_create" {
+                if let Some(schema) = tool.input_schema.as_object_mut() {
+                    if let Some(properties) =
+                        schema.get_mut("properties").and_then(Value::as_object_mut)
+                    {
+                        properties.remove("server_id");
+                    }
+                    schema.insert("required".into(), json!(["server_name"]));
+                }
+            }
+            tool
+        })
+        .collect()
+}
+
+pub fn get_compact_agent_tool_definitions() -> Vec<ToolDefinition> {
+    get_agent_tool_definitions()
+        .into_iter()
+        .map(|mut tool| {
+            tool.description = compact_description(&tool.name);
+            compact_schema(&mut tool.input_schema);
+            tool
+        })
+        .collect()
+}
+
+pub fn is_agent_tool(name: &str) -> bool {
+    matches!(
+        name,
+        "server_list"
+            | "session_create"
+            | "session_send_input"
+            | "session_sudo"
+            | "session_read"
+            | "session_resize"
+            | "session_kill"
+    )
+}
+
 /// Compact definitions for agents that already know the Gateway workflow.
 /// Keep names and schema semantics, but remove prose that is repeated on every
 /// connection and every `tools/list` response.
@@ -83,6 +138,7 @@ pub fn get_compact_tool_definitions() -> Vec<ToolDefinition> {
 fn compact_description(name: &str) -> String {
     match name {
         "session_send_input" => "Send visible terminal input (approval-gated).".to_string(),
+        "session_sudo" => "Run a server-configured non-interactive sudo command.".to_string(),
         "session_read" => "Read recent visible terminal output.".to_string(),
         "exec" => "Run isolated SSH command (approval-gated).".to_string(),
         "server_list" => "List saved servers.".to_string(),
@@ -399,6 +455,21 @@ fn session_send_input_tool() -> ToolDefinition {
     )
 }
 
+fn session_sudo_tool() -> ToolDefinition {
+    ToolDefinition::new(
+        "session_sudo",
+        "Run a configured sudo command through a non-interactive SSH exec channel; the sudo password is held by the server and never returned.",
+        json!({
+            "type": "object",
+            "properties": {
+                "session_id": {"type": "string"},
+                "command": {"type": "string", "description": "Command to run as root through the configured sudo policy"}
+            },
+            "required": ["session_id", "command"],
+            "additionalProperties": false
+        }),
+    )
+}
 fn session_read_tool() -> ToolDefinition {
     ToolDefinition::new(
         "session_read",
@@ -931,11 +1002,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn paired_agent_surface_is_terminal_only() {
+        let tools = get_agent_tool_definitions();
+        let names = tools
+            .iter()
+            .map(|tool| tool.name.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        assert_eq!(names.len(), 7);
+        for allowed in [
+            "server_list",
+            "session_create",
+            "session_send_input",
+            "session_sudo",
+            "session_read",
+            "session_resize",
+            "session_kill",
+        ] {
+            assert!(names.contains(allowed), "missing {allowed}");
+            assert!(is_agent_tool(allowed));
+        }
+        for denied in ["exec", "rg", "sftp_upload", "server_add", "server_delete"] {
+            assert!(!names.contains(denied), "unexpected {denied}");
+            assert!(!is_agent_tool(denied));
+        }
+    }
+
+    #[test]
     fn test_get_tool_definitions() {
         let tools = get_tool_definitions();
 
         // The headless service only exposes SSH/session/command/SFTP operations.
-        assert_eq!(tools.len(), 28);
+        assert_eq!(tools.len(), 29);
         for name in ["plugin_list", "plugin_describe", "plugin_execute"] {
             assert!(!tools.iter().any(|tool| tool.name == name));
         }
@@ -991,7 +1088,7 @@ mod tests {
     #[test]
     fn compact_definitions_drop_repeated_schema_prose() {
         let tools = get_compact_tool_definitions();
-        assert_eq!(tools.len(), 28);
+        assert_eq!(tools.len(), 29);
         let encoded = serde_json::to_string(&tools).unwrap();
         assert!(!encoded.contains("Filter servers by group ID"));
         assert!(!encoded.contains("\"default\""));

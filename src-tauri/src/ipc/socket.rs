@@ -140,6 +140,12 @@ pub enum IpcMessage {
     CreateSession {
         server_name: String,
     },
+    /// Create and connect a new session using credentials stored by the owner.
+    CreateSessionSaved {
+        server_name: String,
+        cols: Option<u32>,
+        rows: Option<u32>,
+    },
     /// Create and connect a new session with explicit credentials
     CreateSessionWithCredentials {
         server_name: String,
@@ -1130,6 +1136,7 @@ impl IpcServer {
                 ..
             } => descriptions.push(("cli.exec".into(), Some(session_id.clone()), command.clone())),
             IpcMessage::CreateSession { server_name }
+            | IpcMessage::CreateSessionSaved { server_name, .. }
             | IpcMessage::CreateSessionWithCredentials { server_name, .. } => {
                 descriptions.push(("cli.session_create".into(), None, server_name.clone()))
             }
@@ -1310,6 +1317,47 @@ impl IpcServer {
                 });
                 IpcMessage::SessionList { sessions }
             }
+            IpcMessage::CreateSessionSaved {
+                server_name,
+                cols,
+                rows,
+            } => match database.credential_get(&server_name) {
+                Ok(Some(cred)) => {
+                    let ssh_cred = match crate::session::SshCredential::from_stored(cred) {
+                        Ok(credential) => credential,
+                        Err(error) => {
+                            return IpcMessage::Error {
+                                message: error.to_string(),
+                            }
+                        }
+                    };
+                    let pty_config = Some(crate::ssh::PtyConfig {
+                        term: "xterm-256color".to_string(),
+                        cols: cols.unwrap_or(80),
+                        rows: rows.unwrap_or(24),
+                        pix_width: 0,
+                        pix_height: 0,
+                    });
+                    match rt.block_on(session_manager.create_with_credentials(
+                        &server_name,
+                        ssh_cred,
+                        pty_config,
+                    )) {
+                        Ok(session) => IpcMessage::SessionCreated {
+                            session_id: session.id.clone(),
+                        },
+                        Err(error) => IpcMessage::Error {
+                            message: error.to_string(),
+                        },
+                    }
+                }
+                Ok(None) => IpcMessage::Error {
+                    message: format!("No saved credentials for server '{}'.", server_name),
+                },
+                Err(error) => IpcMessage::Error {
+                    message: error.to_string(),
+                },
+            },
             IpcMessage::CreateSession { server_name } => {
                 // Look up saved credentials for the server and connect
                 match database.credential_get(&server_name) {

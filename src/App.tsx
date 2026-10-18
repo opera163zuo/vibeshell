@@ -58,6 +58,7 @@ import { WorkspaceToolbar } from './components/WorkspaceToolbar';
 import { FingerprintVerificationDialog, FingerprintManagerDialog } from './components/FingerprintDialog';
 import { SnippetManagerDialog } from './components/SnippetManager/SnippetManagerDialog';
 import { TunnelPanelDialog } from './components/TunnelPanel/TunnelPanelDialog';
+import { ServerSidebar } from './components/ServerSidebar/ServerSidebar';
 import { useServerStore, type Server } from './stores/serverStore';
 import { useRuntimeCapabilitiesStore } from './stores/runtimeCapabilitiesStore';
 import { useMediaQuery } from './lib/useMediaQuery';
@@ -117,7 +118,6 @@ function App() {
     setActiveSession,
     killSession,
     killLocalShellSession,
-    connectWithCredentials,
     fetchSessions,
     syncRemoteSessions,
     createLocalShellSession,
@@ -543,44 +543,18 @@ function App() {
 
   const handleConnect = useCallback(async (server: Server, options?: { forceNew?: boolean }) => {
     const forceNew = options?.forceNew ?? false;
-
-    const credResult = await safeInvoke<{
-      id: string;
-      server_name: string;
-      auth_type: string;
-      credential: string;
-      passphrase: string | null;
-      key_path: string | null;
-      created_at: number;
-    } | null>('get_credential', { request: { serverName: server.name } });
-
-    if (credResult.success && credResult.data) {
-      const cred = credResult.data;
-      const authType = (cred.auth_type === 'key' || cred.auth_type === 'key_with_passphrase') ? 'key' : 'password';
-
-      const session = await connectWithCredentials(
-        server.name,
-        authType,
-        cred.credential,
-        cred.passphrase || undefined,
-        80,
-        24,
-        forceNew
-      );
-
-      if (session) {
-        handleConnected(session.id);
-      } else {
-        setServerToConnect(server);
-        setConnectForceNew(forceNew);
-        setIsConnectOpen(true);
-      }
-    } else {
-      setServerToConnect(server);
-      setConnectForceNew(forceNew);
-      setIsConnectOpen(true);
+    const status = await safeInvoke<{ authType: string | null; hasCredential: boolean }>(
+      'credential_status', { request: { serverName: server.name } }
+    );
+    if (status.success && status.data.hasCredential) {
+      const session = await useSessionStore.getState().connectWithSavedCredentials(server.name, 80, 24, forceNew);
+      if (session) handleConnected(session.id);
+      return;
     }
-  }, [connectWithCredentials, handleConnected]);
+    setServerToConnect(server);
+    setConnectForceNew(forceNew);
+    setIsConnectOpen(true);
+  }, [handleConnected]);
 
   const resolveServerForSession = useCallback(async (session: Session) => {
     let server = servers.find((candidate) =>
@@ -986,6 +960,14 @@ function App() {
         <Notifications />
 
         <div className="flex-1 flex overflow-hidden">
+          {!runtimeCapabilities.isMobile && (
+            <ServerSidebar
+              connectedServerIds={connectedServerIds}
+              onConnect={handleConnect}
+              onAddServer={handleAddServer}
+              onEditServer={handleEditServer}
+            />
+          )}
           <main className="main-workspace flex-1 flex flex-col min-w-0 relative overflow-x-hidden w-full max-w-full">
             <SessionTabs
               onNewSession={handleNewSession}

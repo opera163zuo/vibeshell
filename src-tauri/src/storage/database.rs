@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::Utc;
 use rusqlite::{Connection, OptionalExtension};
 use std::path::PathBuf;
@@ -120,6 +120,18 @@ impl Database {
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS sudo_credentials (
+                server_name TEXT PRIMARY KEY,
+                encrypted_password TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS sudo_policies (
+                server_name TEXT PRIMARY KEY,
+                allowed_commands_json TEXT NOT NULL,
+                updated_at INTEGER NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS tunnel_configs (
@@ -912,6 +924,87 @@ impl Database {
         }
     }
 
+    /// Save the encrypted sudo password associated with a server profile.
+    pub fn sudo_credential_save(&self, server_name: &str, password: &str) -> Result<()> {
+        if password.is_empty() {
+            anyhow::bail!("Sudo password cannot be empty");
+        }
+        let encrypted = encrypt_credential_value(password)?;
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO sudo_credentials (server_name, encrypted_password, created_at) VALUES (?1, ?2, ?3) ON CONFLICT(server_name) DO UPDATE SET encrypted_password = excluded.encrypted_password, created_at = excluded.created_at",
+            rusqlite::params![server_name, encrypted, Utc::now().timestamp()],
+        )?;
+        Ok(())
+    }
+
+    /// Load a server's sudo password only inside Rust backend code.
+    pub fn sudo_credential_get(&self, server_name: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock().unwrap();
+        let result = conn.query_row(
+            "SELECT encrypted_password FROM sudo_credentials WHERE server_name = ?1",
+            [server_name],
+            |row| row.get::<_, String>(0),
+        );
+        match result {
+            Ok(value) => Ok(Some(decrypt_credential_value(&value)?)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    pub fn sudo_credential_delete(&self, server_name: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "DELETE FROM sudo_credentials WHERE server_name = ?1",
+            [server_name],
+        )?;
+        Ok(())
+    }
+
+    pub fn sudo_policy_save(&self, server_name: &str, commands: &[String]) -> Result<()> {
+        let normalized = commands
+            .iter()
+            .map(|command| command.trim())
+            .filter(|command| !command.is_empty())
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        if normalized.is_empty() {
+            anyhow::bail!("At least one exact sudo command is required");
+        }
+        let encoded = serde_json::to_string(&normalized)?;
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO sudo_policies (server_name, allowed_commands_json, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(server_name) DO UPDATE SET allowed_commands_json = excluded.allowed_commands_json, updated_at = excluded.updated_at",
+            rusqlite::params![server_name, encoded, Utc::now().timestamp()],
+        )?;
+        Ok(())
+    }
+
+    pub fn sudo_policy_get(&self, server_name: &str) -> Result<Vec<String>> {
+        let conn = self.conn.lock().unwrap();
+        let encoded = conn
+            .query_row(
+                "SELECT allowed_commands_json FROM sudo_policies WHERE server_name = ?1",
+                [server_name],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        encoded
+            .map(|value| serde_json::from_str(&value).context("Stored sudo policy is invalid"))
+            .transpose()
+            .map(|value| value.unwrap_or_default())
+    }
+
+    pub fn sudo_policy_delete(&self, server_name: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "DELETE FROM sudo_policies WHERE server_name = ?1",
+            [server_name],
+        )?;
+        Ok(())
+    }
+
     /// Delete credentials for a server
     pub fn credential_delete(&self, server_name: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
@@ -930,6 +1023,14 @@ impl Database {
         )?;
         conn.execute(
             "DELETE FROM server_credentials WHERE server_name = ?1",
+            [server_name],
+        )?;
+        conn.execute(
+            "DELETE FROM sudo_credentials WHERE server_name = ?1",
+            [server_name],
+        )?;
+        conn.execute(
+            "DELETE FROM sudo_policies WHERE server_name = ?1",
             [server_name],
         )?;
         Ok(())
@@ -960,6 +1061,22 @@ impl Database {
         )?;
         conn.execute(
             "UPDATE server_credentials SET server_name = ?2 WHERE server_name = ?1",
+            rusqlite::params![old_name, new_name],
+        )?;
+        conn.execute(
+            "DELETE FROM sudo_credentials WHERE server_name = ?1",
+            [new_name],
+        )?;
+        conn.execute(
+            "UPDATE sudo_credentials SET server_name = ?2 WHERE server_name = ?1",
+            rusqlite::params![old_name, new_name],
+        )?;
+        conn.execute(
+            "DELETE FROM sudo_policies WHERE server_name = ?1",
+            [new_name],
+        )?;
+        conn.execute(
+            "UPDATE sudo_policies SET server_name = ?2 WHERE server_name = ?1",
             rusqlite::params![old_name, new_name],
         )?;
         Ok(())

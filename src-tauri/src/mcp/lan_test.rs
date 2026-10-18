@@ -159,7 +159,36 @@ async fn tools_list_and_an_authorized_read_only_tool_call() {
         )
         .await;
     let listed: Value = listed.json().await.expect("tools/list body");
-    assert!(listed["result"]["tools"].as_array().unwrap().len() > 10);
+    let tools = listed["result"]["tools"].as_array().unwrap();
+    let names = tools
+        .iter()
+        .filter_map(|tool| tool["name"].as_str())
+        .collect::<std::collections::HashSet<_>>();
+    assert_eq!(names.len(), 7);
+    for name in [
+        "server_list",
+        "session_create",
+        "session_send_input",
+        "session_sudo",
+        "session_read",
+        "session_resize",
+        "session_kill",
+    ] {
+        assert!(names.contains(name), "missing {name}");
+    }
+    for name in ["exec", "rg", "sftp_upload", "server_add", "server_delete"] {
+        assert!(!names.contains(name), "unexpected {name}");
+    }
+
+    let forbidden = service
+        .rpc(
+            Some(&token),
+            json!({"jsonrpc":"2.0","id":30,"method":"tools/call",
+                   "params":{"name":"exec","arguments":{"command":"id","session_id":"none"}}}),
+        )
+        .await;
+    let forbidden: Value = forbidden.json().await.expect("forbidden tool body");
+    assert_eq!(forbidden["error"]["code"], -32601);
 
     let called = service
         .rpc(
@@ -168,9 +197,21 @@ async fn tools_list_and_an_authorized_read_only_tool_call() {
                    "params":{"name":"server_list","arguments":{}}}),
         )
         .await;
-    let called: Value = called.json().await.expect("tools/call body");
+    let called: Value = called.json().await.expect("tool call body");
     assert!(called["error"].is_null(), "{called}");
-    assert!(called["result"]["content"][0]["text"].is_string());
+    let servers: Value =
+        serde_json::from_str(called["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    if let Some(server) = servers.as_array().and_then(|items| items.first()) {
+        assert_eq!(
+            server
+                .as_object()
+                .unwrap()
+                .keys()
+                .cloned()
+                .collect::<std::collections::HashSet<_>>(),
+            ["id", "name"].into_iter().map(str::to_string).collect()
+        );
+    }
 
     // The audit trail records which Agent caused the operation.
     let events = service
