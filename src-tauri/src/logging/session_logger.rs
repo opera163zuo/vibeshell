@@ -30,7 +30,7 @@ pub struct SessionLogger {
 
 impl SessionLogger {
     pub fn new(database: Arc<Database>) -> Self {
-        let log_dir = ProjectDirs::from("com", "vibeshell", "VibeShell")
+        let log_dir = ProjectDirs::from("com", "zxyssh", "zxySSH")
             .map(|dirs| dirs.data_dir().join("recordings"))
             .unwrap_or_else(|| PathBuf::from("recordings"));
 

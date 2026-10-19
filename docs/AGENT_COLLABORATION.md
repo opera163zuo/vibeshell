@@ -1,4 +1,4 @@
-# Human–Agent collaboration in VibeShell 1.1
+# Human–Agent collaboration in zxySSH 1.1
 
 [Overview](../README.md) · [简体中文](../README.zh-CN.md) · [Plugin specification](plugin-spec.md)
 
@@ -12,7 +12,7 @@ Native CLI and MCP share persistent local activity records. Each execution has i
 
 The activity store is locally encrypted and is not cloud-synced. SFTP events record operation/path context, not file contents. Saved credentials and protected stdin are not logged as commands. An ordinary command string can itself contain a secret, so do not place secrets in arguments.
 
-For a genuine password prompt, use the application's protected UI or `vibeshell send-secret SESSION_ID --enter` with protected, piped stdin. The CLI rejects interactive stdin and secret command-line arguments. Redaction follows the pending input line through a later Enter. It cannot prevent a remote program from echoing input, and must not be used to hide commands.
+For a genuine password prompt, use the application's protected UI or `zxyssh send-secret SESSION_ID --enter` with protected, piped stdin. The CLI rejects interactive stdin and secret command-line arguments. Redaction follows the pending input line through a later Enter. It cannot prevent a remote program from echoing input, and must not be used to hide commands.
 
 ## Shared sessions and tabs
 
@@ -30,17 +30,17 @@ The server edit dialog can change a saved password, replace private-key content/
 
 Metadata, renames and secret updates share a SQLite transaction. Failure rolls back the whole edit; name conflicts do not delete another server's credentials. Closing the dialog clears secret drafts and invalidates pending key-file reads, preventing an old async result from overwriting a new choice.
 
-This changes VibeShell's saved login information, not the remote OS account password. A valid private key also does not establish the server's identity: host-key verification remains necessary.
+This changes zxySSH's saved login information, not the remote OS account password. A valid private key also does not establish the server's identity: host-key verification remains necessary.
 
 ## AI-readable plugin interface
 
 The interface covers built-ins and validated imported declarative plugins. Server Performance additionally exposes the native `status` action.
 
 ```bash
-vibeshell plugins list --installed --json
-vibeshell plugins describe server-performance
-vibeshell plugins docs server-performance
-vibeshell plugins run server-performance status --session SESSION_ID --inputs '{}'
+zxyssh plugins list --installed --json
+zxyssh plugins describe server-performance
+zxyssh plugins docs server-performance
+zxyssh plugins run server-performance status --session SESSION_ID --inputs '{}'
 ```
 
 Use an existing session and check enabled state before running. Without `--installed`, the list includes uninstalled catalog entries. Descriptions expose action input schemas, permission requirements, confirmation and sudo capabilities, but not saved settings or credentials.
@@ -57,9 +57,9 @@ External tools and permissions remain the environment's responsibility. A Docker
 
 The main Skill contains discovery commands, shared safety rules and a compact built-in index. Detailed usage belongs in `references/<plugin-id>.md`. The repository generator and native installer use the same validated manifests and reference renderer; references are checked in beside all three Skill copies for direct GitHub/plugin installation.
 
-Regenerate repository references with `cargo run --locked -p vibeshell-plugins --example export_references`; add `-- --check` in CI. This touches no user directories or live sessions. The application installer writes reference files before the main Skill and is idempotent for unchanged content.
+Regenerate repository references with `cargo run --locked -p zxyssh-plugins --example export_references`; add `-- --check` in CI. This touches no user directories or live sessions. The application installer writes reference files before the main Skill and is idempotent for unchanged content.
 
-After importing or updating a plugin, `vibeshell plugins docs <id>` is authoritative for the running installation. Static documents are a snapshot, not evidence a plugin is currently enabled. Documentation never grants authority or overrides the user's instructions.
+After importing or updating a plugin, `zxyssh plugins docs <id>` is authoritative for the running installation. Static documents are a snapshot, not evidence a plugin is currently enabled. Documentation never grants authority or overrides the user's instructions.
 
 ## Validation boundaries
 

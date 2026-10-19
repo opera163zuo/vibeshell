@@ -11,7 +11,7 @@ import {
 // ============================================================================
 
 /**
- * Represents an AI coding tool that can be configured with VibeShell MCP.
+ * Represents an AI coding tool that can be configured with zxySSH MCP.
  */
 export interface AiTool {
   /** Unique identifier for the tool (e.g., "claude-code", "cursor") */
@@ -22,11 +22,11 @@ export interface AiTool {
   configPath: string;
   /** Whether the AI tool is installed on the system */
   installed: boolean;
-  /** Whether VibeShell is configured in the tool */
-  vibeshellInstalled: boolean;
+  /** Whether zxySSH is configured in the tool */
+  zxysshInstalled: boolean;
 }
 
-/** Status of the Agent Gateway hosted by the VibeShell GUI. */
+/** Status of the Agent Gateway hosted by the zxySSH GUI. */
 export interface AgentGatewayStatus {
   running: boolean;
   endpoint: string | null;
@@ -210,9 +210,9 @@ interface SettingsStore {
   fetchGatewayStatus: () => Promise<void>;
   /** Fetch current app version */
   fetchAppVersion: () => Promise<void>;
-  /** Install VibeShell to a specific AI tool */
+  /** Install zxySSH to a specific AI tool */
   installTo: (toolId: string) => Promise<void>;
-  /** Uninstall VibeShell from a specific AI tool */
+  /** Uninstall zxySSH from a specific AI tool */
   uninstallFrom: (toolId: string) => Promise<void>;
 
   // Settings actions
@@ -236,7 +236,7 @@ interface SettingsStore {
 // Persistence Helpers
 // ============================================================================
 
-const SETTINGS_KEY = 'vibeshell_settings';
+const SETTINGS_KEY = 'zxyssh_settings';
 
 const LEGACY_THEME_MAP: Record<string, ThemeName> = {
   'tokyo-night': 'violet-black',

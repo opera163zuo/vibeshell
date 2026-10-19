@@ -1,21 +1,21 @@
 #!/usr/bin/env node
-// Small, dependency-free VibeShell Gateway client installed with the skill.
+// Small, dependency-free zxySSH Gateway client installed with the skill.
 // It keeps manifest/token handling local and emits only MCP results.
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
-const appName = 'VibeShell';
+const appName = 'zxySSH';
 const timeoutMs = 15000;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const installedManifest = {{MANIFEST_PATH_JSON}};
 
 function manifestCandidates() {
   const home = os.homedir();
-  if (process.platform === 'darwin') return [installedManifest, path.join(home, 'Library/Application Support/com.vibeshell.VibeShell/agent-gateway.json')];
-  if (process.platform === 'win32') return [installedManifest, path.join(process.env.LOCALAPPDATA || path.join(home, 'AppData/Local'), 'vibeshell/agent-gateway.json')];
-  return [installedManifest, path.join(process.env.XDG_DATA_HOME || path.join(home, '.local/share'), 'vibeshell/agent-gateway.json')];
+  if (process.platform === 'darwin') return [installedManifest, path.join(home, 'Library/Application Support/com.zxyssh.zxySSH/agent-gateway.json')];
+  if (process.platform === 'win32') return [installedManifest, path.join(process.env.LOCALAPPDATA || path.join(home, 'AppData/Local'), 'zxyssh/agent-gateway.json')];
+  return [installedManifest, path.join(process.env.XDG_DATA_HOME || path.join(home, '.local/share'), 'zxyssh/agent-gateway.json')];
 }
 
 async function readManifest() {
@@ -28,8 +28,8 @@ async function readManifest() {
 function launch(manifest) {
   if (process.platform === 'darwin') spawn('/usr/bin/open', ['-a', appName], { detached: true, stdio: 'ignore' }).unref();
   else if (manifest?.launchPath) spawn(manifest.launchPath, [], { detached: true, stdio: 'ignore' }).unref();
-  else if (process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process VibeShell'], { detached: true, stdio: 'ignore' }).unref();
-  else spawn('vibeshell', [], { detached: true, stdio: 'ignore' }).unref();
+  else if (process.platform === 'win32') spawn('powershell.exe', ['-NoProfile', '-Command', 'Start-Process zxySSH'], { detached: true, stdio: 'ignore' }).unref();
+  else spawn('zxyssh', [], { detached: true, stdio: 'ignore' }).unref();
 }
 
 async function ready() {
@@ -47,7 +47,7 @@ async function ready() {
     await sleep(250);
     manifest = await readManifest();
   }
-  throw new Error('VibeShell Gateway is not ready');
+  throw new Error('zxySSH Gateway is not ready');
 }
 
 async function rpc(manifest, method, params, id) {
@@ -66,13 +66,13 @@ async function rpc(manifest, method, params, id) {
 async function call(method, params = {}) {
   let manifest = await ready();
   try {
-    await rpc(manifest, 'initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'vibeshell-skill', version: '1' } }, 1);
+    await rpc(manifest, 'initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'zxyssh-skill', version: '1' } }, 1);
     await rpc(manifest, 'notifications/initialized', {}, 2);
     return await rpc(manifest, method, params, 3);
   } catch (error) {
     if (error.retry) {
       manifest = await ready();
-      await rpc(manifest, 'initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'vibeshell-skill', version: '1' } }, 1);
+      await rpc(manifest, 'initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'zxyssh-skill', version: '1' } }, 1);
       return await rpc(manifest, method, params, 3);
     }
     throw error;
@@ -81,7 +81,7 @@ async function call(method, params = {}) {
 
 function printResult(result) {
   const text = result?.content?.find((item) => item.type === 'text')?.text;
-  if (result?.isError) throw new Error(text || 'VibeShell operation failed');
+  if (result?.isError) throw new Error(text || 'zxySSH operation failed');
   process.stdout.write(text ?? JSON.stringify(result ?? {}));
   process.stdout.write('\n');
 }

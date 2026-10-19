@@ -1,16 +1,16 @@
-//! `vibeshell mcp` — run VibeShell's MCP endpoint as a network service and
+//! `zxyssh mcp` — run zxySSH's MCP endpoint as a network service and
 //! administer the Agents that pair with it.
 //!
 //! The service owns the SSH/SFTP work: a remote Agent only speaks MCP HTTP and
-//! never needs a local VibeShell, SSH client, or copy of the credential store.
+//! never needs a local zxySSH, SSH client, or copy of the credential store.
 
 use anyhow::{bail, Context, Result};
 use axum::Router;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
-use vibeshell_core::mcp::pairing::{AgentSummary, IssuedAgent, PairingRegistry};
-use vibeshell_core::mcp::McpServer;
-use vibeshell_core::{Database, SessionManager};
+use zxyssh_core::mcp::pairing::{AgentSummary, IssuedAgent, PairingRegistry};
+use zxyssh_core::mcp::McpServer;
+use zxyssh_core::{Database, SessionManager};
 
 const DEFAULT_BIND: &str = "127.0.0.1:8765";
 
@@ -23,18 +23,18 @@ pub struct ServiceConfig {
 
 impl ServiceConfig {
     pub fn from_env() -> Result<Self> {
-        let bind = std::env::var("VIBESHELL_MCP_BIND")
+        let bind = std::env::var("ZXYSSH_MCP_BIND")
             .unwrap_or_else(|_| DEFAULT_BIND.to_string())
             .parse::<SocketAddr>()
-            .context("VIBESHELL_MCP_BIND must be a socket address such as 127.0.0.1:8765")?;
-        let allow_lan = match std::env::var("VIBESHELL_MCP_ALLOW_LAN")
+            .context("ZXYSSH_MCP_BIND must be a socket address such as 127.0.0.1:8765")?;
+        let allow_lan = match std::env::var("ZXYSSH_MCP_ALLOW_LAN")
             .unwrap_or_default()
             .to_ascii_lowercase()
             .as_str()
         {
             "" | "0" | "false" | "no" => false,
             "1" | "true" | "yes" => true,
-            other => bail!("VIBESHELL_MCP_ALLOW_LAN must be true or false, got {other}"),
+            other => bail!("ZXYSSH_MCP_ALLOW_LAN must be true or false, got {other}"),
         };
         Ok(Self { bind, allow_lan })
     }
@@ -49,7 +49,7 @@ pub fn validate_listener(bind: SocketAddr, active_agents: usize, allow_lan: bool
     }
     if !allow_lan {
         bail!(
-            "Refusing to bind {bind} without VIBESHELL_MCP_ALLOW_LAN=true; \
+            "Refusing to bind {bind} without ZXYSSH_MCP_ALLOW_LAN=true; \
              loopback (127.0.0.1) is the default"
         );
     }
@@ -87,7 +87,7 @@ fn unix_now() -> i64 {
 
 fn open_database() -> Result<Arc<Database>> {
     Ok(Arc::new(
-        Database::new().context("Failed to open the VibeShell database")?,
+        Database::new().context("Failed to open the zxySSH database")?,
     ))
 }
 
@@ -102,8 +102,8 @@ pub fn serve() -> Result<()> {
     validate_listener(config.bind, active_agents, config.allow_lan)?;
 
     let session_manager = Arc::new(SessionManager::new(database.clone()));
-    session_manager.set_tunnel_manager(Arc::new(vibeshell_core::tunnel::TunnelManager::new()));
-    session_manager.set_session_logger(Arc::new(vibeshell_core::logging::SessionLogger::new(
+    session_manager.set_tunnel_manager(Arc::new(zxyssh_core::tunnel::TunnelManager::new()));
+    session_manager.set_session_logger(Arc::new(zxyssh_core::logging::SessionLogger::new(
         database.clone(),
     )));
     let app = build_router(database, session_manager, registry);
@@ -115,12 +115,9 @@ pub fn serve() -> Result<()> {
         let listener = tokio::net::TcpListener::bind(config.bind)
             .await
             .with_context(|| format!("Failed to bind {}", config.bind))?;
+        println!("zxySSH MCP service listening on http://{}/mcp", config.bind);
         println!(
-            "VibeShell MCP service listening on http://{}/mcp",
-            config.bind
-        );
-        println!(
-            "Pair an Agent with `vibeshell mcp pair-code`; {} Agent(s) paired.",
+            "Pair an Agent with `zxyssh mcp pair-code`; {} Agent(s) paired.",
             active_agents
         );
         println!("Risky commands fail closed: this transport has no human approval UI.");
@@ -156,7 +153,7 @@ async fn shutdown_signal() {
     println!("Shutdown requested, closing the MCP service");
 }
 
-/// `vibeshell mcp …`
+/// `zxyssh mcp …`
 #[derive(clap::Subcommand)]
 pub enum McpCommand {
     /// Run the MCP HTTP service in the foreground (systemd Type=simple)
@@ -194,7 +191,7 @@ pub enum McpCommand {
     },
 }
 
-/// `vibeshell mcp credential …` — headless provisioning for the profiles Agents
+/// `zxyssh mcp credential …` — headless provisioning for the profiles Agents
 /// connect with. Secrets come from stdin and never appear in arguments, logs or
 /// shell history; they are stored encrypted with the device key.
 #[derive(clap::Subcommand)]
@@ -223,7 +220,7 @@ pub fn run(command: McpCommand) -> Result<()> {
             println!("One-time pairing code: {code}");
             println!(
                 "Valid for {} seconds, usable once. The Agent posts it to /pair.",
-                vibeshell_core::mcp::pairing::PAIRING_TTL_SECONDS
+                zxyssh_core::mcp::pairing::PAIRING_TTL_SECONDS
             );
             println!("This code is not written to any log or file.");
             Ok(())
@@ -231,7 +228,7 @@ pub fn run(command: McpCommand) -> Result<()> {
         McpCommand::Agents => {
             let agents = list_agents()?;
             if agents.is_empty() {
-                println!("No Agents are paired yet. Run `vibeshell mcp pair-code`.");
+                println!("No Agents are paired yet. Run `zxyssh mcp pair-code`.");
                 return Ok(());
             }
             for agent in agents {
@@ -442,7 +439,7 @@ mod tests {
     fn refuses_lan_listener_without_explicit_opt_in() {
         let lan = "192.168.1.20:8765".parse().unwrap();
         let error = validate_listener(lan, 1, false).unwrap_err();
-        assert!(error.to_string().contains("VIBESHELL_MCP_ALLOW_LAN"));
+        assert!(error.to_string().contains("ZXYSSH_MCP_ALLOW_LAN"));
     }
 
     #[test]

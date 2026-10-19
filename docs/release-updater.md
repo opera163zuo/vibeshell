@@ -1,6 +1,6 @@
-# VibeShell Updater Signing
+# zxySSH Updater Signing
 
-VibeShell uses the Tauri 2 updater plugin. Release builds produce signed updater
+zxySSH uses the Tauri 2 updater plugin. Release builds produce signed updater
 artifacts and a `latest.json` manifest uploaded to GitHub Releases.
 
 ## Signing Key
@@ -10,7 +10,7 @@ The updater public key is committed in `src-tauri/tauri.conf.json`.
 The matching private key was generated locally at:
 
 ```text
-~/.tauri/vibeshell-updater.key
+~/.tauri/zxyssh-updater.key
 ```
 
 Keep that file secret. If it is lost, existing installations cannot verify
@@ -22,7 +22,7 @@ contains the new public key.
 Set the signing key in the repository secrets:
 
 ```bash
-gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.tauri/vibeshell-updater.key
+gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.tauri/zxyssh-updater.key
 ```
 
 This key is generated without a password, so `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
@@ -52,7 +52,7 @@ The release workflow:
 The update manifest is served from:
 
 ```text
-https://github.com/veithly/vibeshell/releases/latest/download/latest.json
+https://github.com/opera163zuo/vibeshell/releases/latest/download/latest.json
 ```
 
 The app checks that endpoint and uses Tauri's `downloadAndInstall()` flow for

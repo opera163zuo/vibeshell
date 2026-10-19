@@ -1,15 +1,15 @@
 //! Opt-in upgrade acceptance against explicit local database snapshots.
 //! No network access, credential output, or modification of either snapshot.
 use anyhow::{anyhow, Context, Result};
-use vibeshell_core::{session::SshCredential, Database};
+use zxyssh_core::{session::SshCredential, Database};
 
 #[test]
 #[ignore = "requires explicit credential snapshots and the original local device key"]
 fn saved_keys_survive_upgrade_and_decode_without_changes() -> Result<()> {
-    let current = std::env::var("VIBESHELL_CREDENTIAL_SNAPSHOT")
-        .context("Set VIBESHELL_CREDENTIAL_SNAPSHOT to a database backup")?;
-    let legacy = std::env::var("VIBESHELL_LEGACY_CREDENTIAL_SNAPSHOT")
-        .context("Set VIBESHELL_LEGACY_CREDENTIAL_SNAPSHOT to the legacy backup")?;
+    let current = std::env::var("ZXYSSH_CREDENTIAL_SNAPSHOT")
+        .context("Set ZXYSSH_CREDENTIAL_SNAPSHOT to a database backup")?;
+    let legacy = std::env::var("ZXYSSH_LEGACY_CREDENTIAL_SNAPSHOT")
+        .context("Set ZXYSSH_LEGACY_CREDENTIAL_SNAPSHOT to the legacy backup")?;
     let directory = tempfile::tempdir()?;
     let current_path = directory.path().join("current.db");
     let legacy_path = directory.path().join("legacy.db");

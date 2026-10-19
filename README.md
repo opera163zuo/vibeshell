@@ -1,29 +1,29 @@
 <div align="center">
-  <img src="app-icon.svg" width="96" alt="VibeShell" />
-  <h1>VibeShell</h1>
+  <img src="app-icon.svg" width="96" alt="zxySSH" />
+  <h1>zxySSH</h1>
   <p><strong>Keep your servers, files, and AI work in the same place.</strong></p>
   <p>An SSH terminal you can work in yourself, share with an agent, and make your own.</p>
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-  [![Manual CI](https://github.com/veithly/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/veithly/vibeshell/actions/workflows/ci.yml)
-  [![Release](https://img.shields.io/github/v/release/veithly/vibeshell)](https://github.com/veithly/vibeshell/releases)
+  [![Manual CI](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml)
+  [![Release](https://img.shields.io/github/v/release/opera163zuo/vibeshell)](https://github.com/opera163zuo/vibeshell/releases)
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-  [Download](https://github.com/veithly/vibeshell/releases) · [Agent / CLI guide](skills/vibeshell/SKILL.md) · [Changelog](CHANGELOG.md) · [Contribute](CONTRIBUTING.md)
+  [Download](https://github.com/opera163zuo/vibeshell/releases) · [Agent / CLI guide](skills/zxyssh/SKILL.md) · [Changelog](CHANGELOG.md) · [Contribute](CONTRIBUTING.md)
 </div>
 
-![Terminal, host status and visible agent operations in one VibeShell workspace](docs/assets/screenshots/tour-collaboration.png)
+![Terminal, host status and visible agent operations in one zxySSH workspace](docs/assets/screenshots/tour-collaboration.png)
 
-*Real VibeShell components, synthetic Northstar demo data. The gallery uses an isolated browser fixture: no live servers, credentials, model calls, or service restarts. Agent transcripts and command results are examples, not recordings of an actual agent run. [Reproduce the screenshots](scripts/readme-demo/README.md).*
+*Real zxySSH components, synthetic Northstar demo data. The gallery uses an isolated browser fixture: no live servers, credentials, model calls, or service restarts. Agent transcripts and command results are examples, not recordings of an actual agent run. [Reproduce the screenshots](scripts/readme-demo/README.md).*
 
 ## Less passing context between tools
 
 A routine server task rarely stays in one terminal. You check a log, find a configuration file, open an editor, ask an agent for help, then work out which machine and session each tool is using.
 
-VibeShell keeps that work together. SSH and local terminals, coding agents, remote files, Git changes, and operations dashboards share a tabbed workspace. Use it as a normal terminal; bring AI into the parts where it helps. You do not need a model account for ordinary terminal and file work.
+zxySSH keeps that work together. SSH and local terminals, coding agents, remote files, Git changes, and operations dashboards share a tabbed workspace. Use it as a normal terminal; bring AI into the parts where it helps. You do not need a model account for ordinary terminal and file work.
 
-The difference is the workflow, not a new SSH protocol. OpenSSH, tmux, editors and scripts can cover many of the same jobs. VibeShell reduces the setup, copying and window switching needed to make them work together.
+The difference is the workflow, not a new SSH protocol. OpenSSH, tmux, editors and scripts can cover many of the same jobs. zxySSH reduces the setup, copying and window switching needed to make them work together.
 
 ## Let an agent help without losing the thread
 
@@ -53,7 +53,7 @@ The agent's terminal stays beside the rest of your work. Open **Workspace change
 
 ![A synthetic coding-agent transcript beside the real Git changes and diff interface](docs/assets/screenshots/tour-agent-review.png)
 
-*Agent tools need their own installation, sign-in and subscriptions. VibeShell provides the workspace and launch integration; it does not bundle a model subscription or claim the sample transcript is live output.*
+*Agent tools need their own installation, sign-in and subscriptions. zxySSH provides the workspace and launch integration; it does not bundle a model subscription or claim the sample transcript is live output.*
 
 ## A terminal that helps with the small things
 
@@ -63,7 +63,7 @@ For an extra nudge, enable **AI command prediction** with your own OpenAI-compat
 
 **Prediction is off by default.** When enabled, the current input, recent command history and local completion candidates are sent to the provider you configure. Leave it disabled for work that must not leave the machine; ordinary local completion remains available.
 
-Terminal rendering uses xterm.js, a WebGL renderer where available, and batched input/output paths to reduce UI overhead. These are responsiveness choices, not a claim that VibeShell makes the SSH network faster.
+Terminal rendering uses xterm.js, a WebGL renderer where available, and batched input/output paths to reduce UI overhead. These are responsiveness choices, not a claim that zxySSH makes the SSH network faster.
 
 ## Find a connection without remembering an address
 
@@ -73,7 +73,7 @@ The connection launcher brings **SSH, local shells and coding agents** into one 
 
 Bring existing profiles from OpenSSH, PuTTY or Tabby, preview an import before applying it, and configure a jump host for private targets. Stored passwords from those other applications are deliberately not copied; PuTTY `.ppk` keys need conversion to OpenSSH format.
 
-Changing a saved password, private key or passphrase does not require deleting the server. Untouched fields keep their values, existing secrets are not loaded into the edit form, and profile/credential changes save together or roll back together. This changes **VibeShell's saved login information**, not the remote account's password.
+Changing a saved password, private key or passphrase does not require deleting the server. Untouched fields keep their values, existing secrets are not loaded into the edit form, and profile/credential changes save together or roll back together. This changes **zxySSH's saved login information**, not the remote account's password.
 
 ## Files belong next to the command that uses them
 
@@ -100,17 +100,17 @@ Sometimes a terminal is the right view; sometimes a container list or a CPU grap
 These **12 built-ins** are more than UI buttons. Agents can discover what is installed, read an action's inputs, fetch its current instructions and use it through the native CLI or MCP:
 
 ```bash
-vibeshell plugins list --installed --json
-vibeshell plugins describe server-performance
-vibeshell plugins docs server-performance
-vibeshell plugins run server-performance status --session SESSION_ID --inputs '{}'
+zxyssh plugins list --installed --json
+zxyssh plugins describe server-performance
+zxyssh plugins docs server-performance
+zxyssh plugins run server-performance status --session SESSION_ID --inputs '{}'
 ```
 
 Use an existing session ID and check the plugin is installed and enabled first. The main Skill contains an index; detailed usage lives in `references/<plugin-id>.md`. Supported imported declarative plugins expose the same discovery interface, with documentation generated from their current validated manifest.
 
 Reading a plugin's documentation does not grant permissions, install remote tools or approve a destructive action. Docker, Kubernetes and database tools still need the appropriate target environment and access. Remote host-performance collection currently assumes Linux `/proc`.
 
-[Plugin specification](docs/plugin-spec.md) · [Agent and plugin reference index](skills/vibeshell/SKILL.md#plugin-discovery-and-references)
+[Plugin specification](docs/plugin-spec.md) · [Agent and plugin reference index](skills/zxyssh/SKILL.md#plugin-discovery-and-references)
 
 ## Arrange it around the way you work
 
@@ -126,26 +126,26 @@ Reading a plugin's documentation does not grant permissions, install remote tool
 
 Local forwarding, SOCKS5 and reverse forwarding sit alongside session recording and playback. Saved tunnel configurations reduce repetitive setup; session cleanup also tears down associated tunnels and recordings. Check bind addresses before exposing a service beyond loopback.
 
-Optional encrypted **Gist/WebDAV sync** carries server metadata, groups, snippets and plugin installations between your own setups. It is not a VibeShell-hosted SSH relay. Login credentials, host-key trust, live terminal sessions and agent activity history stay outside that sync. Protect provider tokens and recovery material, and review plugin settings before sharing an export.
+Optional encrypted **Gist/WebDAV sync** carries server metadata, groups, snippets and plugin installations between your own setups. It is not a zxySSH-hosted SSH relay. Login credentials, host-key trust, live terminal sessions and agent activity history stay outside that sync. Protect provider tokens and recovery material, and review plugin settings before sharing an export.
 
 SSH host identity is checked before authentication, including the real destination behind a jump host. Credentials and agent activity use encrypted local storage. That is not OS Keychain custody or protection from a compromised local account. A correct private key does not justify accepting an unexpected server fingerprint.
 
 ## Linux server and cross-platform agents
 
-The Linux-hosted service targets Ubuntu/Debian servers. Remote Hermes Agents can connect from any operating system with MCP HTTP support. VibeShell does not provide macOS or Windows desktop or native CLI packages.
+The Linux-hosted service targets Ubuntu/Debian servers. Remote Hermes Agents can connect from any operating system with MCP HTTP support. zxySSH does not provide macOS or Windows desktop or native CLI packages.
 
 [Linux server installation and LAN MCP setup](docs/LAN-MCP-UBUNTU-DEBIAN.md) · [Standalone CLI installation](cli/README.md)
 
 ```bash
-vibeshell import auto --dry-run    # Review, then run without --dry-run to import.
-vibeshell servers
-vibeshell ssh my-server
-vibeshell ssh my-server -- uname -a
-vibeshell sessions
-vibeshell sftp my-server ls /srv/app
+zxyssh import auto --dry-run    # Review, then run without --dry-run to import.
+zxyssh servers
+zxyssh ssh my-server
+zxyssh ssh my-server -- uname -a
+zxyssh sessions
+zxyssh sftp my-server ls /srv/app
 ```
 
-Replace `my-server` with a saved name. Use an alias returned by `sessions` with `vibeshell ssh-session ALIAS -- pwd`; add `--new` when you need a separate connection. For complex quoting, use `--command-file` or `--command-stdin`. Never put passwords or private keys in command-line arguments or agent prompts.
+Replace `my-server` with a saved name. Use an alias returned by `sessions` with `zxyssh ssh-session ALIAS -- pwd`; add `--new` when you need a separate connection. For complex quoting, use `--command-file` or `--command-stdin`. Never put passwords or private keys in command-line arguments or agent prompts.
 
 The CLI can start a daemon when needed; the GUI can attach to its sessions. The process owning a connection must remain alive: daemon-owned sessions can outlive the GUI, while GUI-owned ones end when that GUI exits. Upgrade the desktop and CLI together, and save ongoing work before restarting.
 
@@ -156,8 +156,8 @@ Mobile targets remain experimental. Common OpenSSH paths are tested, but not eve
 Built with Tauri 2, Rust, React, TypeScript and xterm.js. Use Node.js 22.12+, current stable Rust and the [Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
-git clone --branch dev https://github.com/veithly/vibeshell.git
-cd vibeshell
+git clone --branch dev https://github.com/opera163zuo/vibeshell.git
+cd zxyssh
 npm ci
 npm run tauri -- dev
 ```
@@ -172,8 +172,8 @@ Docker inventory improvements and the remaining container-session/proxy work are
 
 [Contributing](CONTRIBUTING.md) · [Architecture](AGENTS.md) · [Release process](docs/RELEASING.md) · [Collaboration API](docs/AGENT_COLLABORATION.md)
 
-Report security concerns through [private security reporting](https://github.com/veithly/vibeshell/security/advisories/new), not with real credentials in an issue. Approval controls are not a sandbox; protected input cannot prevent a remote program from echoing it. Do not automatically replay a mutating command after an ambiguous response loss.
+Report security concerns through [private security reporting](https://github.com/opera163zuo/vibeshell/security/advisories/new), not with real credentials in an issue. Approval controls are not a sandbox; protected input cannot prevent a remote program from echoing it. Do not automatically replay a mutating command after an ambiguous response loss.
 
 ## License
 
-VibeShell 1.1.0 and later are distributed as a whole under **GPL-3.0-only**. See [LICENSE](LICENSE), [NOTICE](NOTICE) and the [preserved MIT notice](licenses/legacy-MIT.txt). Earlier MIT permissions are not revoked; third-party components keep their own licenses. Release downloads include corresponding source and notices. No warranty is provided to the extent permitted by law.
+zxySSH 1.1.0 and later are distributed as a whole under **GPL-3.0-only**. See [LICENSE](LICENSE), [NOTICE](NOTICE) and the [preserved MIT notice](licenses/legacy-MIT.txt). Earlier MIT permissions are not revoked; third-party components keep their own licenses. Release downloads include corresponding source and notices. No warranty is provided to the extent permitted by law.

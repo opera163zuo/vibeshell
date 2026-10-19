@@ -4,7 +4,7 @@
   "name": "Network Inspector",
   "description": "Inspect listening sockets, routes and DNS configuration on the connected server.",
   "version": "1.1.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "network",
   "icon": "network",
   "permissions": [

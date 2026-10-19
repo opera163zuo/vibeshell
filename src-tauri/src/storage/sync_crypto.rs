@@ -11,7 +11,7 @@ use zeroize::Zeroize;
 
 const VAULT_KEY_LEN: usize = 32;
 const NONCE_LEN: usize = 12;
-const AAD_DOMAIN: &str = "vibeshell.sync.pending-batch";
+const AAD_DOMAIN: &str = "zxyssh.sync.pending-batch";
 
 pub const SYNC_CRYPTO_WIRE_VERSION: u32 = 1;
 pub const SYNC_CRYPTO_ALGORITHM: &str = "AES-256-GCM";

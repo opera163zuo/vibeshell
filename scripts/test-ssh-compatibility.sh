@@ -14,8 +14,8 @@ done
 ssh-keygen -q -t ed25519 -N 'fixture-key-passphrase' -f "$fixture/encrypted"
 ssh-keygen -q -t rsa -m PEM -N '' -f "$fixture/rsa-pem"
 cat "$fixture/ed25519.pub" "$fixture/rsa.pub" "$fixture/ecdsa.pub" "$fixture/encrypted.pub" "$fixture/rsa-pem.pub" > "$fixture/authorized_keys"
-docker build --tag vibeshell-ponytail-sshd --file scripts/ssh-fixture/Dockerfile scripts/ssh-fixture
-container=$(docker run --detach --publish 127.0.0.1::22 --publish 127.0.0.1::23 --publish 127.0.0.1::24 vibeshell-ponytail-sshd)
+docker build --tag zxyssh-ponytail-sshd --file scripts/ssh-fixture/Dockerfile scripts/ssh-fixture
+container=$(docker run --detach --publish 127.0.0.1::22 --publish 127.0.0.1::23 --publish 127.0.0.1::24 zxyssh-ponytail-sshd)
 docker cp "$fixture/authorized_keys" "$container:/home/audit/.ssh/authorized_keys"
 docker exec "$container" sh -c 'chown audit:audit /home/audit/.ssh/authorized_keys; chmod 600 /home/audit/.ssh/authorized_keys'
 docker exec "$container" cat /etc/ssh/ssh_host_ed25519_key.pub > "$fixture/host.pub"
@@ -28,7 +28,7 @@ export SSH_TEST_FIXTURE_DIR="$fixture"
 export RUST_LOG=debug
 # Log fixture identity, not credentials or private key material.
 printf 'OpenSSH fixture ports: normal=%s PAM=%s compatibility=%s\n' "$SSH_TEST_PORT" "$SSH_TEST_PAM_PORT" "$SSH_TEST_COMPAT_PORT"
-if ! cargo test -p vibeshell-desktop --test ssh_integration_test -- --ignored --nocapture --test-threads=1; then
+if ! cargo test -p zxyssh-desktop --test ssh_integration_test -- --ignored --nocapture --test-threads=1; then
   docker logs "$container" > "$fixture/sshd-failure.log" 2>&1
   echo "Fixture server diagnostics: $fixture/sshd-failure.log" >&2
   exit 1

@@ -131,7 +131,7 @@ pub async fn handle_pair(State(state): State<McpState>, request: Request) -> Res
         Ok(registry) => registry,
         Err(_) => return registry_unavailable(),
     };
-    // Codes are minted by `vibeshell mcp pair-code`, which runs in a separate
+    // Codes are minted by `zxyssh mcp pair-code`, which runs in a separate
     // process, so read the persisted registry before consuming one.
     if registry.reload().is_err() {
         return registry_unavailable();

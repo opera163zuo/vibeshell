@@ -113,22 +113,19 @@ impl Crypto {
 
     /// Shared loader; SSH and database passwords retain independent legacy keys.
     pub(crate) fn from_device_key_files(prefix: &str) -> Result<Self> {
-        let legacy_dir = directories::ProjectDirs::from("com", "vibeshell", "VibeShell")
-            .ok_or_else(|| anyhow!("Could not determine the legacy device key directory"))?
-            .data_dir()
-            .to_path_buf();
+        let legacy_dirs = legacy_crypto_dirs()?;
         let app_dir = crate::platform::default_app_data_dir()?;
-        Self::from_key_files_with_legacy(&app_dir, Some(&legacy_dir), prefix)
+        Self::from_key_files_with_legacy(&app_dir, &legacy_dirs, prefix)
     }
 
     #[cfg(test)]
     fn from_key_files(app_dir: &std::path::Path, prefix: &str) -> Result<Self> {
-        Self::from_key_files_with_legacy(app_dir, None, prefix)
+        Self::from_key_files_with_legacy(app_dir, &[], prefix)
     }
 
     fn from_key_files_with_legacy(
         app_dir: &std::path::Path,
-        legacy_dir: Option<&std::path::Path>,
+        legacy_dirs: &[std::path::PathBuf],
         prefix: &str,
     ) -> Result<Self> {
         use std::fs::OpenOptions;
@@ -148,8 +145,13 @@ impl Crypto {
         lock.lock().context("Cannot lock device key files")?;
         let key_path = app_dir.join(format!("{prefix}.key"));
         let salt_path = app_dir.join(format!("{prefix}.salt"));
-        if let Some(legacy_dir) = legacy_dir.filter(|dir| *dir != app_dir) {
+        for legacy_dir in legacy_dirs.iter().filter(|dir| dir.as_path() != app_dir) {
             migrate_legacy_key_files(legacy_dir, app_dir, prefix)?;
+            if app_dir.join(format!("{prefix}.key")).exists()
+                && app_dir.join(format!("{prefix}.salt")).exists()
+            {
+                break;
+            }
         }
         let (key_hex, salt) = match (
             std::fs::read_to_string(&key_path),
@@ -196,6 +198,17 @@ impl Crypto {
         set_private(&salt_path)?;
         Self::from_password(key_hex, &salt)
     }
+}
+
+fn legacy_crypto_dirs() -> Result<Vec<std::path::PathBuf>> {
+    let mut dirs = Vec::new();
+    if let Some(project) = directories::ProjectDirs::from("com", "vibeshell", "VibeShell") {
+        dirs.push(project.data_dir().to_path_buf());
+    }
+    if let Some(base) = directories::BaseDirs::new() {
+        dirs.push(base.data_dir().join("com.vibeshell.desktop"));
+    }
+    Ok(dirs)
 }
 
 fn migrate_legacy_key_files(
@@ -363,7 +376,9 @@ mod tests {
             .unwrap()
             .encrypt(b"existing secret")
             .unwrap();
-        let loaded = Crypto::from_key_files_with_legacy(&current, Some(&legacy), "test").unwrap();
+        let loaded =
+            Crypto::from_key_files_with_legacy(&current, std::slice::from_ref(&legacy), "test")
+                .unwrap();
         assert_eq!(loaded.decrypt(&encrypted).unwrap(), b"existing secret");
         assert!(current.join("test.key").exists());
         assert!(current.join("test.salt").exists());

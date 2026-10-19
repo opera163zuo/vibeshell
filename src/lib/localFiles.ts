@@ -68,8 +68,8 @@ export async function listenForLocalFileRequests(): Promise<() => void> {
     finally { draining = false; }
   };
   const stops = await Promise.all([
-    listen('vibeshell://open-files-pending', () => { void drain(); }),
-    listen('vibeshell://choose-local-files', () => { void openLocalFiles(); }),
+    listen('zxyssh://open-files-pending', () => { void drain(); }),
+    listen('zxyssh://choose-local-files', () => { void openLocalFiles(); }),
   ]);
   void drain();
   return () => { disposed = true; stops.forEach(stop => stop()); };

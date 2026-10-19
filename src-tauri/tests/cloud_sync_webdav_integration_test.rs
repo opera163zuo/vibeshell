@@ -9,7 +9,7 @@ use axum::{
     Router,
 };
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use vibeshell_core::{
+use zxyssh_core::{
     cloud_sync::CloudSyncManager,
     storage::{AuthType, Database, Server},
 };
@@ -73,15 +73,12 @@ fn authorized(headers: &HeaderMap) -> bool {
 async fn two_devices_sync_encrypted_records_through_webdav() {
     let state = WebDavState::default();
     let app = Router::new()
-        .route(
-            "/vibeshell-sync.json",
-            get(read_document).put(write_document),
-        )
+        .route("/zxyssh-sync.json", get(read_document).put(write_document))
         .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
-    let endpoint = format!("http://{address}/vibeshell-sync.json");
+    let endpoint = format!("http://{address}/zxyssh-sync.json");
 
     let directory = tempfile::tempdir().unwrap();
     let source = Arc::new(Database::new_at(directory.path().join("source.db")).unwrap());

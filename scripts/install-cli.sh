@@ -2,17 +2,17 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-SOURCE="$SCRIPT_DIR/vibeshell"
-INSTALL_DIR=${VIBESHELL_INSTALL_DIR:-"$HOME/.local/bin"}
-DESTINATION="$INSTALL_DIR/vibeshell"
+SOURCE="$SCRIPT_DIR/zxyssh"
+INSTALL_DIR=${ZXYSSH_INSTALL_DIR:-"$HOME/.local/bin"}
+DESTINATION="$INSTALL_DIR/zxyssh"
 
 if [ ! -f "$SOURCE" ]; then
-  echo "VibeShell CLI binary not found next to this installer: $SOURCE" >&2
+  echo "zxySSH CLI binary not found next to this installer: $SOURCE" >&2
   exit 1
 fi
 
 mkdir -p "$INSTALL_DIR"
-TEMPORARY="$INSTALL_DIR/.vibeshell-install-$$"
+TEMPORARY="$INSTALL_DIR/.zxyssh-install-$$"
 trap 'rm -f "$TEMPORARY"' EXIT INT TERM
 cp "$SOURCE" "$TEMPORARY"
 chmod 755 "$TEMPORARY"
@@ -23,7 +23,7 @@ trap - EXIT INT TERM
 # coding-agent directory plus the universal ~/.agents/skills location.
 "$DESTINATION" version >/dev/null
 
-echo "Installed native VibeShell CLI: $DESTINATION"
+echo "Installed native zxySSH CLI: $DESTINATION"
 case ":${PATH:-}:" in
   *":$INSTALL_DIR:"*) ;;
   *)
@@ -32,4 +32,4 @@ case ":${PATH:-}:" in
     ;;
 esac
 
-echo "Run: vibeshell import auto --dry-run"
+echo "Run: zxyssh import auto --dry-run"

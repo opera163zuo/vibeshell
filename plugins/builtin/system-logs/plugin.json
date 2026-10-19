@@ -4,7 +4,7 @@
   "name": "System Logs",
   "description": "Read recent systemd journal entries and service logs from the active server.",
   "version": "1.1.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "operations",
   "icon": "file-text",
   "permissions": [

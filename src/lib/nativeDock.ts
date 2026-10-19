@@ -5,9 +5,9 @@ import { safeInvoke } from './tauri';
 import { clearDockPreview, paneAtPoint, showDockPreview, type PanePlacement } from './docking';
 import { detachTargetKey, useDetachedOwnership, type TransferSnapshot } from './detach';
 
-const PREVIEW_EVENT = 'vibeshell://dock-preview';
-const DROP_EVENT = 'vibeshell://dock-drop';
-const ACK_EVENT = 'vibeshell://dock-ack';
+const PREVIEW_EVENT = 'zxyssh://dock-preview';
+const DROP_EVENT = 'zxyssh://dock-drop';
+const ACK_EVENT = 'zxyssh://dock-ack';
 export interface PointerState { x: number; y: number; primaryDown: boolean | null; escapeDown: boolean }
 interface DropRequest { id: string; source: string; snapshot: TransferSnapshot; expiresAt: number; point?: { x: number; y: number } }
 

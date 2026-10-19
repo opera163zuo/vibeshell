@@ -1,6 +1,6 @@
 //! MCP (Model Context Protocol) Server Module
 //!
-//! This module implements an MCP server that exposes VibeShell's SSH/SFTP
+//! This module implements an MCP server that exposes zxySSH's SSH/SFTP
 //! functionality as tools for AI assistants.
 //!
 //! The desktop GUI hosts an authenticated HTTP Gateway on an ephemeral loopback

@@ -23,7 +23,7 @@ def verify(path, public_key):
     signature = Path(str(path) + ".sig")
     if not path.is_file() or not signature.is_file():
         raise ValueError(f"Missing signed artifact: {path.name}")
-    with tempfile.TemporaryDirectory(prefix="vibeshell-verify-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="zxyssh-verify-") as tmp:
         key = Path(tmp) / "public.key"
         sig = Path(tmp) / "artifact.sig"
         key.write_bytes(minisign_text(public_key.encode()))

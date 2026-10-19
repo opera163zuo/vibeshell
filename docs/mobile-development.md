@@ -1,6 +1,6 @@
 # Mobile Development
 
-VibeShell uses the shared Tauri application for desktop, iOS, and Android. The
+zxySSH uses the shared Tauri application for desktop, iOS, and Android. The
 mobile runtime supports foreground SSH, terminal input, host-key verification,
 remote SFTP browsing, and pasted private keys. Desktop-only local shells,
 coding agents, updater/process plugins, CLI IPC, directory transfer, and

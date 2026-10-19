@@ -5,9 +5,9 @@ import type { DownloadEvent } from '@tauri-apps/plugin-updater';
 export const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 const GITHUB_LATEST_RELEASE_API =
-  'https://api.github.com/repos/veithly/vibeshell/releases/latest';
-const GITHUB_LATEST_RELEASE_PAGE = 'https://github.com/veithly/vibeshell/releases/latest';
-const UPDATE_STATE_KEY = 'vibeshell_update_state';
+  'https://api.github.com/repos/opera163zuo/vibeshell/releases/latest';
+const GITHUB_LATEST_RELEASE_PAGE = 'https://github.com/opera163zuo/vibeshell/releases/latest';
+const UPDATE_STATE_KEY = 'zxyssh_update_state';
 const REQUEST_TIMEOUT_MS = 12_000;
 
 interface GitHubReleaseAsset {
@@ -129,7 +129,7 @@ export function isNewerVersion(candidate: string, current: string | null): boole
 }
 
 function getPlatformAssetPriority(): string[] {
-  // Published VibeShell builds are Linux-only.
+  // Published zxySSH builds are Linux-only.
   return ['.appimage', '.deb', '.rpm', '.tar.gz'];
 }
 
@@ -211,7 +211,7 @@ async function fetchSignedUpdaterRelease(): Promise<AppRelease | null> {
   return {
     version: normalizeVersion(update.version),
     tagName: `v${normalizeVersion(update.version)}`,
-    name: `VibeShell ${update.version}`,
+    name: `zxySSH ${update.version}`,
     htmlUrl: GITHUB_LATEST_RELEASE_PAGE,
     downloadUrl: GITHUB_LATEST_RELEASE_PAGE,
     publishedAt: update.date ?? null,

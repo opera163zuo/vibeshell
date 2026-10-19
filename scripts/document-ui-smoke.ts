@@ -3,13 +3,13 @@ import { resolve } from 'node:path';
 
 /** Fixed, opt-in native UI scenario. Only project-owned fixture files are read. */
 export function documentUiSmoke(): Plugin {
-  const id = '/@vibeshell/document-ui-smoke';
+  const id = '/@zxyssh/document-ui-smoke';
   const root = resolve(process.cwd());
   return {
-    name: 'vibeshell-document-ui-smoke', apply: 'serve',
+    name: 'zxyssh-document-ui-smoke', apply: 'serve',
     resolveId(source) { if (source === id) return id; },
     transformIndexHtml() { return [{ tag: 'script', attrs: { type: 'module', src: id }, injectTo: 'head' }]; },
-    configureServer(server) { server.ws.on('vibeshell:document-smoke', report => console.log('[DOCUMENT_UI_SMOKE]', JSON.stringify(report))); },
+    configureServer(server) { server.ws.on('zxyssh:document-smoke', report => console.log('[DOCUMENT_UI_SMOKE]', JSON.stringify(report))); },
     load(source) {
       if (source !== id) return;
       return `
@@ -23,7 +23,7 @@ import { physicalPosition } from '/src/lib/physicalPixels.ts';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 const root=${JSON.stringify(root)};
 const native=getCurrentWindow();
-const report=(stage,value)=>import.meta.hot.send('vibeshell:document-smoke',{label:native.label,stage,value});
+const report=(stage,value)=>import.meta.hot.send('zxyssh:document-smoke',{label:native.label,stage,value});
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(predicate,name){const start=Date.now();while(Date.now()-start<18000){const result=predicate();if(result)return result;await pause(50);}throw new Error('Timeout: '+name);}
 function check(value,name){if(!value)throw new Error(name);}
@@ -39,8 +39,8 @@ async function run(){
     check(getComputedStyle(document.documentElement).getPropertyValue('--tokyo-blue').trim()==='#126789','CSS in detached window');
     report('detached-file-and-css',true);click(back);return;
   }
-  if(sessionStorage.getItem('vibeshell.document-smoke.done'))return;
-  sessionStorage.setItem('vibeshell.document-smoke.done','running');
+  if(sessionStorage.getItem('zxyssh.document-smoke.done'))return;
+  sessionStorage.setItem('zxyssh.document-smoke.done','running');
   await until(()=>document.querySelector('.session-new-action'),'main workspace ready');
   const before=useSessionStore.getState().sessions.map(s=>s.id);
   const theme=useCustomThemeStore.getState();const saved={css:theme.css,enabled:theme.enabled};
@@ -48,7 +48,7 @@ async function run(){
   const files=[root+'/test-fixtures/documents/sample.md',root+'/test-fixtures/documents/sample.svg',root+'/test-fixtures/documents/sample.txt',root+'/src-tauri/icons/32x32.png'];
   const opened=[];
   try{
-    await native.setTitle('VibeShell · Document verification');
+    await native.setTitle('zxySSH · Document verification');
     await native.setPosition(physicalPosition(1277.640625,210.125));
     const moved=await native.outerPosition();check(Number.isInteger(moved.x)&&Number.isInteger(moved.y),'Native i32 position');
     report('fractional-position-accepted',{x:moved.x,y:moved.y});
@@ -58,7 +58,7 @@ async function run(){
       const tab=await until(()=>useFileWorkspaceStore.getState().tabs.find(t=>t.path===path),'file tab '+path);
       opened.push(tab.id);
       if(path.endsWith('.md')){
-        await until(()=>document.querySelector('.vibe-markdown h1')?.textContent==='VibeShell Document Check','Markdown heading');
+        await until(()=>document.querySelector('.vibe-markdown h1')?.textContent==='zxySSH Document Check','Markdown heading');
         await until(()=>document.querySelector('.vibe-markdown img')?.naturalWidth>0,'relative SVG image');
         click([...document.querySelectorAll('button')].find(b=>b.textContent===i18n.t('localFiles.split')));
         await until(()=>document.querySelector('.markdown-workspace.is-split textarea'),'Markdown source and preview');
@@ -81,9 +81,9 @@ async function run(){
     useCustomThemeStore.getState().preview('body { visibility: hidden !important; }');
     await until(()=>getComputedStyle(document.body).visibility==='hidden','hidden CSS preview');
     window.dispatchEvent(new KeyboardEvent('keydown',{key:'F12',metaKey:true,shiftKey:true,bubbles:true,cancelable:true}));
-    await until(()=>!document.getElementById('vibeshell-custom-css'),'emergency CSS disable');
+    await until(()=>!document.getElementById('zxyssh-custom-css'),'emergency CSS disable');
     report('passed',{files:files.length,sessionCountUnchanged:true,markdownSplit:true,nativeFileReturn:true,cssPalette:true,wallpaper:true,emergencyRecovery:true});
-    sessionStorage.setItem('vibeshell.document-smoke.done','passed');
+    sessionStorage.setItem('zxyssh.document-smoke.done','passed');
   }finally{
     useCustomThemeStore.getState().save(saved.css,saved.enabled);
     for(const id of opened)useFileWorkspaceStore.getState().closeTab(id);

@@ -59,7 +59,7 @@ impl TestService {
         }
     }
 
-    /// Mint a code through the registry the way `vibeshell mcp pair-code` does,
+    /// Mint a code through the registry the way `zxyssh mcp pair-code` does,
     /// proving the service picks it up from storage rather than memory.
     fn mint_code(&self) -> String {
         let now = chrono::Utc::now().timestamp();
@@ -134,7 +134,7 @@ async fn health_stays_public_and_mcp_needs_a_paired_agent() {
         .await;
     assert_eq!(response.status(), reqwest::StatusCode::OK);
     let body: Value = response.json().await.expect("initialize body");
-    assert_eq!(body["result"]["serverInfo"]["name"], "vibeshell");
+    assert_eq!(body["result"]["serverInfo"]["name"], "zxyssh");
     assert!(body["result"]["protocolVersion"].is_string());
 
     let wrong_token = service

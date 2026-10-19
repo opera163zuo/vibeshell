@@ -1,6 +1,6 @@
 //! MCP Server Implementation
 //!
-//! Implements a JSON-RPC 2.0 server using axum that exposes VibeShell's
+//! Implements a JSON-RPC 2.0 server using axum that exposes zxySSH's
 //! SSH/SFTP functionality following the Model Context Protocol (MCP).
 
 use std::collections::{HashMap, HashSet};
@@ -45,7 +45,7 @@ use super::tools::{
 pub const MCP_PROTOCOL_VERSION: &str = "2024-11-05";
 
 /// Server name for MCP identification
-const SERVER_NAME: &str = "vibeshell";
+const SERVER_NAME: &str = "zxyssh";
 
 /// Server version for MCP identification
 const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -1183,7 +1183,7 @@ async fn tool_session_create(state: &McpState, args: &Value) -> Result<String, S
         .map_err(|e| format!("Failed to look up credentials: {}", e))?
         .ok_or_else(|| {
             format!(
-                "No saved credentials for server '{}'. Please save credentials in the VibeShell GUI first.",
+                "No saved credentials for server '{}'. Please save credentials in the zxySSH GUI first.",
                 server_name
             )
         })?;
@@ -1880,7 +1880,7 @@ async fn tool_sftp_upload_directory(
 }
 
 /// Local directories an automated download may write into: the user's
-/// Downloads folder and VibeShell's own data directory. Anything else
+/// Downloads folder and zxySSH's own data directory. Anything else
 /// (dotfiles, LaunchAgents, crontabs, /etc) is rejected.
 fn allowed_download_roots() -> Vec<std::path::PathBuf> {
     let mut roots = Vec::new();
@@ -1891,7 +1891,7 @@ fn allowed_download_roots() -> Vec<std::path::PathBuf> {
     }
     if let Some(data_dir) = directories::BaseDirs::new().map(|dirs| dirs.data_dir().to_path_buf()) {
         // Mirrors platform::APP_BUNDLE_IDENTIFIER (cfg'd out on mobile targets).
-        roots.push(data_dir.join("com.vibeshell.desktop"));
+        roots.push(data_dir.join("com.zxyssh.desktop"));
     }
     roots
 }
@@ -1947,7 +1947,7 @@ pub(crate) fn confine_download_target(local_path: &str) -> Result<std::path::Pat
             .collect::<Vec<_>>()
             .join(", ");
         return Err(format!(
-            "Rejected local download path '{}': downloads are limited to the Downloads folder and the VibeShell data directory (allowed: {})",
+            "Rejected local download path '{}': downloads are limited to the Downloads folder and the zxySSH data directory (allowed: {})",
             local_path, allowed
         ));
     }
@@ -2570,7 +2570,7 @@ mod tests {
         assert!(confine_download_target("").is_err());
 
         // Arbitrary absolute paths outside the allowlist are rejected.
-        assert!(confine_download_target("/tmp/vibeshell-plant.sh").is_err());
+        assert!(confine_download_target("/tmp/zxyssh-plant.sh").is_err());
         assert!(confine_download_target("/etc/cron.d/evil").is_err());
     }
 

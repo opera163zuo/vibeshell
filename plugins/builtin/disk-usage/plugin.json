@@ -4,7 +4,7 @@
   "name": "Disk Usage",
   "description": "Inspect filesystems and directory usage before a full disk becomes an incident.",
   "version": "1.1.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "monitoring",
   "icon": "hard-drive",
   "permissions": [

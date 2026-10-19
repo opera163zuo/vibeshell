@@ -1,29 +1,29 @@
 <div align="center">
-  <img src="app-icon.svg" width="96" alt="VibeShell" />
-  <h1>VibeShell</h1>
+  <img src="app-icon.svg" width="96" alt="zxySSH" />
+  <h1>zxySSH</h1>
   <p><strong>サーバーも、ファイルも、AI との作業も、同じ場所に。</strong></p>
   <p>自分で使いやすく、Agent と一緒に使っても作業を見失わない SSH ワークスペース。</p>
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-  [![Manual CI](https://github.com/veithly/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/veithly/vibeshell/actions/workflows/ci.yml)
-  [![Release](https://img.shields.io/github/v/release/veithly/vibeshell)](https://github.com/veithly/vibeshell/releases)
+  [![Manual CI](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml)
+  [![Release](https://img.shields.io/github/v/release/opera163zuo/vibeshell)](https://github.com/opera163zuo/vibeshell/releases)
   [![GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-  [ダウンロード](https://github.com/veithly/vibeshell/releases) · [Agent / CLI ガイド](skills/vibeshell/SKILL.md) · [変更履歴](CHANGELOG.md) · [開発への参加](CONTRIBUTING.md)
+  [ダウンロード](https://github.com/opera163zuo/vibeshell/releases) · [Agent / CLI ガイド](skills/zxyssh/SKILL.md) · [変更履歴](CHANGELOG.md) · [開発への参加](CONTRIBUTING.md)
 </div>
 
 ![ターミナル、ホストの状態、Agent の操作履歴をまとめたワークスペース](docs/assets/screenshots/tour-collaboration.png)
 
-*実際の VibeShell コンポーネントに、架空の Northstar プロジェクトのデータを入れた画面です。隔離したブラウザで表示しており、実サーバー接続、認証情報の読み出し、モデル呼び出し、サービス再起動は行っていません。Agent の会話や実行結果も説明用の例で、実際の Agent 実行の記録ではありません。[再現方法](scripts/readme-demo/README.md)。*
+*実際の zxySSH コンポーネントに、架空の Northstar プロジェクトのデータを入れた画面です。隔離したブラウザで表示しており、実サーバー接続、認証情報の読み出し、モデル呼び出し、サービス再起動は行っていません。Agent の会話や実行結果も説明用の例で、実際の Agent 実行の記録ではありません。[再現方法](scripts/readme-demo/README.md)。*
 
 ## ツール間で説明し直す時間を減らす
 
 サーバーの調査は、コマンドを数個打つだけでは終わりません。ログを見て、設定を探し、エディタで修正し、Agent に相談する。そのたびに「どのマシンの、どのセッションか」を確認する必要があります。
 
-VibeShell は SSH、ローカルターミナル、コーディング Agent、リモートファイル、Git の差分、運用パネルを同じタブ付きワークスペースにまとめます。普通のターミナルとして使い、必要な場面だけ AI を加えられます。通常の端末・ファイル操作にモデルの契約は必要ありません。
+zxySSH は SSH、ローカルターミナル、コーディング Agent、リモートファイル、Git の差分、運用パネルを同じタブ付きワークスペースにまとめます。普通のターミナルとして使い、必要な場面だけ AI を加えられます。通常の端末・ファイル操作にモデルの契約は必要ありません。
 
-新しい SSH プロトコルでも、通信速度を上げる仕組みでもありません。OpenSSH、tmux、エディタ、スクリプトでも多くの同じ作業はできます。VibeShell が減らしたいのは、その間の設定、コピー、ウィンドウ切り替えです。
+新しい SSH プロトコルでも、通信速度を上げる仕組みでもありません。OpenSSH、tmux、エディタ、スクリプトでも多くの同じ作業はできます。zxySSH が減らしたいのは、その間の設定、コピー、ウィンドウ切り替えです。
 
 ## Agent に任せても、何をしているか分かる
 
@@ -53,7 +53,7 @@ Agent の説明だけで変更を判断する必要はありません。**Worksp
 
 ![説明用 Agent 出力の隣に表示した実際の Git 変更一覧と差分](docs/assets/screenshots/tour-agent-review.png)
 
-*各 Agent のインストール、ログイン、モデル契約は別途必要です。VibeShell が提供するのは起動と作業環境の統合であり、モデルの利用権や実行済み成果の保証ではありません。*
+*各 Agent のインストール、ログイン、モデル契約は別途必要です。zxySSH が提供するのは起動と作業環境の統合であり、モデルの利用権や実行済み成果の保証ではありません。*
 
 ## 小さな操作は、AI なしでも快適に
 
@@ -73,7 +73,7 @@ Agent の説明だけで変更を判断する必要はありません。**Worksp
 
 OpenSSH、PuTTY、Tabby の設定をプレビューしてから取り込み、プライベートな接続先には踏み台を設定できます。他製品に保存されたパスワードはコピーしません。PuTTY `.ppk` は OpenSSH 形式への変換が必要です。
 
-パスワード、秘密鍵、パスフレーズを変えるためにサーバーを作り直す必要もありません。変更しない値を保ち、既存の秘密情報は編集フォームへ読み戻さず、接続情報と認証情報をまとめて保存またはロールバックします。対象は **VibeShell の保存済みログイン情報**であり、リモート OS のパスワードそのものではありません。
+パスワード、秘密鍵、パスフレーズを変えるためにサーバーを作り直す必要もありません。変更しない値を保ち、既存の秘密情報は編集フォームへ読み戻さず、接続情報と認証情報をまとめて保存またはロールバックします。対象は **zxySSH の保存済みログイン情報**であり、リモート OS のパスワードそのものではありません。
 
 ## コマンドの隣に、必要なファイルを
 
@@ -100,17 +100,17 @@ SFTP でリモート設定を開いたり、**⌘/Ctrl+O** でローカルファ
 **12 個の内蔵プラグイン**は人が押すボタンだけではありません。Agent はインストール状態、入力仕様、現在の使い方を取得し、CLI または MCP から利用できます。
 
 ```bash
-vibeshell plugins list --installed --json
-vibeshell plugins describe server-performance
-vibeshell plugins docs server-performance
-vibeshell plugins run server-performance status --session SESSION_ID --inputs '{}'
+zxyssh plugins list --installed --json
+zxyssh plugins describe server-performance
+zxyssh plugins docs server-performance
+zxyssh plugins run server-performance status --session SESSION_ID --inputs '{}'
 ```
 
 有効な既存セッションを指定し、インストール/有効化状態を確認してください。主 Skill は索引にとどめ、詳細は `references/<plugin-id>.md` に置きます。対応する宣言型のインポートプラグインも同じ発見インターフェースを持ち、文書は現在の検証済み manifest から生成します。
 
 文書を読むだけで権限が付いたり、必要なソフトウェアがインストールされたりすることはありません。Docker、Kubernetes、データベースの利用には対象環境と権限が必要です。ホストのリモート性能収集は現在 Linux `/proc` を前提とします。
 
-[プラグイン仕様](docs/plugin-spec.md) · [Agent とプラグインの索引](skills/vibeshell/SKILL.md#plugin-discovery-and-references)
+[プラグイン仕様](docs/plugin-spec.md) · [Agent とプラグインの索引](skills/zxyssh/SKILL.md#plugin-discovery-and-references)
 
 ## 自分の作業に合わせて整える
 
@@ -126,38 +126,38 @@ vibeshell plugins run server-performance status --session SESSION_ID --inputs '{
 
 ローカル転送、SOCKS5、リバース転送、セッションの記録と再生に対応します。トンネル設定を保存し、セッション終了時には関連トンネルと記録も終了します。loopback の外へ公開する前に bind アドレスを確認してください。
 
-任意の **Gist / WebDAV 暗号化同期**で、サーバーメタデータ、グループ、スニペット、プラグイン導入情報を自分の環境間で共有できます。VibeShell のホスト型 SSH 中継ではありません。認証情報、ホスト鍵の信頼情報、実行中ターミナル、Agent 履歴は同期対象外です。提供元のトークン、復旧材料、エクスポート内容は慎重に管理してください。
+任意の **Gist / WebDAV 暗号化同期**で、サーバーメタデータ、グループ、スニペット、プラグイン導入情報を自分の環境間で共有できます。zxySSH のホスト型 SSH 中継ではありません。認証情報、ホスト鍵の信頼情報、実行中ターミナル、Agent 履歴は同期対象外です。提供元のトークン、復旧材料、エクスポート内容は慎重に管理してください。
 
 SSH は認証前にホストを検証し、踏み台経由でも実際の接続先を確認します。認証情報と Agent 履歴はローカル暗号化保存ですが、OS Keychain 保管や侵害済みローカルアカウントからの保護ではありません。正しい秘密鍵があっても、想定外のホスト指紋を無条件で許可してはいけません。
 
 ## Linux サーバーとクロスプラットフォーム Agent
 
-VibeShell サービスは Ubuntu/Debian Linux サーバーを対象とします。MCP HTTP 対応の Hermes Agent は異なる OS からリモート接続できます。macOS / Windows 向けのデスクトップ版およびネイティブ CLI パッケージは提供しません。
+zxySSH サービスは Ubuntu/Debian Linux サーバーを対象とします。MCP HTTP 対応の Hermes Agent は異なる OS からリモート接続できます。macOS / Windows 向けのデスクトップ版およびネイティブ CLI パッケージは提供しません。
 
 [Linux サーバーと LAN MCP のセットアップ](docs/LAN-MCP-UBUNTU-DEBIAN.md) · [CLI ガイド](cli/README.md)
 
 ```bash
-vibeshell import auto --dry-run    # 確認後に --dry-run を外して取り込みます。
-vibeshell servers
-vibeshell ssh my-server
-vibeshell ssh my-server -- uname -a
-vibeshell sessions
-vibeshell sftp my-server ls /srv/app
+zxyssh import auto --dry-run    # 確認後に --dry-run を外して取り込みます。
+zxyssh servers
+zxyssh ssh my-server
+zxyssh ssh my-server -- uname -a
+zxyssh sessions
+zxyssh sftp my-server ls /srv/app
 ```
 
-`my-server` は保存済み名に置き換えます。`sessions` に表示された別名で `vibeshell ssh-session ALIAS -- pwd` を実行し、別接続が必要な場合だけ `--new` を使います。複雑な引用符には `--command-file` / `--command-stdin` を使用し、秘密情報を引数や Agent の依頼文に入れないでください。
+`my-server` は保存済み名に置き換えます。`sessions` に表示された別名で `zxyssh ssh-session ALIAS -- pwd` を実行し、別接続が必要な場合だけ `--new` を使います。複雑な引用符には `--command-file` / `--command-stdin` を使用し、秘密情報を引数や Agent の依頼文に入れないでください。
 
 CLI は必要に応じて daemon を起動し、GUI は既存セッションに接続できます。接続の所有プロセスは生きている必要があります。daemon 所有の接続は GUI 終了後も継続できますが、GUI 所有の接続はその終了で切れます。デスクトップと CLI は一緒に更新し、再起動前に作業を保存してください。
 
-VibeShell のデスクトップ版とネイティブ CLI は Linux 向けのみ提供します。モバイルは実験的で、全 MFA、ハードウェアトークン、SSH 実装への対応を保証しません。提案中の CLI サーバー作成/削除と Teleport は現在の 1.1.0 には含まれません。
+zxySSH のデスクトップ版とネイティブ CLI は Linux 向けのみ提供します。モバイルは実験的で、全 MFA、ハードウェアトークン、SSH 実装への対応を保証しません。提案中の CLI サーバー作成/削除と Teleport は現在の 1.1.0 には含まれません。
 
 ## 動かす、開発する、実装を読む
 
 Tauri 2、Rust、React、TypeScript、xterm.js で構成しています。Node.js 22.12+、stable Rust、OS ごとの [Tauri 前提条件](https://v2.tauri.app/start/prerequisites/) が必要です。
 
 ```bash
-git clone --branch dev https://github.com/veithly/vibeshell.git
-cd vibeshell
+git clone --branch dev https://github.com/opera163zuo/vibeshell.git
+cd zxyssh
 npm ci
 npm run tauri -- dev
 ```
@@ -172,8 +172,8 @@ Docker の一覧改善と、独立コンテナーセッション・送信プロ�
 
 [貢献ガイド](CONTRIBUTING.md) · [アーキテクチャ](AGENTS.md) · [リリース手順](docs/RELEASING.md) · [共同作業 API](docs/AGENT_COLLABORATION.md)
 
-セキュリティ上の問題は [非公開報告](https://github.com/veithly/vibeshell/security/advisories/new) へ。承認はサンドボックスではなく、保護された入力もリモートプログラムのエコーを防げません。応答消失後に変更操作を自動で再実行しないでください。
+セキュリティ上の問題は [非公開報告](https://github.com/opera163zuo/vibeshell/security/advisories/new) へ。承認はサンドボックスではなく、保護された入力もリモートプログラムのエコーを防げません。応答消失後に変更操作を自動で再実行しないでください。
 
 ## ライセンス
 
-VibeShell 1.1.0 以降の全体は **GPL-3.0-only** です。[LICENSE](LICENSE)、[NOTICE](NOTICE)、[保存された MIT 通知](licenses/legacy-MIT.txt) を参照してください。既存の MIT 許諾は取り消さず、第三者はそれぞれのライセンスを保持します。リリースには対応ソースと通知を用意し、法律で許される範囲で無保証とします。
+zxySSH 1.1.0 以降の全体は **GPL-3.0-only** です。[LICENSE](LICENSE)、[NOTICE](NOTICE)、[保存された MIT 通知](licenses/legacy-MIT.txt) を参照してください。既存の MIT 許諾は取り消さず、第三者はそれぞれのライセンスを保持します。リリースには対応ソースと通知を用意し、法律で許される範囲で無保証とします。

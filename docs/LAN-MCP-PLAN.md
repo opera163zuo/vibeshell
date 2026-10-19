@@ -1,23 +1,23 @@
-# VibeShell LAN MCP — project plan
+# zxySSH LAN MCP — project plan
 
 ## Goal
 
-Build a Linux-hosted VibeShell MCP service, targeting Ubuntu and Debian servers, so Hermes Agents on different operating systems can connect over the local network and operate SSH sessions managed by that VibeShell instance.
+Build a Linux-hosted zxySSH MCP service, targeting Ubuntu and Debian servers, so Hermes Agents on different operating systems can connect over the local network and operate SSH sessions managed by that zxySSH instance.
 
-The Linux server owns SSH connections, saved server profiles, host-key verification, SFTP, and the MCP endpoint. Remote Agents use the standard MCP HTTP transport and do not need to run VibeShell or SSH locally.
+The Linux server owns SSH connections, saved server profiles, host-key verification, SFTP, and the MCP endpoint. Remote Agents use the standard MCP HTTP transport and do not need to run zxySSH or SSH locally.
 
 ## Current status
 
-Branch `feature/lan-mcp-gateway` in the `opera163zuo/vibeshell` fork; draft PR: https://github.com/opera163zuo/vibeshell/pull/1
+Branch `feature/lan-mcp-gateway` in the `opera163zuo/zxyssh` fork; draft PR: https://github.com/opera163zuo/vibeshell/pull/1
 
 Phases 0-4 are implemented and verified end-to-end on a Debian 13 host against a local sshd fixture:
 
 - The scaffold that did not compile (`include!("pairing_http.rs")` inside `server.rs`) is fixed; pairing HTTP is a real module now, and the desktop gateway is back to loopback-only.
-- `vibeshell mcp serve` runs headless: Streamable-HTTP JSON-RPC on `/mcp` (`initialize`, `notifications/initialized` answered with `202`, `ping`, `tools/list`, `tools/call`), `/health`, `/pair`.
+- `zxyssh mcp serve` runs headless: Streamable-HTTP JSON-RPC on `/mcp` (`initialize`, `notifications/initialized` answered with `202`, `ping`, `tools/list`, `tools/call`), `/health`, `/pair`.
 - Pairing codes are one-time, 5-minute, 5-attempt, constant-time compared, per-peer rate limited, and persisted so an administrator can mint a code from a different process than the running service.
 - Agent bearer tokens are issued once, stored only as SHA-256 hashes in the device-encrypted registry, and reloaded from disk before every request, so revoke and rotate take effect immediately.
 - Risky commands fail closed on this transport because there is no approval UI; every audited action records the paired Agent identity.
-- `vibeshell mcp credential set|clear` and `vibeshell mcp hostkey probe|trust|list` let a headless server actually reach a target machine without a GUI, with secrets accepted only on stdin and host keys pinned only after the operator repeats the fingerprint.
+- `zxyssh mcp credential set|clear` and `zxyssh mcp hostkey probe|trust|list` let a headless server actually reach a target machine without a GUI, with secrets accepted only on stdin and host keys pinned only after the operator repeats the fingerprint.
 - systemd unit, backup/restore and firewall/TLS procedures are documented in `docs/LAN-MCP-UBUNTU-DEBIAN.md`.
 - `bash scripts/test-lan-mcp-gateway.sh [address]` re-runs the whole gate (18 checks: bind guard, pairing, bearer auth, `202` notifications, body limit, encrypted audit, instant revocation) against a throwaway state directory, so an operator can verify a deployment without touching saved user data.
 
@@ -103,7 +103,7 @@ Status: Phase 0-4 are implemented and locally verified (see *Current status*). P
 
 ## Out of scope for this phase
 
-- Removing macOS or Windows desktop releases from upstream VibeShell.
+- Removing macOS or Windows desktop releases from upstream zxySSH.
 - Public Internet exposure or multi-tenant hosting.
 - Replacing SSH authentication or bypassing human approval for risky operations.
 - Claiming production readiness based solely on compilation or local unit tests.

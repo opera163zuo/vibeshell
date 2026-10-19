@@ -16,23 +16,23 @@ describe('custom CSS themes', () => {
   });
   it('inserts CSS as text instead of permitting HTML injection', () => {
     applyCustomCss('/* </style><script>window.pwned = true</script> */ body { opacity: .9 }');
-    expect(document.getElementById('vibeshell-custom-css')?.textContent).toContain('</style>');
+    expect(document.getElementById('zxyssh-custom-css')?.textContent).toContain('</style>');
     expect(document.querySelector('script')).toBeNull();
   });
   it('previews without persisting and restores the saved theme', () => {
     const view = render(<Harness />);
     act(() => useCustomThemeStore.getState().save('body { opacity: .9 }', true));
     act(() => useCustomThemeStore.getState().preview('body { opacity: .8 }'));
-    expect(document.getElementById('vibeshell-custom-css')?.textContent).toContain('.8');
+    expect(document.getElementById('zxyssh-custom-css')?.textContent).toContain('.8');
     expect(localStorage.getItem(CUSTOM_THEME_KEY)).not.toContain('.8');
     act(() => useCustomThemeStore.getState().preview(null));
-    expect(document.getElementById('vibeshell-custom-css')?.textContent).toContain('.9'); view.unmount();
+    expect(document.getElementById('zxyssh-custom-css')?.textContent).toContain('.9'); view.unmount();
   });
   it('emergency shortcut removes even CSS that hides every control', () => {
     render(<Harness />);
     act(() => useCustomThemeStore.getState().save('body { visibility: hidden !important }', true));
     fireEvent.keyDown(window, { key: 'F12', metaKey: true, shiftKey: true });
-    expect(document.getElementById('vibeshell-custom-css')).toBeNull();
+    expect(document.getElementById('zxyssh-custom-css')).toBeNull();
     expect(useCustomThemeStore.getState().enabled).toBe(false);
     useCustomThemeStore.getState().reload(); expect(useCustomThemeStore.getState().enabled).toBe(false);
   });
@@ -40,13 +40,13 @@ describe('custom CSS themes', () => {
     render(<Harness />); act(() => useCustomThemeStore.getState().preview('body { display: none }'));
     vi.stubGlobal('localStorage', { setItem: () => { throw new Error('quota exceeded'); } });
     act(() => useCustomThemeStore.getState().disable());
-    expect(document.getElementById('vibeshell-custom-css')).toBeNull();
+    expect(document.getElementById('zxyssh-custom-css')).toBeNull();
   });
   it('synchronizes saved CSS across document windows without feedback writes', () => {
     render(<Harness />);
     localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify({ version: 1, css: 'button { border-radius: 9px }', enabled: true }));
     fireEvent(window, new StorageEvent('storage', { key: CUSTOM_THEME_KEY }));
-    expect(document.getElementById('vibeshell-custom-css')?.textContent).toContain('9px');
+    expect(document.getElementById('zxyssh-custom-css')?.textContent).toContain('9px');
   });
   it('embeds images as a pointer-transparent background and rejects arbitrary CSS fragments', () => {
     const css = wallpaperCss('data:image/png;base64,AAAA'); expect(css).toContain('pointer-events: none');

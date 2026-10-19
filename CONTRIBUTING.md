@@ -1,4 +1,4 @@
-# Contributing to VibeShell
+# Contributing to zxySSH
 
 [English README](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
@@ -24,7 +24,7 @@ Use Node.js 22.12+ and current stable Rust, with Tauri's platform prerequisites 
 
 ```bash
 npm ci
-cargo run --locked -p vibeshell-plugins --example export_references -- --check
+cargo run --locked -p zxyssh-plugins --example export_references -- --check
 node scripts/check-release.mjs
 node --test scripts/tests/*.test.mjs
 npm test
@@ -57,7 +57,7 @@ The validated manifests in `plugins/builtin/` define the built-in plugin catalog
 Regenerate the checked-in references with:
 
 ```bash
-cargo run --locked -p vibeshell-plugins --example export_references
+cargo run --locked -p zxyssh-plugins --example export_references
 ```
 
 This command writes only the three repository Skill/reference directories. It does not install anything into your home directory or connect to a server. CI checks that generated documents and all three main Skill copies agree. Do not hand-edit generated references; update the manifest or renderer instead.

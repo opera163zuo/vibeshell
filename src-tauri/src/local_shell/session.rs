@@ -32,7 +32,7 @@ fn build_shell_command(shell_info: &ShellInfo) -> CommandBuilder {
     {
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
-        cmd.env("TERM_PROGRAM", "VibeShell");
+        cmd.env("TERM_PROGRAM", "zxySSH");
         cmd.env("SHELL", &shell_info.path);
 
         if let Some(home) = std::env::var_os("HOME") {
@@ -539,10 +539,7 @@ mod tests {
         {
             assert_eq!(command.get_env("TERM"), Some(OsStr::new("xterm-256color")));
             assert_eq!(command.get_env("COLORTERM"), Some(OsStr::new("truecolor")));
-            assert_eq!(
-                command.get_env("TERM_PROGRAM"),
-                Some(OsStr::new("VibeShell"))
-            );
+            assert_eq!(command.get_env("TERM_PROGRAM"), Some(OsStr::new("zxySSH")));
             assert_eq!(command.get_env("SHELL"), Some(OsStr::new("/bin/zsh")));
         }
     }

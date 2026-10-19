@@ -6878,75 +6878,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
-name = "vibeshell-desktop"
-version = "1.1.1"
-dependencies = [
- "anyhow",
- "argon2 0.5.3",
- "async-trait",
- "axum",
- "base64 0.21.7",
- "chrono",
- "directories",
- "env_logger",
- "glob",
- "ignore",
- "interprocess",
- "log",
- "mysql_async",
- "portable-pty",
- "rand 0.8.8",
- "reqwest",
- "rfd",
- "ring",
- "rusqlite",
- "russh",
- "russh-sftp",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2 0.10.9",
- "subtle",
- "tauri",
- "tauri-build",
- "tauri-plugin-fs",
- "tauri-plugin-process",
- "tauri-plugin-shell",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "tempfile",
- "tokio",
- "tokio-postgres",
- "tokio-stream",
- "tower",
- "uuid",
- "vibeshell-plugins",
- "which",
- "windows-sys 0.59.0",
- "winreg 0.55.0",
- "zeroize",
-]
-
-[[package]]
-name = "vibeshell-plugins"
-version = "1.1.1"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "vshell"
-version = "1.1.1"
-dependencies = [
- "anyhow",
- "axum",
- "clap",
- "tokio",
- "vibeshell-desktop",
-]
-
-[[package]]
 name = "vswhom"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8185,4 +8116,74 @@ dependencies = [
  "serde",
  "syn 2.0.114",
  "winnow 1.0.3",
+]
+
+[[package]]
+name = "zxyssh"
+version = "1.1.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "serde_json",
+ "tokio",
+ "zxyssh-desktop",
+]
+
+[[package]]
+name = "zxyssh-desktop"
+version = "1.1.1"
+dependencies = [
+ "anyhow",
+ "argon2 0.5.3",
+ "async-trait",
+ "axum",
+ "base64 0.21.7",
+ "chrono",
+ "directories",
+ "env_logger",
+ "glob",
+ "ignore",
+ "interprocess",
+ "log",
+ "mysql_async",
+ "portable-pty",
+ "rand 0.8.8",
+ "reqwest",
+ "rfd",
+ "ring",
+ "rusqlite",
+ "russh",
+ "russh-sftp",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2 0.10.9",
+ "subtle",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-fs",
+ "tauri-plugin-process",
+ "tauri-plugin-shell",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "tempfile",
+ "tokio",
+ "tokio-postgres",
+ "tokio-stream",
+ "tower",
+ "uuid",
+ "which",
+ "windows-sys 0.59.0",
+ "winreg 0.55.0",
+ "zeroize",
+ "zxyssh-plugins",
+]
+
+[[package]]
+name = "zxyssh-plugins"
+version = "1.1.1"
+dependencies = [
+ "serde",
+ "serde_json",
 ]

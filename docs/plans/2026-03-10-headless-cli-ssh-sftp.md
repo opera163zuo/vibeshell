@@ -2,7 +2,7 @@
 
 > **For Codex:** Execute this plan task-by-task. Use parallel agents only for independent files/tasks.
 
-**Goal:** Let `vshell` provide terminal-native SSH and SFTP workflows without depending on the Tauri UI process being open.
+**Goal:** Let `zxyssh` provide terminal-native SSH and SFTP workflows without depending on the Tauri UI process being open.
 
 **Architecture:** Keep the current IPC/session model, but make it runnable in a headless daemon started by the CLI. Extend the IPC protocol with SFTP operations so terminal workflows can reuse the same background session manager and survive independently from the UI window lifecycle.
 
@@ -19,11 +19,11 @@
 
 **Step 1: Write the failing test**
 
-Add a parser test that accepts `vshell daemon start`.
+Add a parser test that accepts `zxyssh daemon start`.
 
 **Step 2: Run test to verify it fails**
 
-Run: `cargo test -p vshell parses_daemon_start_command`
+Run: `cargo test -p zxyssh parses_daemon_start_command`
 Expected: FAIL because the subcommand does not exist yet.
 
 **Step 3: Write minimal implementation**
@@ -33,18 +33,18 @@ Add a `daemon` CLI subcommand with:
 - `run` to run the IPC service in the foreground
 - `status` to report whether the socket is reachable
 
-Add helper logic that starts `vshell daemon start` automatically when IPC is unavailable for CLI SSH/SFTP/session commands.
+Add helper logic that starts `zxyssh daemon start` automatically when IPC is unavailable for CLI SSH/SFTP/session commands.
 
 **Step 4: Run test to verify it passes**
 
-Run: `cargo test -p vshell parses_daemon_start_command`
+Run: `cargo test -p zxyssh parses_daemon_start_command`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
 git add cli/src/main.rs cli/src/daemon.rs
-git commit -m "feat: add headless vshell daemon"
+git commit -m "feat: add headless zxyssh daemon"
 ```
 
 ### Task 2: CLI IPC bootstrap helpers
@@ -62,7 +62,7 @@ Add unit coverage for helper behavior that reports a daemon startup timeout clea
 
 **Step 2: Run test to verify it fails**
 
-Run: `cargo test -p vshell`
+Run: `cargo test -p zxyssh`
 Expected: FAIL because the helper module does not exist yet.
 
 **Step 3: Write minimal implementation**
@@ -77,7 +77,7 @@ Update existing CLI commands to use the helper.
 
 **Step 4: Run test to verify it passes**
 
-Run: `cargo test -p vshell`
+Run: `cargo test -p zxyssh`
 Expected: PASS for new helper tests.
 
 **Step 5: Commit**
@@ -100,7 +100,7 @@ Add serialization tests for new SFTP IPC request/response variants.
 
 **Step 2: Run test to verify it fails**
 
-Run: `cargo test -p vibeshell ipc`
+Run: `cargo test -p zxyssh ipc`
 Expected: FAIL because SFTP IPC variants are not defined.
 
 **Step 3: Write minimal implementation**
@@ -121,7 +121,7 @@ Implement handlers inside the IPC server with a dedicated SFTP state map keyed b
 
 **Step 4: Run test to verify it passes**
 
-Run: `cargo test -p vibeshell ipc`
+Run: `cargo test -p zxyssh ipc`
 Expected: PASS
 
 **Step 5: Commit**
@@ -140,11 +140,11 @@ git commit -m "feat: add sftp operations to ipc server"
 
 **Step 1: Write the failing test**
 
-Add parser coverage for `vshell sftp my-server`.
+Add parser coverage for `zxyssh sftp my-server`.
 
 **Step 2: Run test to verify it fails**
 
-Run: `cargo test -p vshell parses_sftp_command`
+Run: `cargo test -p zxyssh parses_sftp_command`
 Expected: FAIL because the command does not exist yet.
 
 **Step 3: Write minimal implementation**
@@ -157,7 +157,7 @@ Implement an interactive terminal SFTP REPL that:
 
 **Step 4: Run test to verify it passes**
 
-Run: `cargo test -p vshell parses_sftp_command`
+Run: `cargo test -p zxyssh parses_sftp_command`
 Expected: PASS
 
 **Step 5: Commit**
@@ -174,17 +174,17 @@ git commit -m "feat: add terminal sftp workflow"
 
 **Step 1: Run Rust tests**
 
-Run: `cargo test -p vibeshell`
+Run: `cargo test -p zxyssh`
 Expected: PASS except existing ignored integration tests.
 
 **Step 2: Run CLI tests**
 
-Run: `cargo test -p vshell`
+Run: `cargo test -p zxyssh`
 Expected: PASS
 
 **Step 3: Run Rust type check**
 
-Run: `cargo check -p vibeshell`
+Run: `cargo check -p zxyssh`
 Expected: PASS
 
 **Step 4: Run frontend build required by repo policy**

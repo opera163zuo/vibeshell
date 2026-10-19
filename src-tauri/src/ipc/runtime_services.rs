@@ -36,7 +36,7 @@ pub async fn call<T: serde::de::DeserializeOwned>(request: RuntimeRequest) -> Re
     match crate::commands::session::ipc_send(IpcMessage::SessionService { request }).await? {
         IpcMessage::ServiceResult { value } => serde_json::from_value(value).map_err(|error| error.to_string()),
         IpcMessage::Error { message } => Err(message),
-        _ => Err("Running VibeShell service does not support this session operation; update both GUI and daemon".into()),
+        _ => Err("Running zxySSH service does not support this session operation; update both GUI and daemon".into()),
     }
 }
 

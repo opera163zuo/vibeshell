@@ -16,13 +16,13 @@ export function useCustomTheme(baseTheme: string): void {
       }
     };
     const onStorage = (event: StorageEvent) => {
-      if (event.key === CUSTOM_THEME_KEY || event.key === 'vibeshell.custom-theme.disabled' || event.key === null) useCustomThemeStore.getState().reload();
+      if (event.key === CUSTOM_THEME_KEY || event.key === 'zxyssh.custom-theme.disabled' || event.key === null) useCustomThemeStore.getState().reload();
     };
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('storage', onStorage);
     let disposed = false; let stop: (() => void) | undefined;
     if ('__TAURI_INTERNALS__' in window) {
-      void import('@tauri-apps/api/event').then(({ listen }) => listen('vibeshell://disable-custom-css', recover))
+      void import('@tauri-apps/api/event').then(({ listen }) => listen('zxyssh://disable-custom-css', recover))
         .then(unlisten => { if (disposed) unlisten(); else stop = unlisten; }).catch(console.error);
     }
     return () => { disposed = true; stop?.(); window.removeEventListener('keydown', onKey, true); window.removeEventListener('storage', onStorage); };

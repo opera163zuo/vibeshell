@@ -64,7 +64,7 @@ pub fn queue_open_files(app: &tauri::AppHandle, paths: impl IntoIterator<Item = 
             }
         }
     }
-    let _ = app.emit_to("main", "vibeshell://open-files-pending", ());
+    let _ = app.emit_to("main", "zxyssh://open-files-pending", ());
 }
 
 pub fn queue_file_arguments(
@@ -103,7 +103,7 @@ pub async fn pick_local_files() -> Result<Vec<String>, String> {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
         Ok(rfd::AsyncFileDialog::new()
-            .set_title("Open documents or images in VibeShell")
+            .set_title("Open documents or images in zxySSH")
             .pick_files()
             .await
             .unwrap_or_default()
@@ -208,7 +208,7 @@ fn write_local(request: LocalWriteRequest) -> Result<(), String> {
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_nanos();
-    let temporary = path.with_file_name(format!(".vibeshell-save-{}-{stamp}", std::process::id()));
+    let temporary = path.with_file_name(format!(".zxyssh-save-{}-{stamp}", std::process::id()));
     let mut output = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -249,8 +249,8 @@ pub async fn export_theme_css(css: String) -> Result<Option<String>, String> {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
         let file = rfd::AsyncFileDialog::new()
-            .set_title("Export VibeShell CSS theme")
-            .set_file_name("vibeshell-theme.css")
+            .set_title("Export zxySSH CSS theme")
+            .set_file_name("zxyssh-theme.css")
             .add_filter("CSS theme", &["css"])
             .save_file()
             .await;
@@ -270,11 +270,11 @@ pub async fn export_theme_css(css: String) -> Result<Option<String>, String> {
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub fn install_workspace_menu(app: &tauri::App) -> tauri::Result<()> {
     use tauri::menu::{Menu, MenuItemBuilder, Submenu};
-    let open = MenuItemBuilder::with_id("vibeshell-open-files", "Open Files… / 打开文件")
+    let open = MenuItemBuilder::with_id("zxyssh-open-files", "Open Files… / 打开文件")
         .accelerator("CmdOrCtrl+O")
         .build(app)?;
     let recover = MenuItemBuilder::with_id(
-        "vibeshell-recover-theme",
+        "zxyssh-recover-theme",
         "Disable Custom CSS / 停用自定义 CSS",
     )
     .accelerator("CmdOrCtrl+Shift+F12")
@@ -284,11 +284,11 @@ pub fn install_workspace_menu(app: &tauri::App) -> tauri::Result<()> {
     menu.append(&submenu)?;
     app.set_menu(menu)?;
     app.on_menu_event(|app, event| match event.id().as_ref() {
-        "vibeshell-open-files" => {
-            let _ = app.emit_to("main", "vibeshell://choose-local-files", ());
+        "zxyssh-open-files" => {
+            let _ = app.emit_to("main", "zxyssh://choose-local-files", ());
         }
-        "vibeshell-recover-theme" => {
-            let _ = app.emit("vibeshell://disable-custom-css", ());
+        "zxyssh-recover-theme" => {
+            let _ = app.emit("zxyssh://disable-custom-css", ());
         }
         _ => {}
     });

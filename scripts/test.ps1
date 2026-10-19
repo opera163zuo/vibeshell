@@ -1,4 +1,4 @@
-# VibeShell Test Runner (PowerShell)
+# zxySSH Test Runner (PowerShell)
 # Usage: .\scripts\test.ps1 [-Backend] [-Frontend] [-All]
 param(
     [switch]$Backend,

@@ -198,7 +198,7 @@ export const TitleBar = memo(function TitleBar({
         <span className={cn('titlebar-brand', platform === 'macos' ? '' : 'pl-1')}>
           <img src="/app-icon.svg" className="h-5 w-5" alt="" aria-hidden="true" />
         </span>
-        <span className="text-xs font-semibold text-tokyo-fg">VibeShell</span>
+        <span className="text-xs font-semibold text-tokyo-fg">zxySSH</span>
 
         {/* Session info */}
         {activeSessionName && (

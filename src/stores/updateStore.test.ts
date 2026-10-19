@@ -18,10 +18,10 @@ describe('updateStore version helpers', () => {
 
 describe('updateStore release asset selection', () => {
   const assets = [
-    { name: 'VibeShell_0.1.19_x64.dmg', downloadUrl: 'https://example.com/mac' },
-    { name: 'VibeShell_0.1.19_x64.msi', downloadUrl: 'https://example.com/win' },
+    { name: 'zxySSH_0.1.19_x64.dmg', downloadUrl: 'https://example.com/mac' },
+    { name: 'zxySSH_0.1.19_x64.msi', downloadUrl: 'https://example.com/win' },
     { name: 'latest.json', downloadUrl: 'https://example.com/latest.json' },
-    { name: 'VibeShell_0.1.19_amd64.AppImage', downloadUrl: 'https://example.com/linux' },
+    { name: 'zxySSH_0.1.19_amd64.AppImage', downloadUrl: 'https://example.com/linux' },
   ];
 
   it('prefers Linux installers regardless of the client user agent', () => {

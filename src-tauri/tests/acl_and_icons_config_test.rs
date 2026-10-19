@@ -65,7 +65,10 @@ fn capabilities_separate_desktop_and_mobile_permissions() {
     let desktop = read_json(&desktop_path);
     let mobile = read_json(&mobile_path);
 
-    assert_eq!(desktop["platforms"], serde_json::json!(["linux"]));
+    assert_eq!(
+        desktop["platforms"],
+        serde_json::json!(["linux", "macOS", "windows"])
+    );
     assert_eq!(mobile["platforms"], serde_json::json!(["iOS", "android"]));
 
     let mobile_permissions = mobile["permissions"]
@@ -91,7 +94,7 @@ fn capabilities_separate_desktop_and_mobile_permissions() {
 }
 
 #[test]
-fn frontend_uses_vibeshell_favicon() {
+fn frontend_uses_zxyssh_favicon() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("src-tauri must live under workspace root")

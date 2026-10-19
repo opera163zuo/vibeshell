@@ -60,8 +60,8 @@ src-tauri/target/
 # Tauri regenerates ACL schemas, while mobile platform projects are source artifacts.
 src-tauri/gen/schemas/
 # Target-suffixed native CLI sidecars are generated before desktop packaging.
-src-tauri/binaries/vshell*
-src-tauri/binaries/vibeshell*
+src-tauri/binaries/zxyssh*
+src-tauri/binaries/zxyssh*
 !src-tauri/binaries/.gitkeep
 
 # ============================================

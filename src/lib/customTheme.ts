@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
-export const CUSTOM_THEME_KEY = 'vibeshell.custom-theme.v1';
-export const CUSTOM_THEME_EVENT = 'vibeshell:custom-theme-changed';
+export const CUSTOM_THEME_KEY = 'zxyssh.custom-theme.v1';
+export const CUSTOM_THEME_EVENT = 'zxyssh:custom-theme-changed';
 export const CUSTOM_CSS_LIMIT = 2 * 1024 * 1024;
-const SAFE_KEY = 'vibeshell.custom-theme.disabled';
+const SAFE_KEY = 'zxyssh.custom-theme.disabled';
 export interface CustomTheme { css: string; enabled: boolean }
 export function parseCustomTheme(raw: string | null): CustomTheme {
   try {
@@ -42,7 +42,7 @@ export const useCustomThemeStore = create<CustomThemeState>((set, get) => ({
   disable: () => {
     // Recovery works even when persistent storage is full or inaccessible.
     set({ enabled: false, previewCss: null });
-    document.getElementById('vibeshell-custom-css')?.remove();
+    document.getElementById('zxyssh-custom-css')?.remove();
     try { localStorage.setItem(SAFE_KEY, '1'); } catch { /* in-memory recovery remains effective */ }
     try { localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify({ version: 1, css: get().css, enabled: false })); } catch { /* keep the draft in memory */ }
   },
@@ -51,10 +51,10 @@ export const useCustomThemeStore = create<CustomThemeState>((set, get) => ({
 
 /** No HTML insertion or JavaScript execution. CSS is intentionally user-controlled. */
 export function applyCustomCss(css: string | null): void {
-  let style = document.getElementById('vibeshell-custom-css');
+  let style = document.getElementById('zxyssh-custom-css');
   if (css === null) { style?.remove(); }
   else {
-    if (!style) { style = document.createElement('style'); style.id = 'vibeshell-custom-css'; document.head.appendChild(style); }
+    if (!style) { style = document.createElement('style'); style.id = 'zxyssh-custom-css'; document.head.appendChild(style); }
     style.textContent = css;
   }
   document.documentElement.dataset.customTheme = css === null ? 'off' : 'on';
@@ -77,7 +77,7 @@ export function customTerminalColors(): Record<string, string> {
   return colors;
 }
 
-export const CUSTOM_THEME_EXAMPLE = `/* VibeShell theme. CSS variables override the selected base theme. */
+export const CUSTOM_THEME_EXAMPLE = `/* zxySSH theme. CSS variables override the selected base theme. */
 :root {
   --tokyo-blue: var(--tokyo-cyan) !important;
   --vibe-wallpaper-opacity: 0.12;

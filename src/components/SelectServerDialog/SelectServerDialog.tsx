@@ -38,7 +38,7 @@ interface SelectServerDialogProps {
 
 function loadLauncherView(): LauncherView {
   try {
-    return globalThis.localStorage?.getItem('vibeshell-connection-view') === 'icons' ? 'icons' : 'list';
+    return globalThis.localStorage?.getItem('zxyssh-connection-view') === 'icons' ? 'icons' : 'list';
   } catch {
     return 'list';
   }
@@ -323,7 +323,7 @@ export function SelectServerDialog({
 
   const changeView = useCallback((nextView: LauncherView) => {
     setView(nextView);
-    saveLauncherPreference('vibeshell-connection-view', nextView);
+    saveLauncherPreference('zxyssh-connection-view', nextView);
   }, []);
 
   const sessionCounts = useMemo(() => {

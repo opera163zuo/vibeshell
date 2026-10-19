@@ -6,7 +6,7 @@ import { sanitizeTree } from './docking';
 import { readDetachedLayout, saveDetachedLayout, restoreDetachedWindows, type DetachedLayoutEntry } from './detach';
 import { readTextBuffer, writeTextBuffer } from './fileEditBuffer';
 
-const KEY = 'vibeshell.workspace-layout.v2';
+const KEY = 'zxyssh.workspace-layout.v2';
 export type SavedSession = Pick<Session, 'id' | 'serverId' | 'serverName' | 'sessionType' | 'purpose' | 'cwd'>;
 export interface WorkspaceLayout {
   version: 2;

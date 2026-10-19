@@ -5,7 +5,7 @@ export interface TextEditBuffer {
   size: number;
   mimeType: string;
 }
-const PREFIX = 'vibeshell.editor-buffer.v1.';
+const PREFIX = 'zxyssh.editor-buffer.v1.';
 const memory = new Map<string, TextEditBuffer>();
 const listeners = new Map<string, Set<() => void>>();
 const locks = new Set<string>();

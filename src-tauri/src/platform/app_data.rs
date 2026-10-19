@@ -4,8 +4,8 @@ use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(crate) const APP_BUNDLE_IDENTIFIER: &str = "com.vibeshell.desktop";
-pub(crate) const DATABASE_FILE_NAME: &str = "vibeshell.db";
+pub(crate) const APP_BUNDLE_IDENTIFIER: &str = "com.zxyssh.desktop";
+pub(crate) const DATABASE_FILE_NAME: &str = "zxyssh.db";
 pub(crate) const FINGERPRINT_FILE_NAME: &str = "ssh_fingerprints.json";
 
 pub(crate) fn database_path(app_data_dir: &Path) -> PathBuf {
@@ -55,22 +55,35 @@ fn prepared_default_app_data_dir() -> Result<PathBuf> {
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub(crate) fn copy_legacy_app_data(app_data_dir: &Path) -> Result<()> {
-    use directories::ProjectDirs;
-
-    let legacy_dir = ProjectDirs::from("com", "vibeshell", "VibeShell")
-        .context("Could not determine legacy VibeShell data directory")?
-        .data_dir()
-        .to_path_buf();
-
-    copy_if_missing(
-        &legacy_dir.join(DATABASE_FILE_NAME),
-        &database_path(app_data_dir),
-    )?;
-    copy_if_missing(
-        &legacy_dir.join(FINGERPRINT_FILE_NAME),
-        &fingerprint_path(app_data_dir),
-    )?;
+    // Existing installations must retain their saved servers, encrypted SSH
+    // credentials, host fingerprints and activity history after the rebrand.
+    for legacy_dir in legacy_app_data_dirs()? {
+        copy_if_missing(
+            &legacy_dir.join("vibeshell.db"),
+            &database_path(app_data_dir),
+        )?;
+        copy_if_missing(
+            &legacy_dir.join(FINGERPRINT_FILE_NAME),
+            &fingerprint_path(app_data_dir),
+        )?;
+        if database_path(app_data_dir).exists() && fingerprint_path(app_data_dir).exists() {
+            break;
+        }
+    }
     Ok(())
+}
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub(crate) fn legacy_app_data_dirs() -> Result<Vec<PathBuf>> {
+    use directories::ProjectDirs;
+    let mut dirs = Vec::new();
+    if let Some(project) = ProjectDirs::from("com", "vibeshell", "VibeShell") {
+        dirs.push(project.data_dir().to_path_buf());
+    }
+    if let Some(base) = directories::BaseDirs::new() {
+        dirs.push(base.data_dir().join("com.vibeshell.desktop"));
+    }
+    Ok(dirs)
 }
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -85,7 +98,7 @@ fn copy_if_missing(source: &Path, destination: &Path) -> Result<bool> {
     }
 
     log::info!(
-        "[VibeShell] Copying legacy app data from {} to {}",
+        "[zxySSH] Copying legacy app data from {} to {}",
         source.display(),
         destination.display()
     );
@@ -127,16 +140,39 @@ mod tests {
     }
 
     #[test]
-    fn copies_legacy_file_without_removing_source() {
+    fn migrates_the_previous_vibeshell_database_filename() {
         let temp = tempfile::tempdir().unwrap();
-        let source = temp.path().join("legacy").join(DATABASE_FILE_NAME);
-        let destination = temp.path().join("current").join(DATABASE_FILE_NAME);
-        fs::create_dir_all(source.parent().unwrap()).unwrap();
-        fs::write(&source, b"legacy database").unwrap();
+        let legacy_dir = temp.path().join("legacy");
+        let new_dir = temp.path().join("zxyssh");
+        fs::create_dir_all(&legacy_dir).unwrap();
+        fs::create_dir_all(&new_dir).unwrap();
+        fs::write(
+            legacy_dir.join("vibeshell.db"),
+            b"saved ssh sites and credentials",
+        )
+        .unwrap();
+        fs::write(
+            legacy_dir.join(FINGERPRINT_FILE_NAME),
+            b"saved host fingerprints",
+        )
+        .unwrap();
 
-        assert!(copy_if_missing(&source, &destination).unwrap());
-        assert_eq!(fs::read(&destination).unwrap(), b"legacy database");
-        assert_eq!(fs::read(&source).unwrap(), b"legacy database");
+        copy_if_missing(&legacy_dir.join("vibeshell.db"), &database_path(&new_dir)).unwrap();
+        copy_if_missing(
+            &legacy_dir.join(FINGERPRINT_FILE_NAME),
+            &fingerprint_path(&new_dir),
+        )
+        .unwrap();
+
+        assert_eq!(
+            fs::read(database_path(&new_dir)).unwrap(),
+            b"saved ssh sites and credentials"
+        );
+        assert_eq!(
+            fs::read(fingerprint_path(&new_dir)).unwrap(),
+            b"saved host fingerprints"
+        );
+        assert!(legacy_dir.join("vibeshell.db").exists());
     }
 
     #[test]

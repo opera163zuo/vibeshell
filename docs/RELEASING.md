@@ -26,7 +26,7 @@ git switch main
 git merge --ff-only origin/main
 # The version must already have been prepared and promoted above.
 TAG="v$(node -p 'require("./package.json").version')"
-git tag -a "$TAG" -m "VibeShell ${TAG#v}"
+git tag -a "$TAG" -m "zxySSH ${TAG#v}"
 git push origin "$TAG"
 
 # Pushing the tag does nothing else. Explicitly test that exact commit:

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::storage::{Database, PendingSyncBatch};
 
-const PORTABLE_FILE_FORMAT: &str = "vibeshell-portable-sync";
+const PORTABLE_FILE_FORMAT: &str = "zxyssh-portable-sync";
 const PORTABLE_FILE_VERSION: u32 = 1;
 const MAX_PORTABLE_FILE_BYTES: u64 = 16 * 1024 * 1024;
 
@@ -75,9 +75,9 @@ pub fn import_from_path(database: &Database, path: &Path) -> Result<CloudSyncFil
         bail!("Portable sync import exceeds the 16 MiB size limit");
     }
     let file: PortableSyncFile =
-        serde_json::from_slice(&contents).context("Invalid VibeShell portable sync file")?;
+        serde_json::from_slice(&contents).context("Invalid zxySSH portable sync file")?;
     if file.format != PORTABLE_FILE_FORMAT || file.version != PORTABLE_FILE_VERSION {
-        bail!("Unsupported VibeShell portable sync file version");
+        bail!("Unsupported zxySSH portable sync file version");
     }
     if file.batch.changes.iter().any(|change| change.deleted) {
         bail!("Portable sync files cannot contain deletion records");
@@ -132,7 +132,7 @@ mod tests {
             agent_forwarding: false,
         };
         source.server_add(&mut server).unwrap();
-        let path = directory.path().join("workspace.vibeshell-sync.json");
+        let path = directory.path().join("workspace.zxyssh-sync.json");
 
         let exported = export_to_path(&source, &path).unwrap();
         let imported = import_from_path(&target, &path).unwrap();
@@ -152,7 +152,7 @@ mod tests {
         let path = directory.path().join("future.json");
         fs::write(
             &path,
-            r#"{"format":"vibeshell-portable-sync","version":99,"exportedAt":0,"batch":{"deviceId":"device","changes":[]}}"#,
+            r#"{"format":"zxyssh-portable-sync","version":99,"exportedAt":0,"batch":{"deviceId":"device","changes":[]}}"#,
         )
         .unwrap();
 

@@ -14,7 +14,7 @@ use anyhow::Result;
 /// Windows installers add the application directory to the user PATH through
 /// NSIS/WiX hooks, so no duplicate copy is needed there. macOS DMGs and Linux
 /// AppImages cannot reliably modify a system PATH during installation; for
-/// those platforms we persist the sidecar at `~/.local/bin/vibeshell`.
+/// those platforms we persist the sidecar at `~/.local/bin/zxyssh`.
 #[cfg(windows)]
 pub fn install_bundled_cli_for_user() -> Result<Option<PathBuf>> {
     Ok(None)
@@ -32,14 +32,14 @@ pub fn install_bundled_cli_for_user() -> Result<Option<PathBuf>> {
     let bin_dir = home.home_dir().join(".local").join("bin");
     std::fs::create_dir_all(&bin_dir)
         .with_context(|| format!("Failed to create CLI directory {}", bin_dir.display()))?;
-    let destination = bin_dir.join("vibeshell");
+    let destination = bin_dir.join("zxyssh");
 
     if files_match(&source, &destination)? {
         ensure_executable(&destination)?;
         return Ok(Some(destination));
     }
 
-    let temporary = bin_dir.join(format!(".vibeshell.install-{}", std::process::id()));
+    let temporary = bin_dir.join(format!(".zxyssh.install-{}", std::process::id()));
     if temporary.exists() {
         let _ = std::fs::remove_file(&temporary);
     }
@@ -75,9 +75,9 @@ fn find_bundled_cli() -> Result<Option<PathBuf>> {
         return Ok(None);
     };
 
-    let mut candidates = vec![executable_dir.join("vibeshell")];
+    let mut candidates = vec![executable_dir.join("zxyssh")];
     if let Some(contents_dir) = executable_dir.parent() {
-        candidates.push(contents_dir.join("Resources").join("vibeshell"));
+        candidates.push(contents_dir.join("Resources").join("zxyssh"));
     }
 
     // Keep a suffix-aware fallback for development bundles and future Tauri
@@ -86,7 +86,7 @@ fn find_bundled_cli() -> Result<Option<PathBuf>> {
         for entry in entries.flatten() {
             let file_name = entry.file_name();
             let file_name = file_name.to_string_lossy();
-            if file_name.starts_with("vibeshell-") && !file_name.contains("desktop") {
+            if file_name.starts_with("zxyssh-") && !file_name.contains("desktop") {
                 candidates.push(entry.path());
             }
         }

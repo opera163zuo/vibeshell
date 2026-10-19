@@ -1,6 +1,6 @@
 //! MCP Tool Definitions
 //!
-//! Defines all tools exposed by the VibeShell MCP server for AI assistants.
+//! Defines all tools exposed by the zxySSH MCP server for AI assistants.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

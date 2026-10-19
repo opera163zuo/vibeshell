@@ -149,7 +149,7 @@ use local_shell::LocalShellManager;
 use tauri::Emitter;
 use tauri::Manager;
 
-/// Returns the current version of VibeShell
+/// Returns the current version of zxySSH
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
@@ -181,10 +181,10 @@ fn get_agent_gateway_status() -> AgentGatewayStatus {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize logging with RUST_LOG environment variable support
-    // Set RUST_LOG=debug or RUST_LOG=vibeshell=debug for detailed logs
+    // Set RUST_LOG=debug or RUST_LOG=zxyssh=debug for detailed logs
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    log::info!("[VibeShell] Starting application v{}", version());
+    log::info!("[zxySSH] Starting application v{}", version());
 
     let builder =
         tauri::Builder::default().manage(commands::local_files::PendingOpenFiles::default());
@@ -358,7 +358,7 @@ pub fn run() {
             }
 
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            if std::env::var_os("VIBESHELL_SKIP_SKILL_AUTO_INSTALL").is_none() {
+            if std::env::var_os("ZXYSSH_SKIP_SKILL_AUTO_INSTALL").is_none() {
                 std::thread::spawn(|| {
                     if let Err(error) = crate::install::install_bundled_cli_for_user() {
                         log::warn!("[Install] Could not install native CLI: {}", error);
@@ -366,7 +366,7 @@ pub fn run() {
                     for result in crate::install::install_to_all() {
                         if !result.success {
                             log::warn!(
-                                "[Install] Could not install VibeShell skill for {}: {}",
+                                "[Install] Could not install zxySSH skill for {}: {}",
                                 result.tool.name,
                                 result.error.unwrap_or_else(|| "unknown error".to_string())
                             );
@@ -411,7 +411,7 @@ pub fn run() {
             cloud_sync_lock,
             cloud_sync_status,
             cloud_sync_now,
-            // Coding agents launched inside VibeShell PTYs
+            // Coding agents launched inside zxySSH PTYs
             db_connection_list,
             db_connection_save,
             db_connection_delete,
@@ -544,7 +544,7 @@ pub fn run() {
                 {
                     // The frontend flushes all windows, then workspace_exit uses code Some(0).
                     api.prevent_exit();
-                    let _ = app.emit_to("main", "vibeshell://save-and-quit", ());
+                    let _ = app.emit_to("main", "zxyssh://save-and-quit", ());
                 }
             }
         });

@@ -4,7 +4,7 @@
   "name": "Systemd Services",
   "description": "Browse systemd services with their state, and start, stop or restart them.",
   "version": "1.1.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "operations",
   "icon": "settings",
   "permissions": [

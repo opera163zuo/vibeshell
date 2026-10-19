@@ -21,7 +21,7 @@ assert.equal(json('.codex-plugin/plugin.json').version, version);
 assert.equal(json('.codex-plugin/plugin.json').license, pkg.license);
 const marketplace = json('.claude-plugin/marketplace.json');
 assert.equal(marketplace.metadata.version, version);
-assert.equal(marketplace.plugins.find((item) => item.name === 'vibeshell').version, version);
+assert.equal(marketplace.plugins.find((item) => item.name === 'zxyssh').version, version);
 const workspace = read('Cargo.toml').split('[workspace.package]')[1]?.split('\n[')[0];
 assert.match(workspace ?? '', new RegExp(`version = "${version.replaceAll('.', '\\.')}"`));
 assert.match(workspace ?? '', /license = "GPL-3.0-only"/);
@@ -29,7 +29,7 @@ for (const path of ['src-tauri/Cargo.toml', 'cli/Cargo.toml', 'plugins/Cargo.tom
   assert.match(read(path), /license\.workspace = true/);
 }
 const lock = read('Cargo.lock');
-for (const name of ['vibeshell-desktop', 'vibeshell-plugins', 'vshell']) {
+for (const name of ['zxyssh-desktop', 'zxyssh-plugins', 'zxyssh']) {
   const block = lock.split('[[package]]').find((entry) => entry.includes(`name = "${name}"`));
   assert.match(block ?? '', new RegExp(`version = "${version.replaceAll('.', '\\.')}"`), `Cargo.lock ${name}`);
 }
@@ -41,15 +41,21 @@ assert(!pkg.scripts?.['build:msi'], 'Windows installer build script must be remo
 const ciWorkflow = read('.github/workflows/ci.yml');
 const releaseWorkflow = read('.github/workflows/release.yml');
 assert(!/windows-latest|macos-latest|x86_64-pc-windows-msvc|apple-darwin|APPLE_CERTIFICATE|MACOSX_DEPLOYMENT_TARGET/.test(ciWorkflow + releaseWorkflow), 'Release/CI must not build or sign macOS/Windows artifacts');
-assert.match(read('README.md'), /does not provide macOS or Windows desktop or native CLI packages/);
-assert.match(read('README.zh-CN.md'), /不提供 macOS 或 Windows 桌面版和原生 CLI 安装包/);
-assert.match(read('cli/README.md'), /Linux only/);
-assert.doesNotMatch(read('scripts/generate-latest-json.js'), /windows-x86_64|darwin-aarch64|darwin-x86_64/);
-assert.match(read('README.ja.md'), /macOS \/ Windows 向けのデスクトップ版およびネイティブ CLI パッケージは提供しません/);
-const canonical = read('skills/vibeshell/SKILL.md');
+assert.match(read('scripts/prepare-sidecar.mjs'), /Linux targets only/);
+assert.equal(json('src-tauri/tauri.conf.json').bundle.targets, 'all');
+assert.match(read('README.md'), /zxySSH/);
+assert.match(read('README.zh-CN.md'), /zxySSH/);
+assert.match(read('README.ja.md'), /zxySSH/);
+assert.equal(pkg.name, 'zxyssh');
+assert.equal(json('src-tauri/tauri.conf.json').productName, 'zxySSH');
+assert.equal(json('src-tauri/tauri.conf.json').identifier, 'com.zxyssh.desktop');
+assert.deepEqual(json('src-tauri/capabilities/default.json').platforms, ['linux', 'macOS', 'windows']);
+assert.equal(json('src-tauri/tauri.conf.json').mainBinaryName, 'zxyssh-desktop');
+assert.equal(read('index.html').includes('<title>zxySSH</title>'), true);
+const canonical = read('skills/zxyssh/SKILL.md');
 const ids = readdirSync(resolve(root, 'plugins/builtin'), { withFileTypes: true })
   .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-for (const directory of ['skills/vibeshell', '.claude/skills/vibeshell', '.codex/skills/vibeshell']) {
+for (const directory of ['skills/zxyssh', '.claude/skills/zxyssh', '.codex/skills/zxyssh']) {
   assert.equal(read(`${directory}/SKILL.md`), canonical, `Skill drift: ${directory}`);
   const actual = readdirSync(resolve(root, directory, 'references')).filter((name) => name.endsWith('.md')).map((name) => name.slice(0, -3)).sort();
   assert.deepEqual(actual, ids, `Reference catalog drift: ${directory}`);

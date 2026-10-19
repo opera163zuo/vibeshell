@@ -125,7 +125,7 @@ impl PairingRegistry {
 
     /// Re-read the registry from storage. A long-running service calls this
     /// before pairing and before authenticating, so codes minted and
-    /// credentials revoked by `vibeshell mcp` in another process take effect
+    /// credentials revoked by `zxyssh mcp` in another process take effect
     /// immediately instead of waiting for a restart.
     pub fn reload(&mut self) -> Result<(), PairingError> {
         let Some(database) = &self.database else {

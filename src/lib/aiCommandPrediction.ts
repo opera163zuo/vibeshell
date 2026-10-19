@@ -127,7 +127,7 @@ function buildPredictionPrompt(request: CommandPredictionRequest): string {
     .join('\n') || '- none';
 
   return [
-    'You are VibeShell command prediction.',
+    'You are zxySSH command prediction.',
     'Return only the text that should be appended after CURRENT_INPUT.',
     'Do not include a shell prompt, Markdown, quotes, commentary, or a newline.',
     'If the next characters are not obvious, return an empty string.',

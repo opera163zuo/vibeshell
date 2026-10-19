@@ -117,7 +117,7 @@ pub(super) fn parse(path: &Path, warnings: &mut Vec<String>) -> Result<Vec<Impor
             && key_path.is_none()
         {
             warnings.push(format!(
-                "Tabby profile '{}' uses SSH agent authentication; add a key or credential in VibeShell before connecting",
+                "Tabby profile '{}' uses SSH agent authentication; add a key or credential in zxySSH before connecting",
                 name
             ));
         }

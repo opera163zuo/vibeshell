@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end connectivity check for the LAN MCP gateway (`vibeshell mcp serve`).
+# End-to-end connectivity check for the LAN MCP gateway (`zxyssh mcp serve`).
 #
 # Everything runs against a throwaway state directory under target/, so the
 # operator's real servers, credentials and paired Agents are never read or
@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BIN=target/debug/vibeshell
+BIN=target/debug/zxyssh
 mkdir -p target
 WORK=$(mktemp -d "$PWD/target/lan-mcp-gateway.XXXXXX")
 chmod 700 "$WORK"
@@ -26,7 +26,7 @@ trap cleanup EXIT
 for tool in curl python3; do
   command -v "$tool" >/dev/null || { echo "missing dependency: $tool" >&2; exit 1; }
 done
-[ -x "$BIN" ] || cargo build -p vshell --bin vibeshell
+[ -x "$BIN" ] || cargo build -p zxyssh --bin zxyssh
 
 # An admin-facing check must not depend on a hand-picked port.
 PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
@@ -37,7 +37,7 @@ fi
 
 start() { # start <state-dir> <bind> [allow-lan]
   local state=$1 bind=$2 lan=${3:-false}
-  XDG_DATA_HOME="$state" VIBESHELL_MCP_BIND="$bind" VIBESHELL_MCP_ALLOW_LAN="$lan" \
+  XDG_DATA_HOME="$state" ZXYSSH_MCP_BIND="$bind" ZXYSSH_MCP_ALLOW_LAN="$lan" \
     "$BIN" mcp serve > "$state/serve.log" 2>&1 &
   SRV=$!
   for _ in $(seq 1 40); do
@@ -113,7 +113,7 @@ expect "the same code replayed" \
       -H 'Content-Type: application/json' -d "{\"name\":\"replay\",\"code\":\"$CODE\"}")" "401"
 
 EP=127.0.0.1:$PORT
-expect "initialize" "$(rpc "$EP" "$TOKEN" '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}' | json result serverInfo name)" "vibeshell"
+expect "initialize" "$(rpc "$EP" "$TOKEN" '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}' | json result serverInfo name)" "zxyssh"
 expect "notifications/initialized body" \
   "$(curl -s -o /dev/null -w '%{http_code}' -m 8 -X POST "http://$EP/mcp" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"notifications/initialized"}')" "202"
 TOOLS=$(rpc "$EP" "$TOKEN" '{"jsonrpc":"2.0","id":2,"method":"tools/list"}')
@@ -131,7 +131,7 @@ grep -q -e "$CODE" -e "$TOKEN" "$LB/serve.log" && fail "the service log contains
   || ok "service log contains neither the pairing code nor the token"
 
 echo "== 3. audit rows are written encrypted at rest =="
-DB=$(find "$LB" -name vibeshell.db | head -1); [ -n "$DB" ] || fail "no database was created in the state directory"
+DB=$(find "$LB" -name zxyssh.db | head -1); [ -n "$DB" ] || fail "no database was created in the state directory"
 python3 - "$DB" <<'PY' || exit 1
 import sqlite3, sys
 rows, enc = sqlite3.connect(sys.argv[1]).execute(

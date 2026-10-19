@@ -1,5 +1,5 @@
 /**
- * Tauri API utilities for VibeShell
+ * Tauri API utilities for zxySSH
  * Provides safe wrappers around Tauri commands with proper error handling
  *
  * PERFORMANCE OPTIMIZATIONS:

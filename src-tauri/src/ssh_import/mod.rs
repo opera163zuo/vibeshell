@@ -1,7 +1,7 @@
 //! Import saved SSH profiles from OpenSSH, PuTTY, and Tabby.
 //!
 //! Parsers import connection metadata only. Passwords are never copied from
-//! third-party tools, and private keys are referenced by path so VibeShell can
+//! third-party tools, and private keys are referenced by path so zxySSH can
 //! read them locally when a connection is established.
 
 mod openssh;
@@ -245,7 +245,7 @@ pub fn import_preview(database: &Database, preview: &ImportPreview) -> Result<Im
                     name: existing_server.name.clone(),
                     server_id: Some(existing_server.id.clone()),
                     status: "skipped".to_string(),
-                    message: Some("An equivalent VibeShell server already exists".to_string()),
+                    message: Some("An equivalent zxySSH server already exists".to_string()),
                 });
                 continue;
             }
@@ -318,7 +318,7 @@ pub fn import_preview(database: &Database, preview: &ImportPreview) -> Result<Im
             },
             message: renamed.then(|| {
                 format!(
-                    "Renamed because '{}' already existed in VibeShell",
+                    "Renamed because '{}' already existed in zxySSH",
                     candidate.name
                 )
             }),
@@ -484,7 +484,7 @@ mod tests {
     #[test]
     fn imports_profiles_with_conflict_renaming_key_paths_and_jump_links() {
         let temp = TempDir::new().unwrap();
-        let database = Database::new_at(temp.path().join("vibeshell.db")).unwrap();
+        let database = Database::new_at(temp.path().join("zxyssh.db")).unwrap();
         let mut existing = Server {
             id: String::new(),
             name: "App".to_string(),

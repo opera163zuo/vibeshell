@@ -4,7 +4,7 @@
   "name": "Docker Containers",
   "description": "Inspect and manage containers, images, live resource usage and recent container logs through the remote Docker CLI.",
   "version": "1.5.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "containers",
   "icon": "box",
   "permissions": [

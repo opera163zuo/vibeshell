@@ -36,23 +36,23 @@ function hostTargetTriple() {
 
 const target =
   argumentValue('--target') ??
-  process.env.VIBESHELL_TARGET ??
+  process.env.ZXYSSH_TARGET ??
   process.env.TAURI_ENV_TARGET_TRIPLE ??
   process.env.CARGO_BUILD_TARGET ??
   hostTargetTriple();
 
 
 const profile = args.includes('--debug') ? 'debug' : 'release';
-if (!target.includes('linux')) throw new Error('VibeShell release builds support Linux targets only.');
+if (!target.includes('linux')) throw new Error('zxySSH release builds support Linux targets only.');
 const extension = '';
-const binaryName = `vibeshell${extension}`;
+const binaryName = `zxyssh${extension}`;
 const cargoArgs = [
   'build',
   '--locked',
   '--package',
-  'vshell',
+  'zxyssh',
   '--bin',
-  'vibeshell',
+  'zxyssh',
   '--target',
   target,
 ];
@@ -61,7 +61,7 @@ if (profile === 'release') {
 }
 
 if (!args.includes('--no-build')) {
-  console.log(`Building native VibeShell CLI for ${target} (${profile})...`);
+  console.log(`Building native zxySSH CLI for ${target} (${profile})...`);
   const result = spawnSync('cargo', cargoArgs, {
     cwd: repoRoot,
     stdio: 'inherit',
@@ -78,7 +78,7 @@ const source = join(repoRoot, 'target', target, profile, binaryName);
 const destinationDir = join(repoRoot, 'src-tauri', 'binaries');
 const destination = join(
   destinationDir,
-  `vibeshell-${target}${extension}`,
+  `zxyssh-${target}${extension}`,
 );
 
 mkdirSync(destinationDir, { recursive: true });

@@ -112,7 +112,7 @@
   }
 }
 
-/* Syntax colors inherit the active VibeShell theme through its CSS variables. */
+/* Syntax colors inherit the active zxySSH theme through its CSS variables. */
 .file-code-editor-input {
   color: transparent;
   -webkit-text-fill-color: transparent;

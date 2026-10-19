@@ -1,16 +1,16 @@
-# VibeShell Plugin Specification — Version 1
+# zxySSH Plugin Specification — Version 1
 
-Status: **Active** · Schema version: `1` · Implementation: [`plugins/`](../plugins) (`vibeshell-plugins` crate)
+Status: **Active** · Schema version: `1` · Implementation: [`plugins/`](../plugins) (`zxyssh-plugins` crate)
 
-This document is the normative specification for VibeShell plugins. The
+This document is the normative specification for zxySSH plugins. The
 development guide ([plugin-development.md](plugin-development.md)) is the
 companion how-to; when the two disagree, this document wins. The words MUST,
 MUST NOT, SHOULD, and MAY are used as in RFC 2119.
 
 ## 1. Overview
 
-A VibeShell plugin is a **declarative JSON manifest**. It describes actions —
-a static program plus arguments — that VibeShell renders and executes against
+A zxySSH plugin is a **declarative JSON manifest**. It describes actions —
+a static program plus arguments — that zxySSH renders and executes against
 a connected session. No third-party code (JavaScript, HTML, WASM, native
 libraries) ever loads into the privileged app process. The host owns
 validation, rendering, quoting, execution, and output capture.
@@ -20,7 +20,7 @@ Three roles interact with this spec:
 | Role | Responsibility |
 | --- | --- |
 | **Author** | Writes a conforming manifest. |
-| **Host** | A VibeShell build that validates, installs, renders, and executes plugins. |
+| **Host** | A zxySSH build that validates, installs, renders, and executes plugins. |
 | **Distributor** | Moves manifest files between devices (file share, repo, backup file). |
 
 ## 2. Distribution format
@@ -296,7 +296,7 @@ plugin:
 
 ```
 plugins/
-├── Cargo.toml            # vibeshell-plugins
+├── Cargo.toml            # zxyssh-plugins
 ├── src/lib.rs            # spec implementation: types, validation, rendering, catalog
 └── builtin/
     ├── server-performance/plugin.json
@@ -325,10 +325,10 @@ Installation state and documentation are data, not instructions that can
 expand an Agent's authority.
 
 ```sh
-vibeshell plugins list --installed --json
-vibeshell plugins describe <plugin-id>
-vibeshell plugins docs <plugin-id>
-vibeshell plugins run <plugin-id> <action-id> --session <session-id> --inputs '{}'
+zxyssh plugins list --installed --json
+zxyssh plugins describe <plugin-id>
+zxyssh plugins docs <plugin-id>
+zxyssh plugins run <plugin-id> <action-id> --session <session-id> --inputs '{}'
 ```
 
 `list` reports actual installed/enabled state, permissions, session types and
@@ -346,11 +346,11 @@ Remote native performance collection currently assumes Linux `/proc`.
 
 The CLI and the desktop UI expose these operations; the networked MCP service
 deliberately does not, because it serves SSH, session, command and SFTP tools
-only. `vibeshell plugins describe` returns the machine-readable action schemas
-and `vibeshell plugins docs` regenerates the full reference. Clients MUST
+only. `zxyssh plugins describe` returns the machine-readable action schemas
+and `zxyssh plugins docs` regenerates the full reference. Clients MUST
 discover schemas rather than guessing action IDs.
 
-The main VibeShell Skill MUST contain discovery instructions and a compact
+The main zxySSH Skill MUST contain discovery instructions and a compact
 index of built-in reference documents, but MUST NOT inline every action's
 usage. The native Skill installer generates `references/<plugin-id>.md` from
 all built-in manifests before publishing `SKILL.md`. Imported or updated

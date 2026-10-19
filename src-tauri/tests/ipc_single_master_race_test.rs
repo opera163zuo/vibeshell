@@ -3,11 +3,11 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use vibeshell_core::{Database, IpcServer, IpcServerRunError, SessionManager};
+use zxyssh_core::{Database, IpcServer, IpcServerRunError, SessionManager};
 
 fn unique_endpoint_name() -> String {
     format!(
-        "vibeshell-race-test-{}-{}",
+        "zxyssh-race-test-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -21,7 +21,7 @@ struct EndpointEnvGuard {
 }
 
 impl EndpointEnvGuard {
-    const SOCKET_NAME_ENV: &'static str = "VIBESHELL_IPC_NAME";
+    const SOCKET_NAME_ENV: &'static str = "ZXYSSH_IPC_NAME";
 
     fn set(endpoint: &str) -> Self {
         let previous = std::env::var(Self::SOCKET_NAME_ENV).ok();

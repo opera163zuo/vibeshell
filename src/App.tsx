@@ -294,7 +294,7 @@ function App() {
     void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().onCloseRequested((event) => {
       event.preventDefault(); void quit();
     })).then(keep).catch(console.error);
-    void import('@tauri-apps/api/event').then(({ listen }) => listen('vibeshell://save-and-quit', () => { void quit(); })).then((stop) => {
+    void import('@tauri-apps/api/event').then(({ listen }) => listen('zxyssh://save-and-quit', () => { void quit(); })).then((stop) => {
       keep(stop);
       if (!disposed) return safeInvoke('workspace_save_handler_ready');
     }).catch(console.error);

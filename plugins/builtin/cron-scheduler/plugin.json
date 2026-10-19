@@ -4,7 +4,7 @@
   "name": "Scheduled Tasks",
   "description": "Manage cron jobs: browse the user crontab, /etc/crontab and /etc/cron.d, inspect systemd timers, and add or remove entries.",
   "version": "1.1.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "operations",
   "icon": "clock",
   "permissions": [

@@ -6,7 +6,7 @@ import { useRuntimeCapabilitiesStore } from '../stores/runtimeCapabilitiesStore'
 const capturing = new Map<string, Promise<void>>();
 
 export interface WindowGeometry extends Rect { maximized?: boolean; fullscreen?: boolean }
-const PREFIX = 'vibeshell.window-geometry.v2.';
+const PREFIX = 'zxyssh.window-geometry.v2.';
 export function readWindowGeometry(key: string): WindowGeometry | null {
   try {
     const raw = localStorage.getItem(PREFIX + encodeURIComponent(key));

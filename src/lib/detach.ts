@@ -9,13 +9,13 @@ import { readTextBuffer, writeTextBuffer, setTextBufferLocked, waitForTextSave, 
 export type DetachTarget =
   | { kind: 'terminal'; sessionId: string; title: string }
   | { kind: 'file'; source?: 'local'; sessionId: string; path: string; name: string; size: number };
-export const DETACHED_READY_EVENT = 'vibeshell://detached-ready';
-export const DETACHED_CLOSED_EVENT = 'vibeshell://detached-closed';
-export const WORKSPACE_QUITTING_EVENT = 'vibeshell://workspace-quitting';
-export const SESSION_TAB_DND_MIME = 'application/x-vibeshell-session-tab';
-export const FILE_TAB_DND_MIME = 'application/x-vibeshell-file-tab';
-const HANDOFF_PREFIX = 'vibeshell.window-handoff.';
-const LAYOUT_KEY = 'vibeshell.detached-layout.v2';
+export const DETACHED_READY_EVENT = 'zxyssh://detached-ready';
+export const DETACHED_CLOSED_EVENT = 'zxyssh://detached-closed';
+export const WORKSPACE_QUITTING_EVENT = 'zxyssh://workspace-quitting';
+export const SESSION_TAB_DND_MIME = 'application/x-zxyssh-session-tab';
+export const FILE_TAB_DND_MIME = 'application/x-zxyssh-file-tab';
+const HANDOFF_PREFIX = 'zxyssh.window-handoff.';
+const LAYOUT_KEY = 'zxyssh.detached-layout.v2';
 
 export interface TransferSnapshot {
   target: DetachTarget;
@@ -155,7 +155,7 @@ export function openDetachedWindow(
       await ready;
       addDetachedToLayout(target, geometryKey);
       useDetachedOwnership.setState((state) => ({ owners: { ...state.owners, [key]: label } }));
-      await emitTo(label, 'vibeshell://detached-committed', { label });
+      await emitTo(label, 'zxyssh://detached-committed', { label });
       return label;
     } catch (error) {
       console.error('[Workspace] Could not detach tab:', error);

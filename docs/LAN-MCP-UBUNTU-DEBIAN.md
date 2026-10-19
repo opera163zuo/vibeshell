@@ -1,12 +1,12 @@
-# VibeShell LAN MCP on Ubuntu/Debian
+# zxySSH LAN MCP on Ubuntu/Debian
 
-Run VibeShell's MCP endpoint as a headless service on one Linux server. The recommended deployment runs the MCP process as the same Linux user as the desktop UI, so the site tree, encrypted credentials, host-key fingerprints and database are shared. Agents on any operating system connect to it over standard MCP HTTP and operate the SSH sessions owned by this host.
+Run zxySSH's MCP endpoint as a headless service on one Linux server. The recommended deployment runs the MCP process as the same Linux user as the desktop UI, so the site tree, encrypted credentials, host-key fingerprints and database are shared. Agents on any operating system connect to it over standard MCP HTTP and operate the SSH sessions owned by this host.
 
 A separate system-user unit is still available for an isolated headless deployment, but it intentionally uses a different database and device key; it does not share sites created by the desktop user's UI.
 
 ```
-Hermes / any MCP client  ──HTTP + Bearer token──▶  vibeshell mcp serve  ──SSH──▶  targets
-   (macOS, Windows, Linux)                          (same Linux user as VibeShell)
+Hermes / any MCP client  ──HTTP + Bearer token──▶  zxyssh mcp serve  ──SSH──▶  targets
+   (macOS, Windows, Linux)                          (same Linux user as zxySSH)
 ```
 
 Verified on Debian 13 with an isolated loopback OpenSSH container: pairing,
@@ -16,34 +16,34 @@ Verified on Debian 13 with an isolated loopback OpenSSH container: pairing,
 ## 1. Install the same-user service
 
 ```bash
-cargo build --release --locked -p vshell
-install -Dm0755 target/release/vibeshell "$HOME/.local/bin/vibeshell"
-install -Dm0644 deploy/systemd/vibeshell-mcp.user.service \
-  "$HOME/.config/systemd/user/vibeshell-mcp.service"
-install -Dm0600 /dev/null "$HOME/.config/vibeshell/mcp.env"
+cargo build --release --locked -p zxyssh
+install -Dm0755 target/release/zxyssh "$HOME/.local/bin/zxyssh"
+install -Dm0644 deploy/systemd/zxyssh-mcp.user.service \
+  "$HOME/.config/systemd/user/zxyssh-mcp.service"
+install -Dm0600 /dev/null "$HOME/.config/zxyssh/mcp.env"
 ```
 
 The user unit runs as your logged-in Linux user; it has no separate `User=`,
 `StateDirectory=` or database. It and the desktop app therefore use the same
-`$HOME/.local/share/com.vibeshell.desktop/vibeshell.db` and device key. The unit
+`$HOME/.local/share/com.zxyssh.desktop/zxyssh.db` and device key. The unit
 sets `XDG_DATA_HOME` to `%h/.local/share`, matching the desktop default. If the
 desktop is launched with a custom `XDG_DATA_HOME`, update the unit to the same
 value before starting it.
 
 ## 2. Configure
 
-Edit `~/.config/vibeshell/mcp.env`:
+Edit `~/.config/zxyssh/mcp.env`:
 
 ```ini
 # Loopback only is the default; use a private interface only on a trusted LAN.
-VIBESHELL_MCP_BIND=127.0.0.1:8765
+ZXYSSH_MCP_BIND=127.0.0.1:8765
 ```
 
 The file is mode `0600`; do not put passwords or bearer tokens in it. SSH
 credentials are saved by the desktop UI and encrypted in the shared database.
 
-The separate system unit `deploy/systemd/vibeshell-mcp.service` runs as the
-`vibeshell` system user with state under `/var/lib/vibeshell`. It is an isolated
+The separate system unit `deploy/systemd/zxyssh-mcp.service` runs as the
+`zxyssh` system user with state under `/var/lib/zxyssh`. It is an isolated
 headless deployment: it does **not** share desktop sites or credentials. Use it
 only when that separation is intended, and provision its site database and
 credentials independently.
@@ -52,10 +52,10 @@ credentials independently.
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now vibeshell-mcp.service
+systemctl --user enable --now zxyssh-mcp.service
 curl -s http://127.0.0.1:8765/health
 
-~/.local/bin/vibeshell mcp pair-code
+~/.local/bin/zxyssh mcp pair-code
 # One-time pairing code is printed locally; valid for five minutes and one use.
 ```
 
@@ -70,9 +70,9 @@ The Agent exchanges the code for its own bearer token. The token is returned onc
 Point the Agent at `http://127.0.0.1:8765/mcp` using the issued token in the `Authorization: Bearer …` header. Every MCP route requires that header; only `/health` and `/pair` are unauthenticated.
 
 ```bash
-~/.local/bin/vibeshell mcp agents
-~/.local/bin/vibeshell mcp revoke <agent-id>
-~/.local/bin/vibeshell mcp rotate <agent-id>
+~/.local/bin/zxyssh mcp agents
+~/.local/bin/zxyssh mcp revoke <agent-id>
+~/.local/bin/zxyssh mcp rotate <agent-id>
 ```
 
 Revocation and rotation take effect on the Agent's next request — the service
@@ -82,18 +82,18 @@ re-reads the registry from storage, it does not rely on a restart.
 
 Three steps, each on the side that owns the decision:
 
-1. **Server profile** — create/edit it in the VibeShell site UI. The LAN Agent tool surface is read-only for sites; it can select a site by name but cannot add, edit or delete profiles.
+1. **Server profile** — create/edit it in the zxySSH site UI. The LAN Agent tool surface is read-only for sites; it can select a site by name but cannot add, edit or delete profiles.
 2. **Credential** — save the SSH password or private key in the UI. For headless provisioning, the administrator may pipe a secret to the CLI; it is encrypted with the same device key and is never accepted as a command-line argument.
 
    ```bash
-   ~/.local/bin/vibeshell mcp credential set prod-web --auth-type password < /path/to/prod-web-password
-   ~/.local/bin/vibeshell mcp credential set prod-web --auth-type key < ~/.ssh/id_ed25519
+   ~/.local/bin/zxyssh mcp credential set prod-web --auth-type password < /path/to/prod-web-password
+   ~/.local/bin/zxyssh mcp credential set prod-web --auth-type key < ~/.ssh/id_ed25519
    ```
 3. **Host key** — the desktop UI asks for TOFU approval during manual login. For a headless deployment, verify the fingerprint out of band before pinning it:
 
    ```bash
-   ~/.local/bin/vibeshell mcp hostkey probe prod.example --port 22
-   ~/.local/bin/vibeshell mcp hostkey trust prod.example --port 22 --fingerprint SHA256:…
+   ~/.local/bin/zxyssh mcp hostkey probe prod.example --port 22
+   ~/.local/bin/zxyssh mcp hostkey trust prod.example --port 22 --fingerprint SHA256:…
    ```
 
 Then the Agent calls `session_create` with the saved site name, followed by `session_send_input`, `session_read` and `session_resize`. The LAN surface does not expose arbitrary `exec`, SFTP, local-file upload or site mutation tools. If a sudo password is configured for the site, `session_sudo` runs a non-interactive command through a separate SSH exec channel; the password never enters the Agent request, PTY input, audit summary or response. A command that requires an interactive TTY or password change fails closed.
@@ -129,25 +129,25 @@ with a notice when the host has no global IPv4 address.
 
 ## 6. Reaching beyond loopback
 
-The service reads bind settings from `~/.config/vibeshell/mcp.env`; the reverse proxy, if used, runs on the same host and terminates HTTPS before forwarding to `127.0.0.1:8765`. The service itself uses HTTP. In the requested trusted-LAN deployment, restrict the port with firewall rules and do not expose it to public or untrusted networks.
+The service reads bind settings from `~/.config/zxyssh/mcp.env`; the reverse proxy, if used, runs on the same host and terminates HTTPS before forwarding to `127.0.0.1:8765`. The service itself uses HTTP. In the requested trusted-LAN deployment, restrict the port with firewall rules and do not expose it to public or untrusted networks.
 
 Four rules are enforced at start-up (`validate_listener`), so a default or a typo can never expose the port:
 
 - a loopback bind is always allowed;
-- any other address needs `VIBESHELL_MCP_ALLOW_LAN=true` in the environment file;
-- `0.0.0.0` and `::` are refused — name one interface address, e.g. `VIBESHELL_MCP_BIND=192.168.1.20:8765`;
+- any other address needs `ZXYSSH_MCP_ALLOW_LAN=true` in the environment file;
+- `0.0.0.0` and `::` are refused — name one interface address, e.g. `ZXYSSH_MCP_BIND=192.168.1.20:8765`;
 - a non-loopback bind with zero active paired Agents is refused, so pairing has to happen first.
 
 `bash scripts/test-lan-mcp-gateway.sh` covers the first and last of these; restrict which hosts may connect with your own firewall rules.
 
 ## 7. Backups
 
-For the same-user deployment, back up `$HOME/.local/share/com.vibeshell.desktop` as one secret; it contains `vibeshell.db`, the `ssh_credentials.key`/`.salt` device key files and `ssh_fingerprints.json`. Encrypted rows are unreadable without the device key, and the key is useless without the database. Keep the directory private and offline. The dedicated system-user unit instead stores its independent state under `/var/lib/vibeshell/com.vibeshell.desktop`.
+For the same-user deployment, back up `$HOME/.local/share/com.zxyssh.desktop` as one secret; it contains `zxyssh.db`, the `ssh_credentials.key`/`.salt` device key files and `ssh_fingerprints.json`. Encrypted rows are unreadable without the device key, and the key is useless without the database. Keep the directory private and offline. The dedicated system-user unit instead stores its independent state under `/var/lib/zxyssh/com.zxyssh.desktop`.
 
 ```bash
-systemctl --user stop vibeshell-mcp.service
-tar --mode='go-rwx' -czf "$HOME/vibeshell-state.tar.gz" -C "$HOME/.local/share" com.vibeshell.desktop
-systemctl --user start vibeshell-mcp.service
+systemctl --user stop zxyssh-mcp.service
+tar --mode='go-rwx' -czf "$HOME/zxyssh-state.tar.gz" -C "$HOME/.local/share" com.zxyssh.desktop
+systemctl --user start zxyssh-mcp.service
 ```
 
 ## 8. What this service does not do

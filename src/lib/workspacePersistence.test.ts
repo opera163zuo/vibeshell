@@ -44,12 +44,12 @@ describe('persistent workspace identity', () => {
     useSessionStore.setState({ sessions: [{ ...session, password: 'never-store-password' } as Session], activeSessionId: 'new' });
     useFileWorkspaceStore.setState({ tabs: original.files, activeTabId: original.activeFileId });
     saveWorkspaceLayout(original.tree, original.focusedPane);
-    const raw = localStorage.getItem('vibeshell.workspace-layout.v2')!;
+    const raw = localStorage.getItem('zxyssh.workspace-layout.v2')!;
     expect(raw).not.toContain('never-store-password');
     expect(readWorkspaceLayout()).toMatchObject({ tree: original.tree, files: original.files, activeFileId: original.activeFileId });
   });
   it.each(['invalid-json', '{}', 'null', '{"version":1}', '{"version":2,"sessions":[]}'])('ignores invalid persisted data %s', (raw) => {
-    localStorage.setItem('vibeshell.workspace-layout.v2', raw);
+    localStorage.setItem('zxyssh.workspace-layout.v2', raw);
     expect(readWorkspaceLayout()).toBeNull();
   });
 });

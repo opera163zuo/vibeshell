@@ -27,7 +27,7 @@ function bootstrapWindow(): Promise<Handoff> {
     await new Promise<void>((resolve, reject) => {
       let stop: (() => void) | undefined;
       const timer = setTimeout(() => { stop?.(); reject(new Error('Main window did not commit the handoff')); }, 15000);
-      void listen<{ label: string }>('vibeshell://detached-committed', ({ payload }) => {
+      void listen<{ label: string }>('zxyssh://detached-committed', ({ payload }) => {
         if (payload.label !== native.label) return;
         clearTimeout(timer); stop?.(); resolve();
       }).then((unlisten) => {

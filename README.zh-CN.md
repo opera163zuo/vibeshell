@@ -1,29 +1,29 @@
 <div align="center">
-  <img src="app-icon.svg" width="96" alt="VibeShell" />
-  <h1>VibeShell</h1>
+  <img src="app-icon.svg" width="96" alt="zxySSH" />
+  <h1>zxySSH</h1>
   <p><strong>连服务器、改文件、和 AI 一起做事，不必来回换地方。</strong></p>
   <p>一个自己用顺手、和 Agent 共用也看得明白的 SSH 工作区。</p>
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-  [![手动 CI](https://github.com/veithly/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/veithly/vibeshell/actions/workflows/ci.yml)
-  [![Release](https://img.shields.io/github/v/release/veithly/vibeshell)](https://github.com/veithly/vibeshell/releases)
+  [![手动 CI](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml)
+  [![Release](https://img.shields.io/github/v/release/opera163zuo/vibeshell)](https://github.com/opera163zuo/vibeshell/releases)
   [![GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-  [下载](https://github.com/veithly/vibeshell/releases) · [Agent / CLI 指南](skills/vibeshell/SKILL.md) · [更新记录](CHANGELOG.md) · [参与开发](CONTRIBUTING.md)
+  [下载](https://github.com/opera163zuo/vibeshell/releases) · [Agent / CLI 指南](skills/zxyssh/SKILL.md) · [更新记录](CHANGELOG.md) · [参与开发](CONTRIBUTING.md)
 </div>
 
 ![同一工作区里的终端、主机状态与 Agent 操作历史](docs/assets/screenshots/tour-collaboration.png)
 
-*这些是实际 VibeShell 组件的截图，填入的是虚构 Northstar 项目数据。演示在隔离浏览器里运行，没有连接真实服务器、读取凭据、调用模型或重启服务。Agent 对话和命令结果是示例，不是一次真实 Agent 执行的录像。[复现截图](scripts/readme-demo/README.md)。*
+*这些是实际 zxySSH 组件的截图，填入的是虚构 Northstar 项目数据。演示在隔离浏览器里运行，没有连接真实服务器、读取凭据、调用模型或重启服务。Agent 对话和命令结果是示例，不是一次真实 Agent 执行的录像。[复现截图](scripts/readme-demo/README.md)。*
 
 ## 少一点来回复制，多一点把事情做完
 
 一次普通的服务器排错，往往不止敲几个命令：先看日志，再找配置，切到编辑器改两行，问一下 Agent，最后还要确认它操作的是哪台机器、哪个会话。
 
-VibeShell 想把这些事放在一起。SSH、本地终端、编程 Agent、远程文件、Git 差异和运维面板都可以成为工作区里的标签。你可以把它当作普通终端，也可以在需要时让 AI 加入；不使用 AI，并不妨碍日常终端和文件操作。
+zxySSH 想把这些事放在一起。SSH、本地终端、编程 Agent、远程文件、Git 差异和运维面板都可以成为工作区里的标签。你可以把它当作普通终端，也可以在需要时让 AI 加入；不使用 AI，并不妨碍日常终端和文件操作。
 
-它的区别不在于重新发明 SSH，也不是宣称网络更快。用 OpenSSH、tmux、编辑器和脚本，同样能组合出很多能力。VibeShell 把它们之间的衔接做好，让你少配置、少复制、少丢上下文。
+它的区别不在于重新发明 SSH，也不是宣称网络更快。用 OpenSSH、tmux、编辑器和脚本，同样能组合出很多能力。zxySSH 把它们之间的衔接做好，让你少配置、少复制、少丢上下文。
 
 ## AI 可以动手，你不用闭眼
 
@@ -45,7 +45,7 @@ Agent 新开的会话会自动变成标签，但不会把你从当前标签拉�
 
 ## 用你熟悉的编程 Agent，旁边就是它改的代码
 
-VibeShell 可以通过真实本地终端启动单独安装的 **Claude Code、Codex、OpenCode、Pi** 等工具。先选项目目录，写下这次要做什么，再选择工具支持的新会话、继续最近一次或选择历史会话；访问模式也在启动前明确给出。
+zxySSH 可以通过真实本地终端启动单独安装的 **Claude Code、Codex、OpenCode、Pi** 等工具。先选项目目录，写下这次要做什么，再选择工具支持的新会话、继续最近一次或选择历史会话；访问模式也在启动前明确给出。
 
 ![编程 Agent 启动器：项目目录、会话模式、访问模式和初始提示词](docs/assets/screenshots/tour-agent-launcher.png)
 
@@ -53,7 +53,7 @@ Agent 工作时，不必一直相信它的口头总结。打开 **Workspace chan
 
 ![示例 Agent 终端旁的真实 Git 变更列表与逐行差异](docs/assets/screenshots/tour-agent-review.png)
 
-*这些 Agent 需要各自的安装、登录和模型订阅。VibeShell 提供启动和工作区整合，不附送模型账户；图中的 Agent 输出为明确标注的演示文本。*
+*这些 Agent 需要各自的安装、登录和模型订阅。zxySSH 提供启动和工作区整合，不附送模型账户；图中的 Agent 输出为明确标注的演示文本。*
 
 ## 小事情也顺手，没开 AI 也一样
 
@@ -73,7 +73,7 @@ Agent 工作时，不必一直相信它的口头总结。打开 **Workspace chan
 
 已有 OpenSSH、PuTTY、Tabby 配置可以先预览再导入；内网目标可以配置跳板机。第三方保存的密码不会被顺手复制过来，PuTTY `.ppk` 私钥需要先转换成 OpenSSH 格式。
 
-换密码或私钥，也不必删掉服务器重建。编辑时，没动的字段保留原值，不把已有秘密读回表单；服务器资料和凭据一起保存，失败一起回滚。这里改的是 **VibeShell 保存的登录信息**，不是远端系统账号本身的密码。
+换密码或私钥，也不必删掉服务器重建。编辑时，没动的字段保留原值，不把已有秘密读回表单；服务器资料和凭据一起保存，失败一起回滚。这里改的是 **zxySSH 保存的登录信息**，不是远端系统账号本身的密码。
 
 ## 文件就在会话旁边，本地文档也不例外
 
@@ -100,17 +100,17 @@ Agent 工作时，不必一直相信它的口头总结。打开 **Workspace chan
 这 **12 个内置插件** 也不是只有人能点的按钮。Agent 可以直接发现安装状态、读取动作参数、按需拿到当前用法，再通过 CLI 或 MCP 使用：
 
 ```bash
-vibeshell plugins list --installed --json
-vibeshell plugins describe server-performance
-vibeshell plugins docs server-performance
-vibeshell plugins run server-performance status --session SESSION_ID --inputs '{}'
+zxyssh plugins list --installed --json
+zxyssh plugins describe server-performance
+zxyssh plugins docs server-performance
+zxyssh plugins run server-performance status --session SESSION_ID --inputs '{}'
 ```
 
 先确认插件已安装、已启用，再替换真实 Session ID。主 Skill 只做导航，详细说明在 `references/<plugin-id>.md`；符合规范的导入插件也走同一套接口，文档来自当前有效的插件声明，不靠 Agent 猜命令。
 
 读文档不等于自动授权，也不会替你安装远程软件。Docker、Kubernetes 和数据库工具仍需要目标环境及权限；远程主机性能采集当前依赖 Linux `/proc`。
 
-[插件规范](docs/plugin-spec.md) · [Agent 和插件参考索引](skills/vibeshell/SKILL.md#plugin-discovery-and-references)
+[插件规范](docs/plugin-spec.md) · [Agent 和插件参考索引](skills/zxyssh/SKILL.md#plugin-discovery-and-references)
 
 ## 工作区按你的习惯来
 
@@ -126,38 +126,38 @@ vibeshell plugins run server-performance status --session SESSION_ID --inputs '{
 
 本地转发、SOCKS5、反向转发，以及会话录制和回放都在。保存隧道配置，减少重复设置；会话结束也会清理关联隧道和录制。把监听地址从回环改为对外开放之前，先确认影响范围。
 
-可选的 **Gist / WebDAV 加密同步** 可以同步服务器元数据、分组、片段和插件安装信息，方便在自己的设备之间延续设置。它不是 VibeShell 托管的 SSH 中继。登录凭据、主机信任、活动终端和 Agent 操作历史不进入这份同步；提供商令牌、恢复材料与导出内容仍需自己妥善保护。
+可选的 **Gist / WebDAV 加密同步** 可以同步服务器元数据、分组、片段和插件安装信息，方便在自己的设备之间延续设置。它不是 zxySSH 托管的 SSH 中继。登录凭据、主机信任、活动终端和 Agent 操作历史不进入这份同步；提供商令牌、恢复材料与导出内容仍需自己妥善保护。
 
 SSH 在认证前检查服务器身份，经过跳板时也验证实际目标。凭据和 Agent 操作历史采用本地加密存储，但不是 OS Keychain 托管，也不能抵挡已被攻陷的本机账户。私钥正确，并不是接受陌生服务器指纹的理由。
 
 ## Linux 服务器与跨平台 Agent
 
-VibeShell 服务端面向 Ubuntu/Debian Linux 服务器。只要支持 MCP HTTP，Hermes Agent 可从不同操作系统远程连接；项目不提供 macOS 或 Windows 桌面版和原生 CLI 安装包。
+zxySSH 服务端面向 Ubuntu/Debian Linux 服务器。只要支持 MCP HTTP，Hermes Agent 可从不同操作系统远程连接；项目不提供 macOS 或 Windows 桌面版和原生 CLI 安装包。
 
 [Linux 服务端与局域网 MCP 安装说明](docs/LAN-MCP-UBUNTU-DEBIAN.md) · [独立 CLI 说明](cli/README.md)
 
 ```bash
-vibeshell import auto --dry-run    # 审阅后去掉 --dry-run 正式导入。
-vibeshell servers
-vibeshell ssh my-server
-vibeshell ssh my-server -- uname -a
-vibeshell sessions
-vibeshell sftp my-server ls /srv/app
+zxyssh import auto --dry-run    # 审阅后去掉 --dry-run 正式导入。
+zxyssh servers
+zxyssh ssh my-server
+zxyssh ssh my-server -- uname -a
+zxyssh sessions
+zxyssh sftp my-server ls /srv/app
 ```
 
-把 `my-server` 换成已保存名称。使用 `sessions` 返回的别名执行 `vibeshell ssh-session ALIAS -- pwd`；需要另开连接时再加 `--new`。复杂引号或多行脚本使用 `--command-file` / `--command-stdin`。不要把密码和私钥写进参数或 Agent 提示词。
+把 `my-server` 换成已保存名称。使用 `sessions` 返回的别名执行 `zxyssh ssh-session ALIAS -- pwd`；需要另开连接时再加 `--new`。复杂引号或多行脚本使用 `--command-file` / `--command-stdin`。不要把密码和私钥写进参数或 Agent 提示词。
 
 CLI 可按需启动 daemon，GUI 能接入已有会话。连接依赖实际持有它的进程：daemon 的会话可在 GUI 关闭后继续，GUI 自己持有的连接则会随该进程退出而结束。升级时应让桌面与 CLI 保持一致，重启前保存正在做的工作。
 
-VibeShell 桌面包和原生 CLI 仅面向 Linux 发布。移动端仍是实验性支持，常见 OpenSSH 测试也不能覆盖每一种 MFA、硬件令牌或 SSH 实现。提议中的 CLI 新建/删除服务器和 Teleport 不属于当前 1.1.0 发布内容。
+zxySSH 桌面包和原生 CLI 仅面向 Linux 发布。移动端仍是实验性支持，常见 OpenSSH 测试也不能覆盖每一种 MFA、硬件令牌或 SSH 实现。提议中的 CLI 新建/删除服务器和 Teleport 不属于当前 1.1.0 发布内容。
 
 ## 自己运行，或者参与开发
 
 项目使用 Tauri 2、Rust、React、TypeScript 和 xterm.js。开发需要 Node.js 22.12+、当前稳定 Rust，以及系统对应的 [Tauri 前置依赖](https://v2.tauri.app/start/prerequisites/)。
 
 ```bash
-git clone --branch dev https://github.com/veithly/vibeshell.git
-cd vibeshell
+git clone --branch dev https://github.com/opera163zuo/vibeshell.git
+cd zxyssh
 npm ci
 npm run tauri -- dev
 ```
@@ -172,8 +172,8 @@ Docker 清单改进以及容器独立会话、出站代理的剩余工作见[九
 
 [贡献指南](CONTRIBUTING.md) · [架构](AGENTS.md) · [发布流程](docs/RELEASING.md) · [协作接口](docs/AGENT_COLLABORATION.md)
 
-安全问题请走 [私密报告](https://github.com/veithly/vibeshell/security/advisories/new)，不要在 Issue 里贴真实凭据。审批不是沙箱，敏感输入保护也不能阻止远端程序回显；响应丢失后，不应自动重放可能已执行的修改命令。
+安全问题请走 [私密报告](https://github.com/opera163zuo/vibeshell/security/advisories/new)，不要在 Issue 里贴真实凭据。审批不是沙箱，敏感输入保护也不能阻止远端程序回显；响应丢失后，不应自动重放可能已执行的修改命令。
 
 ## 许可证
 
-VibeShell 从 1.1.0 起整体采用 **GPL-3.0-only**。参见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [保留的 MIT 声明](licenses/legacy-MIT.txt)。旧 MIT 授权不追溯撤销，第三方组件保留自己的许可证；发布下载提供对应源码及声明。在法律允许范围内，软件不提供担保。
+zxySSH 从 1.1.0 起整体采用 **GPL-3.0-only**。参见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [保留的 MIT 声明](licenses/legacy-MIT.txt)。旧 MIT 授权不追溯撤销，第三方组件保留自己的许可证；发布下载提供对应源码及声明。在法律允许范围内，软件不提供担保。

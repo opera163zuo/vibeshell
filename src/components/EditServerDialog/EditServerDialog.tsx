@@ -294,7 +294,7 @@ export function EditServerDialog({ isOpen, server, onClose }: EditServerDialogPr
 
           <fieldset disabled={loading || isLoadingKey} className="space-y-3 border-t border-tokyo-bg-hl pt-3">
             <legend className="text-sm font-medium text-tokyo-fg">Saved credentials</legend>
-            <p className="text-xs text-tokyo-comment">Unchanged fields keep the saved credentials. This updates VibeShell's saved login, not the password on the server.</p>
+            <p className="text-xs text-tokyo-comment">Unchanged fields keep the saved credentials. This updates zxySSH's saved login, not the password on the server.</p>
             {!isKey ? (
               <div>
                 <label htmlFor="edit-server-password" className="block text-sm text-tokyo-fg mb-1">New password</label>

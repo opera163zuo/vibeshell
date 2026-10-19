@@ -73,8 +73,8 @@ pub async fn plugin_import(db: State<'_, Arc<Database>>) -> Result<Option<Plugin
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
         let path = FileDialog::new()
-            .add_filter("VibeShell plugin manifest", &["json"])
-            .set_title("Import VibeShell Plugin")
+            .add_filter("zxySSH plugin manifest", &["json"])
+            .set_title("Import zxySSH Plugin")
             .pick_file();
 
         let Some(path) = path else {
@@ -122,8 +122,8 @@ pub async fn plugin_export(
             + "\n";
 
         let path = FileDialog::new()
-            .add_filter("VibeShell plugin manifest", &["json"])
-            .set_title("Export VibeShell Plugin")
+            .add_filter("zxySSH plugin manifest", &["json"])
+            .set_title("Export zxySSH Plugin")
             .set_file_name(format!("{}-{}.plugin.json", manifest.id, manifest.version))
             .save_file();
 
@@ -715,7 +715,7 @@ mod tests {
             assert!(!description.to_string().contains("must-not-leak"));
             let reference = agent::describe(&db, &manifest.id, true).unwrap();
             let reference = reference.as_str().unwrap();
-            assert!(reference.contains(&format!("vibeshell plugins docs {}", manifest.id)));
+            assert!(reference.contains(&format!("zxyssh plugins docs {}", manifest.id)));
             assert!(!reference.contains("must-not-leak"));
             for action in description["actions"].as_array().unwrap() {
                 assert_eq!(action["inputSchema"]["additionalProperties"], false);

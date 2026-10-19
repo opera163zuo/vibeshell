@@ -4,7 +4,7 @@
   "name": "Database Inspector",
   "description": "Read PostgreSQL, MySQL and SQLite metadata. When the client binary is missing on the host, PostgreSQL and MySQL are queried inside their Docker containers.",
   "version": "1.3.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "data",
   "icon": "database",
   "permissions": [

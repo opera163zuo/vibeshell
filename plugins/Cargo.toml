@@ -1,6 +1,6 @@
 [package]
-name = "vibeshell-plugins"
-description = "VibeShell plugin manifest specification: validation, command rendering, and the built-in plugin catalog."
+name = "zxyssh-plugins"
+description = "zxySSH plugin manifest specification: validation, command rendering, and the built-in plugin catalog."
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

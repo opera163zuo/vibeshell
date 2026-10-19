@@ -76,7 +76,7 @@ jobs:
           test -n "$TAURI_SIGNING_PRIVATE_KEY"
           sudo apt-get update
           sudo apt-get install -y minisign
-          printf 'VibeShell updater signing preflight\n' > "$RUNNER_TEMP/signing-probe.txt"
+          printf 'zxySSH updater signing preflight\n' > "$RUNNER_TEMP/signing-probe.txt"
           npx --no-install tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" "$RUNNER_TEMP/signing-probe.txt"
           python3 scripts/verify-updater.py "$RUNNER_TEMP/signing-probe.txt"
       - name: Create or resume draft only
@@ -85,7 +85,7 @@ jobs:
           if gh release view "$TAG" --json isDraft > "$RUNNER_TEMP/release.json" 2>/dev/null; then
             node -e 'if (!JSON.parse(require("node:fs").readFileSync(process.argv[1])).isDraft) throw new Error("Refusing to overwrite a published release")' "$RUNNER_TEMP/release.json"
           else
-            gh release create "$TAG" --draft --verify-tag --target main --title "VibeShell ${TAG#v}" --notes-file CHANGELOG.md
+            gh release create "$TAG" --draft --verify-tag --target main --title "zxySSH ${TAG#v}" --notes-file CHANGELOG.md
           fi
 
   build:
@@ -196,7 +196,7 @@ jobs:
           sudo apt-get install -y minisign
           python3 scripts/verify-updater.py assets
           node scripts/generate-latest-json.js assets "$VERSION" "$TAG" "$GITHUB_REPOSITORY"
-          test -s "assets/VibeShell-Source-$VERSION.tar.gz"
+          test -s "assets/zxySSH-Source-$VERSION.tar.gz"
           cp LICENSE NOTICE assets/
           cp licenses/legacy-MIT.txt assets/legacy-MIT.txt
           (cd assets && sha256sum ./* > SHA256SUMS.txt)
@@ -206,7 +206,7 @@ jobs:
           gh release view "$TAG" --json isDraft > "$RUNNER_TEMP/release.json"
           node -e 'if (!JSON.parse(require("node:fs").readFileSync(process.argv[1])).isDraft) throw new Error("Release is no longer a draft")' "$RUNNER_TEMP/release.json"
           cp CHANGELOG.md "$RUNNER_TEMP/notes.md"
-          printf '\n## Downloads and source\n\nLinux desktop and native CLI assets are accompanied by VibeShell-Source-%s.tar.gz and SHA256SUMS.txt. The source bundle contains the exact tagged tree, vendored Rust dependencies, locked npm archives, build scripts and license notices.\n' "$VERSION" >> "$RUNNER_TEMP/notes.md"
+          printf '\n## Downloads and source\n\nLinux desktop and native CLI assets are accompanied by zxySSH-Source-%s.tar.gz and SHA256SUMS.txt. The source bundle contains the exact tagged tree, vendored Rust dependencies, locked npm archives, build scripts and license notices.\n' "$VERSION" >> "$RUNNER_TEMP/notes.md"
           gh release upload "$TAG" assets/* --clobber
           if [[ "$PUBLISH_RELEASE" == 'true' ]]; then
             gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest

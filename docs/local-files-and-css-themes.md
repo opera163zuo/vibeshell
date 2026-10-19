@@ -4,10 +4,10 @@
 
 标签栏右侧的「打开文件」按钮、`⌘O`（Windows/Linux 为 `Ctrl+O`）或系统菜单 **Workspace → Open Files** 都会打开原生多选文件对话框。关闭对话框不会新建终端。文件作为独立标签打开，可以和终端、插件一起分屏或移入独立窗口；关闭最后一个终端不会关闭本地文档。
 
-打包的 macOS 应用声明了 Markdown、文本及常用图片的文件关联。可在 Finder 的「打开方式」选择新的 VibeShell 应用，也可执行：
+打包的 macOS 应用声明了 Markdown、文本及常用图片的文件关联。可在 Finder 的「打开方式」选择新的 zxySSH 应用，也可执行：
 
 ```sh
-open -a VibeShell '/absolute/path/notes.md'
+open -a zxySSH '/absolute/path/notes.md'
 ```
 
 文件关联排名为 Alternate，不主动抢占其他应用的默认打开方式。开发模式不会注册新的 Finder 文件关联，须使用重新构建的 `.app`。本次没有实现 Finder 文件拖入窗口，避免和现有标签拖拽争抢事件。
@@ -75,10 +75,10 @@ npm run test -- --reporter=dot
 cargo test --manifest-path src-tauri/Cargo.toml commands::local_files::tests --lib
 ```
 
-原生场景位于 `scripts/document-ui-smoke.ts`，仅在显式设置 `VIBESHELL_DOCUMENT_SMOKE=run` 时注入，正常开发和打包均关闭。它读取项目自有测试文档和图标，操作真实 WebView、原生命令及窗口间迁移，不执行终端命令。使用独立应用标识与端口启动，避免混入用户工作区：
+原生场景位于 `scripts/document-ui-smoke.ts`，仅在显式设置 `ZXYSSH_DOCUMENT_SMOKE=run` 时注入，正常开发和打包均关闭。它读取项目自有测试文档和图标，操作真实 WebView、原生命令及窗口间迁移，不执行终端命令。使用独立应用标识与端口启动，避免混入用户工作区：
 
 ```sh
-VIBESHELL_DOCUMENT_SMOKE=run VIBESHELL_SKIP_SKILL_AUTO_INSTALL=1 npm run tauri -- dev --no-watch --config '{"identifier":"com.vibeshell.document-smoke","build":{"devUrl":"http://localhost:14732","beforeDevCommand":"node node_modules/vite/bin/vite.js --port 14732"}}'
+ZXYSSH_DOCUMENT_SMOKE=run ZXYSSH_SKIP_SKILL_AUTO_INSTALL=1 npm run tauri -- dev --no-watch --config '{"identifier":"com.zxyssh.document-smoke","build":{"devUrl":"http://localhost:14732","beforeDevCommand":"node node_modules/vite/bin/vite.js --port 14732"}}'
 ```
 
 不同 bundle identifier 使用独立数据库和 Agent 发现文件，不导入正式应用的旧数据库。本地 macOS 原生场景已经验证：四种文件读取与实际显示、Markdown 源码/预览并排、原生整数坐标、文件独立窗口返回、CSS 色板及窗口同步、背景点击穿透、隐藏界面后的快捷键恢复。物理鼠标跨不同缩放显示器的完整手势和 Windows/Linux 桌面仍需独立验收。

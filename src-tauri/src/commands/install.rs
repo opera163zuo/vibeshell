@@ -1,4 +1,4 @@
-//! Tauri commands for installing VibeShell Gateway skills into AI coding tools.
+//! Tauri commands for installing zxySSH Gateway skills into AI coding tools.
 
 use crate::install;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ pub struct AiToolInfo {
     pub name: String,
     pub config_path: String,
     pub installed: bool,
-    pub vibeshell_installed: bool,
+    pub zxyssh_installed: bool,
 }
 
 impl From<install::AiTool> for AiToolInfo {
@@ -20,7 +20,7 @@ impl From<install::AiTool> for AiToolInfo {
             name: tool.name,
             config_path: tool.config_path.to_string_lossy().to_string(),
             installed: tool.installed,
-            vibeshell_installed: tool.vibeshell_installed,
+            zxyssh_installed: tool.zxyssh_installed,
         }
     }
 }

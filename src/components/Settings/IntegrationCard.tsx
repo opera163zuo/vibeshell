@@ -22,11 +22,11 @@ export function IntegrationCard({
   onUninstall,
   loading = false,
 }: IntegrationCardProps) {
-  const { id, name, installed, vibeshellInstalled } = tool;
+  const { id, name, installed, zxysshInstalled } = tool;
 
   // Determine the status display
   const getStatus = () => {
-    if (vibeshellInstalled) {
+    if (zxysshInstalled) {
       return {
         text: 'Skill Installed',
         color: 'text-tokyo-green',
@@ -54,7 +54,7 @@ export function IntegrationCard({
 
   // Determine button state and action
   const renderButton = () => {
-    if (vibeshellInstalled) {
+    if (zxysshInstalled) {
       return (
         <button
           onClick={() => onUninstall(id)}
@@ -98,9 +98,9 @@ export function IntegrationCard({
 
       <p className="text-sm text-tokyo-comment mb-4">
         {installed
-          ? vibeshellInstalled
-            ? 'VibeShell skill is installed and ready to use.'
-            : 'Click Install Skill to enable VibeShell in this tool.'
+          ? zxysshInstalled
+            ? 'zxySSH skill is installed and ready to use.'
+            : 'Click Install Skill to enable zxySSH in this tool.'
           : 'Install to the known user-level skill directory.'}
       </p>
 

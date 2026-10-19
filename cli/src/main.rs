@@ -1,4 +1,4 @@
-//! VibeShell MCP service CLI.
+//! zxySSH MCP service CLI.
 
 mod mcp_hostkey;
 mod mcp_serve;
@@ -7,10 +7,10 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "vibeshell", author, version)]
-#[command(about = "VibeShell Linux MCP service")]
+#[command(name = "zxyssh", author, version)]
+#[command(about = "zxySSH Linux MCP service")]
 #[command(
-    long_about = "VibeShell exposes configured SSH sites through its MCP HTTP service.\n\nThe MCP service owns SSH credentials and sessions; remote Agents connect through `vibeshell mcp serve` and do not need a local SSH client or credential copy."
+    long_about = "zxySSH exposes configured SSH sites through its MCP HTTP service.\n\nThe MCP service owns SSH credentials and sessions; remote Agents connect through `zxyssh mcp serve` and do not need a local SSH client or credential copy."
 )]
 struct Cli {
     #[command(subcommand)]
@@ -50,12 +50,12 @@ fn dispatch(command: Option<Commands>) -> Result<()> {
             Ok(())
         }
         Some(Commands::Version) => {
-            println!("vibeshell {}", vibeshell_core::version());
+            println!("zxyssh {}", zxyssh_core::version());
             Ok(())
         }
         None => {
-            println!("VibeShell MCP service");
-            println!("Run `vibeshell mcp serve` to start the Linux MCP endpoint.");
+            println!("zxySSH MCP service");
+            println!("Run `zxyssh mcp serve` to start the Linux MCP endpoint.");
             Ok(())
         }
     }
@@ -69,13 +69,13 @@ mod tests {
     #[test]
     fn exposes_only_mcp_management_commands() {
         assert!(matches!(
-            Cli::try_parse_from(["vibeshell", "mcp", "serve"])
+            Cli::try_parse_from(["zxyssh", "mcp", "serve"])
                 .unwrap()
                 .command,
             Some(Commands::Mcp { .. })
         ));
-        assert!(Cli::try_parse_from(["vibeshell", "ssh", "server"]).is_err());
-        assert!(Cli::try_parse_from(["vibeshell", "plugins", "list"]).is_err());
-        assert!(Cli::try_parse_from(["vibeshell", "sftp", "server"]).is_err());
+        assert!(Cli::try_parse_from(["zxyssh", "ssh", "server"]).is_err());
+        assert!(Cli::try_parse_from(["zxyssh", "plugins", "list"]).is_err());
+        assert!(Cli::try_parse_from(["zxyssh", "sftp", "server"]).is_err());
     }
 }

@@ -49,7 +49,7 @@ detached page must be returned first before its connection is terminated.
 Run `npm run test` and `npm run build`, then
 `cargo check --manifest-path src-tauri/Cargo.toml`.
 
-`VIBESHELL_UI_SMOKE=run` opts a Vite development run into the fixed native WebView
+`ZXYSSH_UI_SMOKE=run` opts a Vite development run into the fixed native WebView
 smoke scenario in `scripts/native-ui-bridge.ts`. It has no control endpoint and
 is disabled in normal development and production builds. Use only a disposable,
 single-session local workspace: it creates a test shell, drives real React

@@ -5,9 +5,9 @@ use std::{env, fs, path::PathBuf, sync::Arc, time::Duration};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
-use vibeshell_core::ssh::{FingerprintStore, HostKeyCheck, PtyConfig, SshClient};
-use vibeshell_core::storage::models::{TunnelConfig, TunnelStatus, TunnelType};
-use vibeshell_core::tunnel::TunnelManager;
+use zxyssh_core::ssh::{FingerprintStore, HostKeyCheck, PtyConfig, SshClient};
+use zxyssh_core::storage::models::{TunnelConfig, TunnelStatus, TunnelType};
+use zxyssh_core::tunnel::TunnelManager;
 
 fn required(name: &str) -> String {
     env::var(name)
@@ -299,8 +299,8 @@ async fn sftp_binary_unicode_roundtrip_and_reuse() -> Result<()> {
 #[tokio::test]
 #[ignore = "isolated OpenSSH fixture required"]
 async fn streaming_download_and_same_size_directory_sync() -> Result<()> {
-    use vibeshell_core::sftp::sync::download_remote_file_streaming;
-    use vibeshell_core::sftp::{
+    use zxyssh_core::sftp::sync::download_remote_file_streaming;
+    use zxyssh_core::sftp::{
         transfer_directory_to_sftp, DirectoryTransferMode, DirectoryTransferOptions,
     };
     let mut fixture = Fixture::new("SSH_TEST_PORT", "host.pub")?;

@@ -850,7 +850,7 @@ pub async fn session_exec_command(
         return match ipc_send(IpcMessage::ExecQuickCommand { session_id, command }).await? {
             IpcMessage::CommandResult { output, exit_code } => Ok(SessionExecResult { output, exit_code }),
             IpcMessage::Error { message } => Err(message),
-            _ => Err("Background service does not support command exit status; restart it with the matching VibeShell version".into()),
+            _ => Err("Background service does not support command exit status; restart it with the matching zxySSH version".into()),
         };
     }
     let session = manager

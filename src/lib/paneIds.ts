@@ -10,7 +10,7 @@ export function filePaneId(tabId: string): string {
 }
 
 /** MIME type used when dragging a plugin tab from the session tab strip. */
-export const PLUGIN_TAB_DND_MIME = 'application/x-vibeshell-plugin-tab';
+export const PLUGIN_TAB_DND_MIME = 'application/x-zxyssh-plugin-tab';
 
 export function sessionPaneId(sessionId: string): string {
   return `${SESSION_PANE_PREFIX}${sessionId}`;

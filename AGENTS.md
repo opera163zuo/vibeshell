@@ -1,11 +1,11 @@
-# VibeShell — Agent Guide
+# zxySSH — Agent Guide
 
 ## Overview
-VibeShell is a modern SSH/SFTP desktop terminal built with **Tauri 2** (Rust backend) and **React 18** (TypeScript frontend). It supports multi-session SSH, SFTP file management, SSH tunneling, local shell, session recording, jump hosts, and AI tool integration.
+zxySSH is a modern SSH/SFTP desktop terminal built with **Tauri 2** (Rust backend) and **React 18** (TypeScript frontend). It supports multi-session SSH, SFTP file management, SSH tunneling, local shell, session recording, jump hosts, and AI tool integration.
 
 ## Branch and release workflow
 
-All feature, fix and documentation PRs target `dev`, the default integration branch. `main` accepts release promotions from the same repository's `dev`; `master` is historical. See CONTRIBUTING.md. CI compilation and release packaging/publication are **manual-only** (`workflow_dispatch`); neither pushes, PRs nor tags trigger them. PR Target remains automatic and all existing required CI checks remain enforced: a maintainer runs CI on the PR head before merging. Release runs from `main`, requires successful manual CI on the exact tagged commit, and defaults to an unpublished draft unless `publish=true` is explicitly selected. Do not auto-bump versions or dispatch publication without authorization. VibeShell 1.1.0 is GPL-3.0-only; preserve NOTICE and third-party attribution.
+All feature, fix and documentation PRs target `dev`, the default integration branch. `main` accepts release promotions from the same repository's `dev`; `master` is historical. See CONTRIBUTING.md. CI compilation and release packaging/publication are **manual-only** (`workflow_dispatch`); neither pushes, PRs nor tags trigger them. PR Target remains automatic and all existing required CI checks remain enforced: a maintainer runs CI on the PR head before merging. Release runs from `main`, requires successful manual CI on the exact tagged commit, and defaults to an unpublished draft unless `publish=true` is explicitly selected. Do not auto-bump versions or dispatch publication without authorization. zxySSH 1.1.0 is GPL-3.0-only; preserve NOTICE and third-party attribution.
 
 ## Architecture
 
@@ -97,7 +97,7 @@ src-tauri/                    # Rust backend
 
 cli/                          # CLI client (workspace member)
 
-plugins/                      # Built-in plugin catalog (workspace member: vibeshell-plugins)
+plugins/                      # Built-in plugin catalog (workspace member: zxyssh-plugins)
 ├── src/lib.rs                # Plugin spec: manifest types, validation, command rendering
 └── builtin/<plugin-id>/plugin.json   # One directory per built-in plugin
 ```
@@ -173,7 +173,7 @@ cd src-tauri && cargo test   # Run tests
 
 - **Rust tests:** `cargo test` from the repo root (single Cargo workspace: `src-tauri`, `cli`, `plugins`) — unit tests live inside modules (`storage`, `ssh`, `sftp`, `mcp`, `ipc`, `install`, `local_shell`, …), integration tests in `src-tauri/tests/`
 - **SSH integration tests:** run `bash scripts/test-ssh-compatibility.sh` for a generated-key, loopback-only Docker fixture. Other ignored tests require their own explicit external fixtures; never run them wholesale against saved user data.
-- **LAN MCP gateway:** `bash scripts/test-lan-mcp-gateway.sh [address]` drives a real `vibeshell mcp serve` listener (pairing, bearer auth, body limit, audit-at-rest, revocation) inside a throwaway state directory under `target/`; it never opens the operator's database. Network tests stay in `src-tauri/src/mcp/lan_test.rs` (`cfg(test)`) because `Crypto::device()` only yields a deterministic test key there.
+- **LAN MCP gateway:** `bash scripts/test-lan-mcp-gateway.sh [address]` drives a real `zxyssh mcp serve` listener (pairing, bearer auth, body limit, audit-at-rest, revocation) inside a throwaway state directory under `target/`; it never opens the operator's database. Network tests stay in `src-tauri/src/mcp/lan_test.rs` (`cfg(test)`) because `Crypto::device()` only yields a deterministic test key there.
 - **Frontend tests:** `npm test` (Vitest, see `vitest.config.ts`) — `*.test.ts` files colocated with stores/components; CI runs them
 - **Formatting:** `cargo fmt --check` gates CI — run `cargo fmt` before committing Rust changes
 

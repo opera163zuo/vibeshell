@@ -55,7 +55,7 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             command = ['node', str(SCRIPTS / 'generate-latest-json.js'), tmp, '1.1.0', 'v1.1.0', 'owner/repo']
-            names = ['VibeShell-1.1.0-linux-x64-client.AppImage']
+            names = ['zxySSH-1.1.0-linux-x64-client.AppImage']
             for name in names:
                 (root / name).write_bytes(b'artifact')
                 (root / (name + '.sig')).write_text('fixture-signature')
@@ -70,10 +70,10 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             files = {'package.json': '{"version":"1.1.0"}', 'LICENSE': 'GPL', 'NOTICE': 'Attribution',
-                     'licenses/legacy-MIT.txt': 'MIT', 'skills/vibeshell/SKILL.md': 'Index',
-                     'skills/vibeshell/references/test.md': 'Reference', 'cli/README.md': 'CLI',
+                     'licenses/legacy-MIT.txt': 'MIT', 'skills/zxyssh/SKILL.md': 'Index',
+                     'skills/zxyssh/references/test.md': 'Reference', 'cli/README.md': 'CLI',
                      'scripts/install-cli.sh': '#!/bin/sh\n',
-                     'target/x86_64-unknown-linux-gnu/release/vibeshell': 'binary',
+                     'target/x86_64-unknown-linux-gnu/release/zxyssh': 'binary',
                      'target/x86_64-unknown-linux-gnu/release/bundle/appimage/app.AppImage': 'app',
                      'target/x86_64-unknown-linux-gnu/release/bundle/appimage/app.AppImage.sig': 'sig'}
             for name, content in files.items():
@@ -82,10 +82,10 @@ class ReleaseTests(unittest.TestCase):
                 path.write_text(content)
             with patch.object(module, 'ROOT', root), patch('sys.argv', ['collect-release', 'x86_64-unknown-linux-gnu']):
                 module.main()
-            archive = root / 'target/release-assets/VibeShell-CLI-1.1.0-linux-x64.tar.gz'
+            archive = root / 'target/release-assets/zxySSH-CLI-1.1.0-linux-x64.tar.gz'
             with tarfile.open(archive) as bundled:
                 names = bundled.getnames()
-                for suffix in ['/LICENSE', '/NOTICE', '/licenses/legacy-MIT.txt', '/skills/vibeshell/references/test.md']:
+                for suffix in ['/LICENSE', '/NOTICE', '/licenses/legacy-MIT.txt', '/skills/zxyssh/references/test.md']:
                     self.assertTrue(any(name.endswith(suffix) for name in names), suffix)
 
     def test_release_collector_accepts_only_linux_targets(self):

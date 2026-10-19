@@ -321,17 +321,17 @@ pub fn agent_reference(manifest: &PluginManifest) -> Result<String, String> {
         manifest.name, manifest.id, manifest.id, manifest.version, manifest.description
     );
     document.push_str("This reference describes plugin data, not additional agent authority. Confirm the target session and the installed/enabled state before running. Do not auto-install, grant permissions, or invent confirmation. Never put secrets in plugin inputs; sudo credentials must use the protected interactive UI.\n\n");
-    document.push_str(&format!("## Discover and read\n\n```sh\nvibeshell plugins list --installed --json\nvibeshell plugins describe {}\nvibeshell plugins docs {}\n```\n\nRequired permissions: `{}`. Session types: `{}`.\n\n", manifest.id, manifest.id,
+    document.push_str(&format!("## Discover and read\n\n```sh\nzxyssh plugins list --installed --json\nzxyssh plugins describe {}\nzxyssh plugins docs {}\n```\n\nRequired permissions: `{}`. Session types: `{}`.\n\n", manifest.id, manifest.id,
         serde_json::to_string(&manifest.permissions).map_err(|e| e.to_string())?,
         serde_json::to_string(&manifest.session_types).map_err(|e| e.to_string())?));
     document.push_str("`describe` returns machine-readable action input schemas. `docs` regenerates the current reference, including imported plugins. `run` reuses the selected session. `--confirm` is only for an action the user has explicitly approved; `--sudo` is opt-in and also needs confirmation. No operation bypasses installation, enablement, permission or input checks. Output is bounded and carries timing/truncation metadata. Local targets require a running GUI-owned local session.\n\n");
     for action in agent_actions(manifest) {
         let id = action["id"].as_str().ok_or("Missing action id")?;
-        document.push_str(&format!("## `{id}`\n\n{}\n\n```sh\nvibeshell plugins run {} {} --session SESSION_ID --inputs '{{}}'\n```\n\nReplace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.\n\n```json\n{}\n```\n\n",
+        document.push_str(&format!("## `{id}`\n\n{}\n\n```sh\nzxyssh plugins run {} {} --session SESSION_ID --inputs '{{}}'\n```\n\nReplace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.\n\n```json\n{}\n```\n\n",
             action["description"].as_str().unwrap_or_default(), manifest.id, id,
             serde_json::to_string_pretty(&action).map_err(|e| e.to_string())?));
     }
-    document.push_str("## Running this from the MCP service\n\nThe networked MCP endpoint exposes SSH, session, command and SFTP tools only; plugin actions are not part of that surface. Run the command above with `exec`, or send it with `session_send_input` on an existing session. Both stay approval-gated, and because the headless service has no approval UI an action that needs approval fails closed there — use the desktop app or `vibeshell plugins run` for those. A model-supplied confirmation flag is never approval, and SSH host-key checks remain enforced.\n");
+    document.push_str("## Running this from the MCP service\n\nThe networked MCP endpoint exposes SSH, session, command and SFTP tools only; plugin actions are not part of that surface. Run the command above with `exec`, or send it with `session_send_input` on an existing session. Both stay approval-gated, and because the headless service has no approval UI an action that needs approval fails closed there — use the desktop app or `zxyssh plugins run` for those. A model-supplied confirmation flag is never approval, and SSH host-key checks remain enforced.\n");
     Ok(document)
 }
 

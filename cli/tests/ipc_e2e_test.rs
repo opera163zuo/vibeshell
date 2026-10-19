@@ -1,20 +1,20 @@
 //! End-to-end IPC test for interactive SSH.
 //!
-//! This test requires the VibeShell GUI to be running with a valid "SG" server configured.
-//! Run with: cargo test -p vshell --test ipc_e2e_test -- --ignored --nocapture
+//! This test requires the zxySSH GUI to be running with a valid "SG" server configured.
+//! Run with: cargo test -p zxyssh --test ipc_e2e_test -- --ignored --nocapture
 
 use std::io::BufRead;
 use std::time::Duration;
 
-use vibeshell_core::ipc::{IpcClient, IpcMessage};
+use zxyssh_core::ipc::{IpcClient, IpcMessage};
 
 #[test]
-#[ignore = "requires VibeShell GUI running with SG server configured"]
+#[ignore = "requires zxySSH GUI running with SG server configured"]
 fn test_ssh_interactive_pipeline() {
     // 1. Verify GUI is running
     assert!(
         IpcClient::is_server_running(),
-        "VibeShell GUI must be running for this test"
+        "zxySSH GUI must be running for this test"
     );
 
     // 2. Create a session
@@ -60,7 +60,7 @@ fn test_ssh_interactive_pipeline() {
 
     // 6. Send a simple command via SendInput
     // The expected marker must not appear in the echoed command itself.
-    let cmd = "printf '%s%s\\n' VIBESHELL_ PIPELINE_OK\n";
+    let cmd = "printf '%s%s\\n' ZXYSSH_ PIPELINE_OK\n";
     let send_result = IpcClient::send(&IpcMessage::SendInput {
         session_id: session_id.clone(),
         data: cmd.as_bytes().to_vec(),
@@ -95,7 +95,7 @@ fn test_ssh_interactive_pipeline() {
                     }
                     match serde_json::from_str::<IpcMessage>(trimmed) {
                         Ok(IpcMessage::SessionOutput { data, .. }) => {
-                            const MARKER: &[u8] = b"VIBESHELL_PIPELINE_OK";
+                            const MARKER: &[u8] = b"ZXYSSH_PIPELINE_OK";
                             tail.extend_from_slice(&data);
                             if tail.windows(MARKER.len()).any(|bytes| bytes == MARKER) {
                                 marker_found = true;
@@ -143,7 +143,7 @@ fn test_ssh_interactive_pipeline() {
     // 9. Assert we found the marker
     assert!(
         marker_found,
-        "Expected actual VIBESHELL_PIPELINE_OK command output within 20 seconds"
+        "Expected actual ZXYSSH_PIPELINE_OK command output within 20 seconds"
     );
 
     println!("SUCCESS: Full interactive SSH pipeline works!");

@@ -893,7 +893,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       });
 
       if (!sessionId) {
-        xterm.writeln('\x1b[1;34mVibeShell Terminal\x1b[0m');
+        xterm.writeln('\x1b[1;34mzxySSH Terminal\x1b[0m');
         xterm.writeln('\x1b[90mNo session - type to test local echo\x1b[0m');
         xterm.writeln('');
       }

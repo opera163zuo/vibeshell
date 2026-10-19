@@ -28,21 +28,21 @@ def main():
     if not artifacts or not any(path.name.endswith(".sig") for path in artifacts):
         raise RuntimeError("Desktop bundles and updater signatures are required")
     for path in artifacts:
-        destination = output / f"VibeShell-{version}-{slug}-{path.name}"
+        destination = output / f"zxySSH-{version}-{slug}-{path.name}"
         if destination.exists():
             raise RuntimeError(f"Duplicate artifact name: {destination.name}")
         shutil.copy2(path, destination)
-    binary = build / "vibeshell"
+    binary = build / "zxyssh"
     if not binary.is_file():
         raise RuntimeError("Native CLI binary is missing")
-    with tempfile.TemporaryDirectory(prefix="vibeshell-cli-") as tmp:
-        directory = Path(tmp) / f"VibeShell-CLI-{version}-{slug}"
+    with tempfile.TemporaryDirectory(prefix="zxyssh-cli-") as tmp:
+        directory = Path(tmp) / f"zxySSH-CLI-{version}-{slug}"
         directory.mkdir()
         shutil.copy2(binary, directory / binary.name)
         for name in ("LICENSE", "NOTICE"):
             shutil.copy2(ROOT / name, directory / name)
         shutil.copytree(ROOT / "licenses", directory / "licenses")
-        shutil.copytree(ROOT / "skills/vibeshell", directory / "skills/vibeshell")
+        shutil.copytree(ROOT / "skills/zxyssh", directory / "skills/zxyssh")
         shutil.copy2(ROOT / "cli/README.md", directory / "README.md")
         script = directory / "install.sh"
         shutil.copy2(ROOT / "scripts/install-cli.sh", script)

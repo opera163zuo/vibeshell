@@ -1,6 +1,6 @@
 //! Headless SSH host-key administration for the LAN MCP service.
 //!
-//! VibeShell verifies host keys TOFU-style and refuses to send credentials to an
+//! zxySSH verifies host keys TOFU-style and refuses to send credentials to an
 //! untrusted key. The desktop UI normally handles that first approval, so a
 //! headless server needs an explicit, administrator-driven path: `probe` shows
 //! the key the server presents, `trust` pins it only after the operator repeats
@@ -9,9 +9,9 @@
 use anyhow::{bail, Result};
 use clap::Subcommand;
 use std::sync::Arc;
-use vibeshell_core::ssh::{FingerprintStore, HostKeyCheck, HostKeyRejection, SshClient};
+use zxyssh_core::ssh::{FingerprintStore, HostKeyCheck, HostKeyRejection, SshClient};
 
-/// `vibeshell mcp hostkey …`
+/// `zxyssh mcp hostkey …`
 #[derive(Subcommand)]
 pub enum HostkeyCommand {
     /// Show the host key the server presents and whether it is trusted
@@ -106,7 +106,7 @@ pub fn probe(host: &str, port: u16) -> Result<()> {
     } else {
         println!(
             "Verify it out of band, then pin it: \
-             vibeshell mcp hostkey trust {host} --port {port} --fingerprint {fingerprint}"
+             zxyssh mcp hostkey trust {host} --port {port} --fingerprint {fingerprint}"
         );
     }
     Ok(())
