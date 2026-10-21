@@ -621,6 +621,13 @@ async fn handle_tools_call(
                 | "session_resize"
                 | "session_kill"
         ) {
+            if name == "session_kill" && arguments.get("all").and_then(Value::as_bool) == Some(true)
+            {
+                return Err((
+                    INVALID_PARAMS,
+                    "Paired Agents may only terminate their own sessions".to_string(),
+                ));
+            }
             let session_id = arguments.get("session_id").and_then(Value::as_str).ok_or((
                 INVALID_PARAMS,
                 "Missing required field: session_id".to_string(),

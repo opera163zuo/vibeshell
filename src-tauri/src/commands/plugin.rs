@@ -715,7 +715,7 @@ mod tests {
             assert!(!description.to_string().contains("must-not-leak"));
             let reference = agent::describe(&db, &manifest.id, true).unwrap();
             let reference = reference.as_str().unwrap();
-            assert!(reference.contains(&format!("zxyssh plugins docs {}", manifest.id)));
+            assert!(reference.contains("## Availability"));
             assert!(!reference.contains("must-not-leak"));
             for action in description["actions"].as_array().unwrap() {
                 assert_eq!(action["inputSchema"]["additionalProperties"], false);

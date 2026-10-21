@@ -4,29 +4,19 @@ Plugin `redis-inspector` version `1.2.0`.
 
 Inspect and manage Redis: health, keyspace stats, key lookups, clients, slowlog and runtime configuration. Automatically uses a Docker redis container when redis-cli is not installed on the host.
 
-This reference describes plugin data, not additional agent authority. Confirm the target session and the installed/enabled state before running. Do not auto-install, grant permissions, or invent confirmation. Never put secrets in plugin inputs; sudo credentials must use the protected interactive UI.
+This reference describes plugin data, not additional agent authority. Confirm the target session and the installed/enabled state before running. Do not auto-install, grant permissions, or invent confirmation. Never put secrets in plugin inputs; sudo credentials stay on the service.
 
-## Discover and read
+## Availability
 
-```sh
-zxyssh plugins list --installed --json
-zxyssh plugins describe redis-inspector
-zxyssh plugins docs redis-inspector
-```
+This plugin is **not reachable from a client in the current release**. The CLI plugin commands and the plugin panels were removed when the product narrowed to the MCP service, and no plugin tool is advertised to a paired Agent. The manifest below is the contract a future surface would have to honour.
 
 Required permissions: `["remote_exec","local_exec"]`. Session types: `["ssh","local"]`.
 
-`describe` returns machine-readable action input schemas. `docs` regenerates the current reference, including imported plugins. `run` reuses the selected session. `--confirm` is only for an action the user has explicitly approved; `--sudo` is opt-in and also needs confirmation. No operation bypasses installation, enablement, permission or input checks. Output is bounded and carries timing/truncation metadata. Local targets require a running GUI-owned local session.
+Re-exposing an action means updating the Agent tool allowlist, the permission, confirmation and session-ownership checks, and adding regression tests. Until then, treat the action schemas below as specification rather than an instruction to run. Execution must never install or enable a plugin as a side effect. Output is bounded and carries timing/truncation metadata. Local targets require the service that owns that local session.
 
 ## `ping`
 
 Check that the Redis server answers.
-
-```sh
-zxyssh plugins run redis-inspector ping --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -60,12 +50,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `info`
 
 Read one INFO section from the Redis server.
-
-```sh
-zxyssh plugins run redis-inspector info --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -119,12 +103,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Show per-database key counts and expiry stats.
 
-```sh
-zxyssh plugins run redis-inspector keyspace --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": true,
@@ -158,12 +136,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Return the number of keys in the selected database.
 
-```sh
-zxyssh plugins run redis-inspector db-size --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": true,
@@ -196,12 +168,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `scan-keys`
 
 List keys matching a glob pattern.
-
-```sh
-zxyssh plugins run redis-inspector scan-keys --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -244,12 +210,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Read the string value stored under a key.
 
-```sh
-zxyssh plugins run redis-inspector get-key --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": true,
@@ -290,12 +250,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `key-ttl`
 
 Show the remaining time-to-live of a key in seconds (-1 forever, -2 missing).
-
-```sh
-zxyssh plugins run redis-inspector key-ttl --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -338,12 +292,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Delete one key from the database.
 
-```sh
-zxyssh plugins run redis-inspector delete-key --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": true,
@@ -385,12 +333,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 List clients currently connected to the Redis server.
 
-```sh
-zxyssh plugins run redis-inspector clients --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": true,
@@ -423,12 +365,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `slowlog`
 
 Show the 20 slowest recent commands.
-
-```sh
-zxyssh plugins run redis-inspector slowlog --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -463,12 +399,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Sample the dataset and report the largest key per type.
 
-```sh
-zxyssh plugins run redis-inspector bigkeys --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": true,
@@ -501,12 +431,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `config-get`
 
 Read one runtime configuration value.
-
-```sh
-zxyssh plugins run redis-inspector config-get --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -560,12 +484,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Show the value type stored under a key.
 
-```sh
-zxyssh plugins run redis-inspector key-type --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": true,
@@ -605,4 +523,4 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 ## Running this from the MCP service
 
-The networked MCP endpoint exposes SSH, session, command and SFTP tools only; plugin actions are not part of that surface. Run the command above with `exec`, or send it with `session_send_input` on an existing session. Both stay approval-gated, and because the headless service has no approval UI an action that needs approval fails closed there — use the desktop app or `zxyssh plugins run` for those. A model-supplied confirmation flag is never approval, and SSH host-key checks remain enforced.
+The networked MCP endpoint gives a paired Agent only `server_list`, `session_create`, `session_send_input`, `session_sudo`, `session_read`, `session_resize` and `session_kill`. Plugin actions are not part of that surface, and neither are `exec`, remote `rg` or SFTP transfer, so there is no supported way to invoke this plugin remotely today. Do not substitute a raw command through `session_send_input` to reach it: that skips the installation, permission and confirmation checks this manifest declares. A model-supplied confirmation flag is never approval, and SSH host-key checks remain enforced.

@@ -2,7 +2,11 @@
 
 > **Version:** 1.0
 > **Date:** 2026-01-23
-> **Status:** Finalized
+> **Status:** Historical. The command surface below is the 1.x design and is no
+> longer what the product ships: as of 2.0.0 the native binary administers the
+> MCP service only, and Agents reach terminals through MCP tools. See
+> [LAN MCP operator guide](../LAN-MCP-UBUNTU-DEBIAN.md) and
+> [collaboration model](../AGENT_COLLABORATION.md) for the current contract.
 
 ---
 

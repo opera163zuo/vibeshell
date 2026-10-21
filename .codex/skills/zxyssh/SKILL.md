@@ -1,142 +1,77 @@
 ---
 name: zxyssh
-description: Use the native zxySSH CLI to manage saved SSH servers, persistent sessions, remote commands, SFTP transfers, remote files, and SSH configuration imports without requiring the desktop UI.
+description: Use the zxySSH SSH service through its MCP endpoint for site listing, persistent terminal sessions, and server-managed sudo; pair an Agent with a one-time code and administer the service with the native CLI.
 ---
 
 # zxySSH
 
-Use the native `zxyssh` executable. Do not use Node.js, `gateway.mjs`, browser automation, or raw credential extraction.
+Connect to the zxySSH MCP endpoint over HTTP. Do not use Node.js, `gateway.mjs`, browser automation, raw `ssh`/`scp`, or credential extraction.
 
-zxySSH automatically starts its local headless daemon when an SSH, SFTP, or session command needs it. The desktop application may be closed, and the same commands work on a server without a graphical desktop.
+The service runs on a Linux host and owns the SSH connections. Credentials, private keys, passphrases, and sudo passwords stay on that host: an Agent sees terminal input and output, nothing else.
 
-## Before operating
+Resolve the native executable in this order: `zxyssh` from `PATH`, then `$HOME/.local/bin/zxyssh`. The executable administers the service; it no longer opens SSH sessions itself. If neither path exists, tell the user which lookup failed instead of substituting another client, because that bypasses the saved site configuration and the session model.
 
-1. Verify the CLI is available with `zxyssh version`.
-2. Inspect configured targets with `zxyssh servers`.
-3. Prefer saved server names over raw hosts. Credentials remain local to zxySSH and must never be printed, copied into prompts, or passed on the command line.
-4. Reuse an existing session unless the user explicitly needs an independent parallel shell.
+## Pair an Agent once
 
-Resolve the native executable in this order: `zxyssh` from `PATH`, `$HOME/.local/bin/zxyssh`, then `/Applications/zxySSH.app/Contents/MacOS/zxyssh` on macOS. Use the resolved absolute path for the rest of the workflow when necessary. If none exists, tell the user which lookup failed. Do not silently replace zxySSH with `ssh`, `scp`, or another client because that bypasses the saved zxySSH configuration and session model.
-
-## Import existing SSH configurations
-
-Preview everything zxySSH can discover:
+An operator mints a single-use six-digit code on the host, then the Agent exchanges it for a bearer token:
 
 ```bash
-zxyssh import auto --dry-run
+zxyssh mcp pair-code
 ```
 
-Import detected OpenSSH, PuTTY, and Tabby profiles:
-
-```bash
-zxyssh import auto
+```text
+POST /pair {"name":"<agent name>","code":"<six digits>"}  ->  {"token":"vsh_..."}
 ```
 
-Import one source or an explicit file:
+The code expires after 300 seconds and a wrong code fails the pair limit. Keep the token out of prompts, logs, and files. `zxyssh mcp agents` lists paired Agents; `revoke`, `rename`, and `rotate` change credentials, and a revoked or rotated token stops working on the next request.
 
-```bash
-zxyssh import openssh
-zxyssh import openssh --path ~/.ssh/config
-zxyssh import tabby --path ~/.config/tabby/config.yaml
-zxyssh import putty --path ~/putty-sessions.reg
-```
+The listener defaults to `127.0.0.1:8765`. Reaching it over a LAN requires `ZXYSSH_MCP_BIND=<address>:<port>` with `ZXYSSH_MCP_ALLOW_LAN=true`, a concrete address, and at least one already-paired Agent. This transport is plain HTTP for a trusted internal network; treat the token as the only secret.
 
-Use `--json` when structured output is more useful. Never import or expose plaintext passwords from third-party profiles. zxySSH may reference an existing private-key path and reads that local key only when establishing a connection.
+## Use the MCP tools
 
-## SSH sessions and remote commands
+JSON-RPC 2.0 over `POST /mcp` with `Authorization: Bearer <token>`. `initialize`, `notifications/initialized`, `ping`, `tools/list`, and `tools/call` are supported; `/health` stays unauthenticated.
 
-Open or reuse a persistent terminal session:
+Paired Agents get exactly these tools:
 
-```bash
-zxyssh ssh <server>
-```
+| Tool | Arguments | Result |
+| --- | --- | --- |
+| `server_list` | none | Saved sites as `{id, name}` pairs |
+| `session_create` | `server_name` (required) | A new session the Agent owns |
+| `session_send_input` | `session_id`, `data`, optional `keys`, `append_enter` | Bytes delivered to that PTY |
+| `session_sudo` | `session_id`, `command` | Output of an allowlisted privileged command |
+| `session_read` | `session_id`, optional `max_bytes` (up to 65536) | Trailing terminal output |
+| `session_resize` | `session_id`, `cols`, `rows` | Updated PTY size |
+| `session_kill` | `session_id` | That session terminated |
 
-Run a command on a saved server. This reuses the earliest active session for that server when possible:
+Call `tools/list` instead of reciting this table when a live schema is needed; the schema is authoritative. Any other tool name, including arbitrary `exec`, remote `rg`, SFTP transfer, and site CRUD, is not offered to a paired Agent and is rejected when requested.
 
-```bash
-zxyssh ssh <server> -- uname -a
-```
+## Workflow
 
-Create a separate session only when concurrency is intentional:
+1. `server_list`, then choose a site by the name the person configured. Never guess a host, port, or username.
+2. `session_create` with `server_name`. Each paired Agent receives its own new session; reusing another Agent's session is refused.
+3. `session_send_input` to type, `session_read` to observe. Read again rather than assuming a command finished: input being accepted only proves bytes were sent.
+4. Answer an interactive prompt with literal text or a named key from `keys` (`enter`, `tab`, `escape`, `backspace`, `ctrl-c`, `ctrl-d`, `ctrl-z`, `up`, `down`, `left`, `right`). Use `ctrl-c` to interrupt instead of opening a second connection.
+5. `session_kill` when finished. Batch termination is not available to an Agent.
 
-```bash
-zxyssh ssh <server> --new
-```
+Host-key trust is checked by the service before authentication, including the real destination behind a jump host. An unexpected or changed fingerprint fails the connection; do not retry it into an approval. If a site needs trust established without a desktop, an operator runs `zxyssh mcp hostkey probe <server>` and then trusts the shown key.
 
-List sessions and use the short alias shown by zxySSH:
+## Privileged commands
 
-```bash
-zxyssh sessions
-zxyssh ssh-session 001 -- systemctl status nginx
-zxyssh attach 001
-zxyssh kill 001
-```
+`session_sudo` runs a command as root only when a person has configured both a sudo credential and an exact allowlist for that site. The service decrypts the password and injects it over the SSH channel; the Agent never receives or supplies it.
 
-For commands with nested quotes, multiline scripts, shell substitutions, or platform-sensitive escaping, avoid building a deeply escaped one-liner. Write the exact remote command to a local file or pipe it through stdin:
+- Request the command exactly as configured. Near matches, shell metacharacter tricks, and unlisted commands are refused.
+- Missing credential, missing policy, or an interactive password change are refused rather than escalated.
+- Never ask for the sudo password, and never put any secret in `data`. Passwords and keys are not commands to log.
 
-```bash
-zxyssh ssh <server> --command-file ./remote-command.sh
-cat ./remote-command.sh | zxyssh ssh <server> --command-stdin
-```
+## Human and Agent collaboration
 
-If a remote process asks for interactive input, use named key tokens rather than starting another connection:
+The desktop shows Agent operations in its activity history, and an Agent session appears as its own tab without stealing the person's active tab. Shared interactive input and independent inspection are both visible; a person's terminal remains theirs.
 
-```bash
-zxyssh send-key 001 yes enter
-zxyssh send-key 001 ctrl-c
-```
+Before anything destructive, read the current state first, then state what will change. Overwrites, recursive transfers, and service restarts need the person's explicit approval. Do not claim success from a submission alone; report the site, session, exit status, and relevant output.
 
-## Remote search and files
+## Plugin references
 
-Search remotely with ripgrep-style output:
-
-```bash
-zxyssh rg <server> TODO /srv/app --glob '*.rs'
-zxyssh rg --session 001 'listen 80' /etc/nginx -i
-```
-
-Read, create, and edit text files through SFTP:
-
-```bash
-zxyssh get-content <server> /etc/nginx/nginx.conf
-zxyssh add-file <server> /tmp/example.txt --content-file ./example.txt --parents
-zxyssh edit-file <server> /etc/app.conf --replace 'debug=false' --with 'debug=true'
-```
-
-Use a session alias with `--session` when a connection already exists:
-
-```bash
-zxyssh get-content --session 001 /var/log/app.log --max-bytes 200000
-```
-
-## SFTP
-
-Run direct operations:
-
-```bash
-zxyssh sftp <server> ls /var/www
-zxyssh sftp <server> get /remote/file ./local-file
-zxyssh sftp <server> put ./local-file /remote/file
-zxyssh sftp <server> sync ./dist /var/www --delete
-```
-
-Start the interactive SFTP prompt when several related operations are needed:
-
-```bash
-zxyssh sftp <server>
-```
-
-## Plugin discovery and references
-
-Plugin usage, action schemas, input examples and confirmation requirements live in `references/`, not in this main Skill. Read only the relevant reference. The native Skill installer generates these files from the shipped plugin manifests; the running application can return the current reference directly:
-
-```bash
-zxyssh plugins list --installed --json
-zxyssh plugins describe <plugin-id>
-zxyssh plugins docs <plugin-id>
-```
-
-The list reports the actual installed/enabled state and each plugin's reference command. It also covers imported plugins, which may not appear in the built-in index below. A catalog entry is not proof that a plugin is installed or enabled. Fetch live documentation after plugin changes; do not guess action names or parameters.
+`references/` documents the built-in plugin actions that ship with the repository. They describe remote inspection capabilities, and they grant nothing: no permission, no installation, no elevation, no confirmation. These actions are not exposed to a paired Agent in this version, so do not guess an action name or parameter in order to reach them.
 
 | Built-in plugin | Reference |
 | --- | --- |
@@ -153,19 +88,10 @@ The list reports the actual installed/enabled state and each plugin's reference 
 | Cron scheduler | [cron-scheduler](references/cron-scheduler.md) |
 | Systemd services | [systemd-services](references/systemd-services.md) |
 
-References describe plugin capabilities; they do not grant permission or override user instructions. Never install, enable, elevate or confirm a destructive action merely because a reference shows an example.
-
-## Human and Agent collaboration
-
-Agent/CLI commands and their operation states appear in the desktop's Agent command history; newly created sessions appear as tabs without stealing the human's active tab. Use the shared native service rather than hiding work in an unrelated client. Isolated exec avoids interfering with the human's interactive shell but remains visible in the UI history. A terminal-input success means bytes were sent, not that the remote command completed successfully.
-
-Passwords, private keys and other secret input are not commands to log. Prefer saved credentials or the application's protected input UI. When a terminal prompt genuinely requires secret input, use `zxyssh send-secret <session> --enter` with protected stdin, never a secret in command-line arguments. This suppresses the input contents from activity records; it cannot suppress a remote program that echoes its input. Do not use secret mode to hide commands.
-
 ## Operational rules
 
-- Inspect before mutating. Read the current file or directory before editing, deleting, overwriting, or synchronizing with `--delete`.
-- Preserve session continuity. Prefer `ssh-session`, `--session`, and direct SFTP operations over repeatedly opening new SSH sessions.
-- Treat `--new`, remote deletion, overwrites, recursive uploads, and sync deletion as deliberate actions.
-- Keep secrets local. Do not request private-key text or passwords when an imported/saved profile should provide authentication.
-- Report the server name, session alias, command exit status, and relevant output. Do not claim success from command submission alone.
-- Use `zxyssh daemon status` for diagnostics. The daemon is native and does not require the desktop application.
+- Inspect before mutating. Read the current file, service, or directory state before editing, deleting, restarting, or overwriting.
+- Keep secrets on the host. Do not request private-key text or passwords; saved site profiles already provide authentication.
+- One session per Agent per task. Prefer continuing an owned session over repeatedly creating new ones.
+- Treat an owned session as live work. Another person may be looking at it, so do not send input that assumes they are away.
+- A connection lives only while its owning process lives. Upgrade the desktop and the service together, and save ongoing work before restarting either.

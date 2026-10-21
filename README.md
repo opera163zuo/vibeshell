@@ -21,7 +21,7 @@
 
 A routine server task rarely stays in one terminal. You check a log, find a configuration file, open an editor, ask an agent for help, then work out which machine and session each tool is using.
 
-zxySSH keeps that work together. SSH and local terminals, coding agents, remote files, Git changes, and operations dashboards share a tabbed workspace. Use it as a normal terminal; bring AI into the parts where it helps. You do not need a model account for ordinary terminal and file work.
+zxySSH keeps that work together. SSH and local terminals share a tabbed workspace with the remote file panel and the local file editor. Use it as a normal terminal; an AI Agent reaches the same hosts through the MCP service rather than through your keyboard. You do not need a model account for ordinary terminal and file work.
 
 The difference is the workflow, not a new SSH protocol. OpenSSH, tmux, editors and scripts can cover many of the same jobs. zxySSH reduces the setup, copying and window switching needed to make them work together.
 
@@ -29,49 +29,37 @@ The difference is the workflow, not a new SSH protocol. OpenSSH, tmux, editors a
 
 ### See what it ran, and where
 
-Desktop, native CLI and MCP can use the same saved servers and discover existing sessions. When an agent runs a command, the activity strip and history show the command, session, time and operation state. Repeated attempts remain separate records; multiline commands are not reduced to a one-line label.
+Desktop and MCP use the same saved servers, and an Agent works inside the sessions it created. When an Agent runs a command, the activity strip and history show the tool, session, time and operation state. Repeated attempts remain separate records; multiline input is not reduced to a one-line label.
 
-There are two ways to collaborate. Send input into a shared interactive shell when you want to work in that prompt together. Use independent execution when the agent should inspect something without typing over your work. Both have visible activity; “input sent” is kept distinct from “command completed.”
+Two collaboration shapes remain. Shared input goes into an interactive shell you are both looking at; independent execution lets an Agent inspect a host without typing over your work. Both are visible in history, and “input sent” stays separate from “command completed.”
 
 An agent-created session appears as another tab without switching away from the tab you selected. Two connections to the same server remain two sessions, not one ambiguous server-name tab. History can be paged through and recovered after reopening the UI.
 
 ### Approve the actual operation, not a vague request
 
-The approval dialog puts the proposed command and the reasons for review in front of you. You can allow that operation or reject it instead of discovering a service restart in the transcript afterward. CLI and MCP plugin actions also retain their permission and confirmation checks.
+The approval dialog puts the proposed command and the reasons for review in front of you. You can allow that operation or reject it instead of discovering a service restart in the transcript afterward. MCP tool calls keep the same permission and confirmation checks, and a transport with no approval surface fails closed.
 
 ![Actual agent approval dialog showing the proposed restart and reasons for review](docs/assets/screenshots/tour-agent-approval.png)
 
 *Demo request only. The service restart in this image was never executed. Command classification and approval are useful controls, not a sandbox or a guarantee that every risky command will be recognized.*
 
-## Bring your coding agent, not another chat window
-
-Launch separately installed tools such as **Claude Code, Codex, OpenCode and Pi** in real local terminals. Pick a project directory, add an initial brief, and choose the start modes the selected tool supports: a new session, continuing the latest one, or choosing a previous session. Access modes are explicit rather than hidden in a command copied from a tutorial.
-
-![Coding-agent launcher with project, session mode, access mode and initial brief](docs/assets/screenshots/tour-agent-launcher.png)
-
-The agent's terminal stays beside the rest of your work. Open **Workspace changes** to see the branch, changed files and line-by-line diff. You can read the proposed edit instead of relying on the agent's summary of it. Local development and remote operations can live in neighboring tabs, but they are not silently treated as the same execution environment.
-
-![A synthetic coding-agent transcript beside the real Git changes and diff interface](docs/assets/screenshots/tour-agent-review.png)
-
-*Agent tools need their own installation, sign-in and subscriptions. zxySSH provides the workspace and launch integration; it does not bundle a model subscription or claim the sample transcript is live output.*
-
 ## A terminal that helps with the small things
 
-You should not need AI just to remember a flag. Built-in completion suggests commands, subcommands and options, with descriptions and command-history matches. Inline suggestions and a keyboard-driven completion list keep the answer near the cursor. Frequently used commands can become snippets, while **Quick Cmd** runs a short inspection and shows its output without taking over your interactive shell.
+You should not need AI just to remember a flag. Built-in completion suggests commands, subcommands and options with descriptions, and keeps the answer near the cursor through inline suggestions and a keyboard-driven list.
 
-For an extra nudge, enable **AI command prediction** with your own OpenAI-compatible or Claude endpoint and model. It proposes a suffix to what you are typing; it does not run the suggestion for you. This is separate from launching a coding agent.
+For an extra nudge, enable **AI command prediction** with your own OpenAI-compatible or Claude endpoint and model. It proposes a suffix to what you are typing; it does not run the suggestion for you. This is separate from the MCP Agent surface.
 
-**Prediction is off by default.** When enabled, the current input, recent command history and local completion candidates are sent to the provider you configure. Leave it disabled for work that must not leave the machine; ordinary local completion remains available.
+**Prediction is off by default.** When enabled, the current input and local completion candidates are sent to the provider you configure. Leave it disabled for work that must not leave the machine; ordinary local completion remains available.
 
 Terminal rendering uses xterm.js, a WebGL renderer where available, and batched input/output paths to reduce UI overhead. These are responsiveness choices, not a claim that zxySSH makes the SSH network faster.
 
 ## Find a connection without remembering an address
 
-The connection launcher brings **SSH, local shells and coding agents** into one place. Search your saved servers, switch between compact lists and cards, and organize targets with groups and tags. Existing-session indicators and a separate new-session action help distinguish “return to my work” from “open another connection.”
+The site tree and connection launcher bring **SSH and local shells** into one place. Search your saved servers, switch between compact lists and cards, and organize targets with nested groups. A status dot marks the sites that already have a session, and a separate new-session action helps distinguish “return to my work” from “open another connection.”
 
 ![Searchable connection cards with groups, saved targets and existing-session indicators](docs/assets/screenshots/tour-connections.png)
 
-Bring existing profiles from OpenSSH, PuTTY or Tabby, preview an import before applying it, and configure a jump host for private targets. Stored passwords from those other applications are deliberately not copied; PuTTY `.ppk` keys need conversion to OpenSSH format.
+Configure a jump host for private targets and add a site with its credential in the same dialog. The OpenSSH, PuTTY and Tabby profile readers remain in the codebase for migration tooling, but no import entry point is currently exposed: import those profiles from their own tools, or restore them from a zxySSH sync export. Stored passwords from other applications are deliberately not copied, and PuTTY `.ppk` keys need conversion to OpenSSH format.
 
 Changing a saved password, private key or passphrase does not require deleting the server. Untouched fields keep their values, existing secrets are not loaded into the edit form, and profile/credential changes save together or roll back together. This changes **zxySSH's saved login information**, not the remote account's password.
 
@@ -87,34 +75,26 @@ Folder transfer is also about correctness: bounded chunks, downloads that wait f
 
 [Local files, Markdown behavior and editing limits](docs/local-files-and-css-themes.md)
 
-## Go from a command to a useful view
+## A terminal, or an Agent through MCP
 
-Sometimes a terminal is the right view; sometimes a container list or a CPU graph is faster to understand. Open a plugin for the session you are already using instead of configuring the same server in another dashboard.
+The desktop is where a person works: connect from the site tree, run commands, transfer files. The same SSH capability is also exposed to AI Agents through the MCP service, so an Agent on another machine can drive a session without ever holding a password.
 
-| What you are working on | Built-in views and tools |
+Paired Agents are limited on purpose. They see the site list and the terminal input and output of the sessions they created:
+
+| What an Agent can do | How the service protects you |
 | --- | --- |
-| A slow or unhealthy host | Server Performance, Process Explorer, System Logs, Network Inspector, Disk Usage |
-| Services and infrastructure | Docker Containers, Kubernetes Pods, Cron Scheduler, Systemd Services |
-| Data and code | Database Inspector, Redis Inspector, Git Workspace |
+| List sites, open a session | Sessions are created by saved site name, and each Agent gets its own session |
+| Send keystrokes, read output, resize | An Agent can only touch sessions it created |
+| Run a privileged command | The sudo password and an exact command allowlist are configured by a person; the Agent never sees the secret |
+| Close its own session | Batch termination is refused for Agents |
 
-These **12 built-ins** are more than UI buttons. Agents can discover what is installed, read an action's inputs, fetch its current instructions and use it through the native CLI or MCP:
+Anything beyond that — arbitrary `exec`, remote file search, SFTP upload or download, editing server records — stays out of the paired Agent surface. Operations appear in the desktop activity panel, and commands that need approval fail closed when no approval UI is attached.
 
-```bash
-zxyssh plugins list --installed --json
-zxyssh plugins describe server-performance
-zxyssh plugins docs server-performance
-zxyssh plugins run server-performance status --session SESSION_ID --inputs '{}'
-```
-
-Use an existing session ID and check the plugin is installed and enabled first. The main Skill contains an index; detailed usage lives in `references/<plugin-id>.md`. Supported imported declarative plugins expose the same discovery interface, with documentation generated from their current validated manifest.
-
-Reading a plugin's documentation does not grant permissions, install remote tools or approve a destructive action. Docker, Kubernetes and database tools still need the appropriate target environment and access. Remote host-performance collection currently assumes Linux `/proc`.
-
-[Plugin specification](docs/plugin-spec.md) · [Agent and plugin reference index](skills/zxyssh/SKILL.md#plugin-discovery-and-references)
+[Agent collaboration model](docs/AGENT_COLLABORATION.md) · [Main Skill reference](skills/zxyssh/SKILL.md)
 
 ## Arrange it around the way you work
 
-**Keep context, not a pile of windows.** Terminals, documents and plugins can be split, rearranged and moved into separate windows. Save a layout and return to it; restoring the workspace is not a promise that an old network connection survives a process restart.
+**Keep context, not a pile of windows.** Terminals and documents can be split, rearranged and moved into separate windows. Save a layout and return to it; restoring the workspace is not a promise that an old network connection survives a process restart.
 
 **Make long sessions comfortable.** Choose light or dark themes, follow the system appearance, adjust terminal fonts and cursors, and use keyboard navigation or reduced-motion settings. The application has English and Simplified Chinese UI; the Japanese README is a documentation translation, not a claim of Japanese UI support.
 
@@ -124,32 +104,31 @@ Reading a plugin's documentation does not grant permissions, install remote tool
 
 ## The SSH essentials are still here
 
-Local forwarding, SOCKS5 and reverse forwarding sit alongside session recording and playback. Saved tunnel configurations reduce repetitive setup; session cleanup also tears down associated tunnels and recordings. Check bind addresses before exposing a service beyond loopback.
+Host identity is checked before authentication, including the real destination behind a jump host, and a changed fingerprint stops the connection instead of warning its way through. Session recording can be turned on and its files are listed and deletable from Settings; the current interface does not ship a playback player. Credentials, sudo passwords and agent activity use encrypted local storage. That is not OS Keychain custody or protection from a compromised local account. A correct private key does not justify accepting an unexpected server fingerprint.
 
-Optional encrypted **Gist/WebDAV sync** carries server metadata, groups, snippets and plugin installations between your own setups. It is not a zxySSH-hosted SSH relay. Login credentials, host-key trust, live terminal sessions and agent activity history stay outside that sync. Protect provider tokens and recovery material, and review plugin settings before sharing an export.
-
-SSH host identity is checked before authentication, including the real destination behind a jump host. Credentials and agent activity use encrypted local storage. That is not OS Keychain custody or protection from a compromised local account. A correct private key does not justify accepting an unexpected server fingerprint.
+Optional encrypted **Gist/WebDAV sync** carries server metadata and groups between your own setups. It is not a zxySSH-hosted SSH relay. Login credentials, host-key trust, live terminal sessions and agent activity history stay outside that sync. Protect provider tokens and recovery material.
 
 ## Linux server and cross-platform agents
 
-The Linux-hosted service targets Ubuntu/Debian servers. Remote Hermes Agents can connect from any operating system with MCP HTTP support. zxySSH does not provide macOS or Windows desktop or native CLI packages.
+The Linux-hosted service targets Ubuntu/Debian servers. Remote Agents can connect from any operating system with MCP HTTP support. zxySSH does not provide macOS or Windows desktop or native CLI packages.
 
 [Linux server installation and LAN MCP setup](docs/LAN-MCP-UBUNTU-DEBIAN.md) · [Standalone CLI installation](cli/README.md)
 
+The `zxyssh` binary is the service and its administration surface. It runs the listener, mints pairing codes, lists and revokes Agents, handles headless host-key trust, and stores credentials on the host:
+
 ```bash
-zxyssh import auto --dry-run    # Review, then run without --dry-run to import.
-zxyssh servers
-zxyssh ssh my-server
-zxyssh ssh my-server -- uname -a
-zxyssh sessions
-zxyssh sftp my-server ls /srv/app
+zxyssh mcp serve                        # run the listener (systemd Type=simple)
+zxyssh mcp pair-code                    # one-time code for the next Agent
+zxyssh mcp agents                       # paired Agents and revocation state
+zxyssh mcp credential set my-server     # read the secret from piped stdin
+zxyssh mcp hostkey probe my-server      # headless TOFU before a connection
 ```
 
-Replace `my-server` with a saved name. Use an alias returned by `sessions` with `zxyssh ssh-session ALIAS -- pwd`; add `--new` when you need a separate connection. For complex quoting, use `--command-file` or `--command-stdin`. Never put passwords or private keys in command-line arguments or agent prompts.
+A LAN listener needs a concrete bind address and an explicit opt-in, and refuses to start while no Agent is paired. Never put passwords or private keys in command-line arguments or Agent prompts.
 
-The CLI can start a daemon when needed; the GUI can attach to its sessions. The process owning a connection must remain alive: daemon-owned sessions can outlive the GUI, while GUI-owned ones end when that GUI exits. Upgrade the desktop and CLI together, and save ongoing work before restarting.
+The desktop and the service share one database when they run as the same user, so sites added in the UI are the sites an Agent can use. The process owning a connection must remain alive: service-owned sessions can outlive the GUI, while GUI-owned ones end when that GUI exits. Upgrade the desktop and CLI together, and save ongoing work before restarting.
 
-Mobile targets remain experimental. Common OpenSSH paths are tested, but not every MFA flow, hardware token or SSH implementation. Proposed CLI server-create/delete and Teleport support are not part of the current 1.1.0 release.
+Mobile targets remain experimental. Common OpenSSH paths are tested, but not every MFA flow, hardware token or SSH implementation.
 
 ## Build, contribute, or explore the implementation
 
@@ -168,7 +147,7 @@ Before a PR: `node scripts/check-release.mjs`, `npm test`, `npm run build`, `car
 
 CI builds and releases are **manual-only**. Maintainers run CI on the PR head before merging; pushing code or a version tag does not compile or publish. Release runs from `main` and defaults to a draft unless publication is explicitly selected. Required checks, signatures and complete-source validation remain in place.
 
-Docker inventory improvements and the remaining container-session/proxy work are tracked in the [September issue review](docs/ISSUE_TRIAGE_2026-09.md). A Docker plugin command is not a persistent container session; an SSH SOCKS forwarding listener is not an outbound proxy setting.
+Docker inventory improvements and the remaining container-session/proxy work are tracked in the [September issue review](docs/ISSUE_TRIAGE_2026-09.md). A container listing command is not a persistent container session; a SOCKS forwarding listener is not an outbound proxy setting.
 
 [Contributing](CONTRIBUTING.md) · [Architecture](AGENTS.md) · [Release process](docs/RELEASING.md) · [Collaboration API](docs/AGENT_COLLABORATION.md)
 
@@ -176,4 +155,4 @@ Report security concerns through [private security reporting](https://github.com
 
 ## License
 
-zxySSH 1.1.0 and later are distributed as a whole under **GPL-3.0-only**. See [LICENSE](LICENSE), [NOTICE](NOTICE) and the [preserved MIT notice](licenses/legacy-MIT.txt). Earlier MIT permissions are not revoked; third-party components keep their own licenses. Release downloads include corresponding source and notices. No warranty is provided to the extent permitted by law.
+zxySSH 2.0.0 and later are distributed as a whole under **GPL-3.0-only**. See [LICENSE](LICENSE), [NOTICE](NOTICE) and the [preserved MIT notice](licenses/legacy-MIT.txt). Earlier MIT permissions are not revoked; third-party components keep their own licenses. Release downloads include corresponding source and notices. No warranty is provided to the extent permitted by law.

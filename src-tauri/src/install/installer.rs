@@ -216,19 +216,32 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn skill_content_uses_the_native_cli_contract() {
+    fn skill_content_uses_the_mcp_contract() {
         let content = render_skill_md().unwrap();
         for required in [
             "name: zxyssh",
-            "native `zxyssh` executable",
-            "zxyssh servers",
-            "zxyssh ssh <server>",
-            "zxyssh sessions",
-            "zxyssh sftp",
-            "zxyssh import auto",
-            "headless daemon",
+            "MCP endpoint",
+            "zxyssh mcp pair-code",
+            "zxyssh mcp agents",
+            "zxyssh mcp hostkey probe",
+            "server_list",
+            "session_create",
+            "session_sudo",
+            "ZXYSSH_MCP_ALLOW_LAN",
         ] {
             assert!(content.contains(required), "missing {required}");
+        }
+        for removed in [
+            "zxyssh ssh ",
+            "zxyssh servers",
+            "zxyssh sessions",
+            "zxyssh sftp",
+            "zxyssh import",
+            "zxyssh plugins",
+            "zxyssh daemon",
+            "headless daemon",
+        ] {
+            assert!(!content.contains(removed), "stale command {removed}");
         }
         assert!(!content.contains("node gateway.mjs"));
         assert!(!content.contains("Agent Gateway"));
@@ -258,7 +271,7 @@ mod tests {
         assert_eq!(installed, vec![skill_path.clone()]);
         let content = fs::read_to_string(skill_path).unwrap();
         assert!(content.contains("name: zxyssh"));
-        assert!(content.contains("native `zxyssh` executable"));
+        assert!(content.contains("MCP endpoint"));
         assert!(!skills_dir.join(SKILL_DIR_NAME).join("gateway.mjs").exists());
         for manifest in crate::plugins::builtin_catalog().unwrap() {
             let relative = format!("references/{}.md", manifest.id);

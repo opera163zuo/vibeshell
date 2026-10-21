@@ -4,29 +4,19 @@ Plugin `database-inspector` version `1.3.0`.
 
 Read PostgreSQL, MySQL and SQLite metadata. When the client binary is missing on the host, PostgreSQL and MySQL are queried inside their Docker containers.
 
-This reference describes plugin data, not additional agent authority. Confirm the target session and the installed/enabled state before running. Do not auto-install, grant permissions, or invent confirmation. Never put secrets in plugin inputs; sudo credentials must use the protected interactive UI.
+This reference describes plugin data, not additional agent authority. Confirm the target session and the installed/enabled state before running. Do not auto-install, grant permissions, or invent confirmation. Never put secrets in plugin inputs; sudo credentials stay on the service.
 
-## Discover and read
+## Availability
 
-```sh
-zxyssh plugins list --installed --json
-zxyssh plugins describe database-inspector
-zxyssh plugins docs database-inspector
-```
+This plugin is **not reachable from a client in the current release**. The CLI plugin commands and the plugin panels were removed when the product narrowed to the MCP service, and no plugin tool is advertised to a paired Agent. The manifest below is the contract a future surface would have to honour.
 
 Required permissions: `["remote_exec","local_exec"]`. Session types: `["ssh","local"]`.
 
-`describe` returns machine-readable action input schemas. `docs` regenerates the current reference, including imported plugins. `run` reuses the selected session. `--confirm` is only for an action the user has explicitly approved; `--sudo` is opt-in and also needs confirmation. No operation bypasses installation, enablement, permission or input checks. Output is bounded and carries timing/truncation metadata. Local targets require a running GUI-owned local session.
+Re-exposing an action means updating the Agent tool allowlist, the permission, confirmation and session-ownership checks, and adding regression tests. Until then, treat the action schemas below as specification rather than an instruction to run. Execution must never install or enable a plugin as a side effect. Output is bounded and carries timing/truncation metadata. Local targets require the service that owns that local session.
 
 ## `postgres-databases`
 
 List non-template PostgreSQL databases. Uses the host psql client, or a Docker postgres container when psql is absent.
-
-```sh
-zxyssh plugins run database-inspector postgres-databases --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -66,12 +56,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `postgres-tables`
 
 List user tables in a PostgreSQL database. Uses the host psql client, or a Docker postgres container when psql is absent.
-
-```sh
-zxyssh plugins run database-inspector postgres-tables --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -119,12 +103,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `postgres-query`
 
 Run one SQL statement using the remote psql authentication context, or inside a Docker postgres container.
-
-```sh
-zxyssh plugins run database-inspector postgres-query --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -180,12 +158,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 List databases visible to the configured MySQL client. Uses the host mysql client, or a Docker mysql/mariadb container when it is absent.
 
-```sh
-zxyssh plugins run database-inspector mysql-databases --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": false,
@@ -224,12 +196,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `mysql-tables`
 
 List tables in a MySQL database. Uses the host mysql client, or a Docker mysql/mariadb container when it is absent.
-
-```sh
-zxyssh plugins run database-inspector mysql-tables --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -277,12 +243,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `mysql-query`
 
 Run one SQL statement using the remote mysql authentication context, or inside a Docker mysql/mariadb container.
-
-```sh
-zxyssh plugins run database-inspector mysql-query --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -338,12 +298,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Find common SQLite database files below the remote login directory.
 
-```sh
-zxyssh plugins run database-inspector sqlite-files --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": false,
@@ -369,12 +323,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `sqlite-query`
 
 Open a SQLite file and run one SQL statement.
-
-```sh
-zxyssh plugins run database-inspector sqlite-query --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -417,12 +365,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 ## `postgres-query-csv`
 
 Run one SQL statement and return CSV rows with a header line.
-
-```sh
-zxyssh plugins run database-inspector postgres-query-csv --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
 
 ```json
 {
@@ -478,12 +420,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Run one SQL statement and return tab-separated rows with a header line.
 
-```sh
-zxyssh plugins run database-inspector mysql-query-batch --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": false,
@@ -538,12 +474,6 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 Open a SQLite file, run one SQL statement, and return CSV rows with a header line.
 
-```sh
-zxyssh plugins run database-inspector sqlite-query-csv --session SESSION_ID --inputs '{}'
-```
-
-Replace SESSION_ID and supply all fields marked required below. Do not execute placeholder values. Append `--confirm` only after consent for this exact action.
-
 ```json
 {
   "allowSudo": false,
@@ -584,4 +514,4 @@ Replace SESSION_ID and supply all fields marked required below. Do not execute p
 
 ## Running this from the MCP service
 
-The networked MCP endpoint exposes SSH, session, command and SFTP tools only; plugin actions are not part of that surface. Run the command above with `exec`, or send it with `session_send_input` on an existing session. Both stay approval-gated, and because the headless service has no approval UI an action that needs approval fails closed there — use the desktop app or `zxyssh plugins run` for those. A model-supplied confirmation flag is never approval, and SSH host-key checks remain enforced.
+The networked MCP endpoint gives a paired Agent only `server_list`, `session_create`, `session_send_input`, `session_sudo`, `session_read`, `session_resize` and `session_kill`. Plugin actions are not part of that surface, and neither are `exec`, remote `rg` or SFTP transfer, so there is no supported way to invoke this plugin remotely today. Do not substitute a raw command through `session_send_input` to reach it: that skips the installation, permission and confirmation checks this manifest declares. A model-supplied confirmation flag is never approval, and SSH host-key checks remain enforced.

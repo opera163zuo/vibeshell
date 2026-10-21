@@ -1,11 +1,11 @@
 # zxySSH — Agent Guide
 
 ## Overview
-zxySSH is a modern SSH/SFTP desktop terminal built with **Tauri 2** (Rust backend) and **React 18** (TypeScript frontend). It supports multi-session SSH, SFTP file management, SSH tunneling, local shell, session recording, jump hosts, and AI tool integration.
+zxySSH is a modern SSH/SFTP desktop terminal built with **Tauri 2** (Rust backend) and **React 18** (TypeScript frontend). It manages SSH sites, multi-session terminals, SFTP file operations, local shell, session recording, jump hosts, and an MCP service that lets a paired AI Agent drive those terminals without ever holding a credential.
 
 ## Branch and release workflow
 
-All feature, fix and documentation PRs target `dev`, the default integration branch. `main` accepts release promotions from the same repository's `dev`; `master` is historical. See CONTRIBUTING.md. CI compilation and release packaging/publication are **manual-only** (`workflow_dispatch`); neither pushes, PRs nor tags trigger them. PR Target remains automatic and all existing required CI checks remain enforced: a maintainer runs CI on the PR head before merging. Release runs from `main`, requires successful manual CI on the exact tagged commit, and defaults to an unpublished draft unless `publish=true` is explicitly selected. Do not auto-bump versions or dispatch publication without authorization. zxySSH 1.1.0 is GPL-3.0-only; preserve NOTICE and third-party attribution.
+All feature, fix and documentation PRs target `dev`, the default integration branch. `main` accepts release promotions from the same repository's `dev`; `master` is historical. See CONTRIBUTING.md. CI compilation and release packaging/publication are **manual-only** (`workflow_dispatch`); neither pushes, PRs nor tags trigger them. PR Target remains automatic and all existing required CI checks remain enforced: a maintainer runs CI on the PR head before merging. Release runs from `main`, requires successful manual CI on the exact tagged commit, and defaults to an unpublished draft unless `publish=true` is explicitly selected. Do not auto-bump versions or dispatch publication without authorization. Never move or recreate an existing tag: `v2.0.0` currently sits on `feature/lan-mcp-gateway` and is not reachable from `main`, so a workflow-compliant release needs a promotion to `main` plus a new tag. zxySSH 2.0.0 is GPL-3.0-only; preserve NOTICE and third-party attribution.
 
 ## Architecture
 
@@ -54,7 +54,10 @@ SessionManager.create_with_credentials()
 - Credentials are **encrypted at rest**: AES-256-GCM with a device-local key (`src-tauri/src/storage/crypto.rs`); encrypted values carry an `enc:v1:` prefix and a startup migration encrypts legacy plaintext rows
 - SSH host-key verification is **TOFU, enforced server-side** in the connect flow: `probe_host_key` → user approval → connect; a changed host key hard-fails before authentication
 - Terminal output events are **base64-encoded and coalesced** — the frontend must base64-decode event payloads before writing to xterm
-- The CLI↔GUI IPC directory is per-user **0700**, with a private socket. GUI startup owns the service when available or attaches to an existing daemon. Route each operation to its session's owner.
+- The service↔GUI IPC directory is per-user **0700**, with a private socket. GUI startup owns the service when available or attaches to an existing one. Route each operation to its session's owner.
+- MCP transport is plain HTTP bearer tokens, accepted for a trusted internal network by explicit operator opt-in. Pairing is a single-use six-digit code (300 s TTL, five-attempt limit), tokens are stored as SHA-256 hashes, and revocation/rotation take effect on the next request. A LAN listener refuses wildcard addresses and will not start with zero paired Agents.
+- Paired Agents are limited by a tool allowlist plus session ownership, not only by prompt policy. `is_agent_tool`/`get_agent_tool_definitions` in `src-tauri/src/mcp/tools.rs` and the paired-Agent branch in `handle_tools_call` must stay in sync; `session_kill` rejects the batch form because ownership of one session must not grant authority over all of them.
+- Sudo is injected by the service only when the site has both a stored sudo credential and an exact command in `sudo_policies`; anything else fails closed.
 - Tests must use injected temporary databases/keys. Never call production data initializers in test helpers or run all ignored tests against user configuration.
 - Credentials must never enter Debug/activity output. Preserve exact secret bytes and atomic metadata/credential updates.
 
@@ -80,29 +83,28 @@ src-tauri/                    # Rust backend
   │   ├── ssh/                # SSH client (russh)
   │   ├── sftp/               # SFTP operations
   │   ├── session/            # Session + SessionManager
-  │   ├── tunnel/             # SSH tunneling (local/remote/dynamic)
+  │   ├── tunnel/             # Tunnel runtime retained for session cleanup only (no UI/commands)
   │   ├── logging/            # Session recording
-  │   ├── storage/            # Database + models + credential crypto (crypto.rs)
+  │   ├── storage/            # Database + models + credential/sudo crypto (crypto.rs)
   │   ├── local_shell/        # Local terminal (portable-pty)
-  │   ├── ipc/                # CLI↔GUI IPC socket (per-user 0700)
-  │   ├── mcp/                # MCP server for AI tools
+  │   ├── ipc/                # Service↔GUI IPC socket (per-user 0700)
+  │   ├── mcp/                # MCP service: HTTP JSON-RPC, pairing, Agent tool surface
   │   ├── install/            # AI tool skill installer
   │   ├── cloud_sync/         # Encrypted cloud sync vault
-  │   ├── coding_agent/       # AI coding-agent gateway (command approvals)
   │   ├── dbconn/             # Database connection management
-  │   ├── platform/           # Platform/window integration
-  │   ├── plugins/            # Plugin runtime
+  │   ├── platform/           # Platform/window integration, legacy app-data migration
+  │   ├── plugins/            # Plugin runtime (no marketplace UI or Agent tools)
   │   └── lib.rs              # App entry, command registration
   └── Cargo.toml
 
-cli/                          # CLI client (workspace member)
+cli/                          # zxyssh binary: runs and administers the MCP service only
 
 plugins/                      # Built-in plugin catalog (workspace member: zxyssh-plugins)
 ├── src/lib.rs                # Plugin spec: manifest types, validation, command rendering
 └── builtin/<plugin-id>/plugin.json   # One directory per built-in plugin
 ```
 
-**Plugin spec:** `docs/plugin-spec.md` is normative. Built-in plugins live in `plugins/builtin/<id>/plugin.json` and must be registered in `BUILTIN_MANIFESTS` (plugins/src/lib.rs); a test enforces directory ↔ registration parity. Plugin installations sync/back up as the `plugin_installation` entity (see storage/sync.rs).
+**Plugin spec:** `docs/plugin-spec.md` is normative. Built-in plugins live in `plugins/builtin/<id>/plugin.json` and must be registered in `BUILTIN_MANIFESTS` (plugins/src/lib.rs); a test enforces directory ↔ registration parity. The catalog, its reference documents and `check-release.mjs` parity remain enforced, but plugin actions are not exposed to the CLI or to paired Agents; changing that requires new tool-surface work, not a docs change.
 
 ## Database Schema (SQLite)
 
@@ -112,10 +114,12 @@ plugins/                      # Built-in plugin catalog (workspace member: zxyss
 | `groups` | Server organization groups |
 | `credentials` | Device-local credential storage (encrypted at rest, see Security Model) |
 | `server_credentials` | Per-server saved credentials |
-| `tunnel_configs` | Persistent SSH tunnel configurations |
-| `command_snippets` | Saved command templates |
+| `sudo_credentials` | Per-server sudo passwords (encrypted, service-side injection only) |
+| `sudo_policies` | Per-server exact allowlist of non-interactive sudo commands |
 | `recordings` | Session recording metadata |
 | `settings` | App settings (key-value) |
+| `agent_activity` | Durable Agent/MCP operation history |
+| `tunnel_configs`, `command_snippets`, `command_history`, `plugin_installations` | Legacy tables kept for existing installations; no current UI writes them |
 
 ## Stores (Frontend State)
 
@@ -126,29 +130,26 @@ Stores in `src/stores/` (`cloudSyncCoordinator.ts` is a non-store orchestrator a
 | `agentApprovalStore` | Approvals for dangerous AI-agent commands (Agent Gateway) |
 | `agentActivityStore` | Durable operation history, incremental recovery and pagination |
 | `cloudSyncStore` | Cloud sync provider pairing/vault state |
-| `commandHistoryStore` | Per-server command history |
 | `dbConnectionsStore` | Database connection profiles |
 | `fileWorkspaceStore` | Open local/SFTP files + viewer state |
 | `fingerprintStore` | SSH host key verification |
 | `localShellStore` | Local terminal sessions |
 | `navigationStore` | View routing (main/settings) |
 | `notificationStore` | Toast notifications |
-| `pluginStore` | Installed plugin records (fetch/install/export) |
-| `pluginWorkspaceStore` | Plugin panels opened per (session, plugin) |
 | `recordingStore` | Session recording state |
 | `runtimeCapabilitiesStore` | Runtime capability flags (platform, local shell, agent gateway, updater) |
 | `serverStore` | Server/group CRUD |
 | `sessionStore` | SSH session lifecycle |
 | `settingsStore` | App settings + themes + AI tool config |
-| `snippetStore` | Command snippet management |
-| `tunnelStore` | SSH tunnel configs + active tunnels |
 | `updateStore` | App update check/download state |
 
-## Tauri Commands (135+ commands)
+`tunnelStore.ts` still exists but has no importers; the tunnel UI and its Tauri commands were removed.
 
-Organized by module under `src-tauri/src/commands/`: `session`, `server`, `sftp`, `fingerprint`, `local_shell`, `snippet`, `tunnel`, `logging`, `install`, `dialog`, `settings`, `cloud_sync`, `dbconn`, `plugin`, `coding_agent`, `local_files`, `workspace_window`, `history`, `agent`, `app`, `platform`.
+## Tauri Commands
 
-All registered in `src-tauri/src/lib.rs` → `invoke_handler`.
+Organized by module under `src-tauri/src/commands/`: `session`, `server`, `sftp`, `fingerprint`, `local_shell`, `local_shell_mobile`, `logging`, `install`, `dialog`, `settings`, `cloud_sync`, `dbconn`, `plugin`, `local_files`, `workspace_window`, `agent`, `app`, `platform`.
+
+All registered in `src-tauri/src/lib.rs` → `invoke_handler`. The `snippet`, `history`, `tunnel` and `coding_agent` command modules were removed with their UI; do not re-register them to fix a missing frontend call.
 
 ## Build & Run
 

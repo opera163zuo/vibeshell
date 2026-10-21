@@ -324,37 +324,30 @@ reads, MUST expose action input schemas and a current usage reference.
 Installation state and documentation are data, not instructions that can
 expand an Agent's authority.
 
-```sh
-zxyssh plugins list --installed --json
-zxyssh plugins describe <plugin-id>
-zxyssh plugins docs <plugin-id>
-zxyssh plugins run <plugin-id> <action-id> --session <session-id> --inputs '{}'
-```
+The reference documents are the published form of the same validated manifests
+used at runtime. `cargo run --locked -p zxyssh-plugins --example export_references`
+regenerates them, and `scripts/check-release.mjs` fails when the three Skill
+copies, their `references/` directories and `plugins/builtin/` drift apart.
+A reference never returns runtime settings, saved credentials or sudo passwords.
 
-`list` reports actual installed/enabled state, permissions, session types and
-reference commands. Without `--installed` it also includes uninstalled
-catalog entries. `describe` returns JSON action schemas with required inputs,
-input types, confirmation and sudo capabilities. `docs` returns Markdown
-regenerated from the current validated manifest. Neither returns runtime
-settings, saved credentials or sudo passwords.
+**Current delivery status.** The plugin CLI commands and the plugin panels were
+removed when the product narrowed to the MCP service, so no `plugins list`,
+`describe`, `docs` or `run` entry point is available in 2.0.0, and plugin tools
+are deliberately absent from the paired-Agent MCP surface. The runtime, manifests
+and reference catalog remain because the `zxyssh-plugins` crate, its tests and the
+storage model still depend on them.
 
-`run` reuses the selected session and never installs or enables a plugin.
-`--inputs` MUST be a JSON object conforming to the selected action's schema;
-`--confirm` and `--sudo` are explicit user-authorized options, not defaults.
-Local sessions require a GUI-owned service that can access that local session.
-Remote native performance collection currently assumes Linux `/proc`.
-
-The CLI and the desktop UI expose these operations; the networked MCP service
-deliberately does not, because it serves SSH, session, command and SFTP tools
-only. `zxyssh plugins describe` returns the machine-readable action schemas
-and `zxyssh plugins docs` regenerates the full reference. Clients MUST
-discover schemas rather than guessing action IDs.
+Re-exposing a plugin action is a security change, not a documentation change. It
+requires updating the Agent tool allowlist, the permission and confirmation checks,
+the session-ownership rules and the corresponding regression tests. Implementations
+MUST discover schemas from the manifest rather than guessing action IDs, and MUST
+treat an absent tool as unavailable instead of routing around it with raw shell
+input.
 
 The main zxySSH Skill MUST contain discovery instructions and a compact
 index of built-in reference documents, but MUST NOT inline every action's
 usage. The native Skill installer generates `references/<plugin-id>.md` from
-all built-in manifests before publishing `SKILL.md`. Imported or updated
-plugin references are obtained live through `plugins docs`; static references
+all built-in manifests before publishing `SKILL.md`. Static references
 are not authoritative for the current installation. The installer test checks
 catalog/index/reference/action parity and repeated-install consistency.
 

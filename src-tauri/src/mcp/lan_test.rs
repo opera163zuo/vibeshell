@@ -232,6 +232,28 @@ async fn tools_list_and_an_authorized_read_only_tool_call() {
 }
 
 #[tokio::test]
+async fn paired_agents_cannot_terminate_all_sessions() {
+    let service = TestService::start().await;
+    let token = service.pair_token("hermes-kill-boundary").await;
+
+    let rejected = service
+        .rpc(
+            Some(&token),
+            json!({"jsonrpc":"2.0","id":31,"method":"tools/call",
+                   "params":{"name":"session_kill","arguments":{"session_id":"unowned","all":true}}}),
+        )
+        .await;
+    let rejected: Value = rejected.json().await.expect("session kill boundary body");
+    assert_eq!(rejected["error"]["code"], -32602);
+    assert_eq!(
+        rejected["error"]["message"],
+        "Paired Agents may only terminate their own sessions"
+    );
+
+    service.shutdown();
+}
+
+#[tokio::test]
 async fn pairing_code_is_single_use_and_wrong_codes_are_rejected() {
     let service = TestService::start().await;
     let code = service.mint_code();
