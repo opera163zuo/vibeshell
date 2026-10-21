@@ -57,7 +57,7 @@ A failed or partial run must remain a draft. Do not mark it latest or overwrite 
 
 ## Signatures and source
 
-`TAURI_SIGNING_PRIVATE_KEY` and optional `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` belong in GitHub Actions secrets. They must match the public updater key already shipped to users. Validate cryptographically; matching a comment's key ID is not enough. Never print or replace the key just to make CI pass.
+`TAURI_SIGNING_PRIVATE_KEY` and optional `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` belong in GitHub Actions secrets. They must match the public updater key in `src-tauri/tauri.conf.json`. Validate cryptographically; matching a comment's key ID is not enough. Never print or replace the key just to make CI pass. This repository signs with its own keypair, introduced with 2.0.1 when no signed artifact had been published yet; replacing it again is only legitimate the same way - before anything signed by the old key has shipped, and with the new key stored outside the repository as described in [updater signing](release-updater.md).
 
 macOS and Windows build/signing workflows are not used: the published desktop and native CLI artifacts target Linux x64 only. Rebuild and sign updater archives after any modification to the application bundle; a signed old archive is not the repaired application.
 

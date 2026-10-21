@@ -111,7 +111,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERBNzAyNzI3MENGQUZENEEKUldSSy9mb01KeWR3Mmtvdng3VjhNOVNZQzFwRlBNSGFVcDZwLzJlUXhSWGJCNENJZjB0UEVVVFUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQwREM0QjQ1M0RFNUYwQTYKUldTbThPVTlSVXZjMEh0RWtJWnRhczZBcEhSU2NtbDQ4TTk0emEyWlEwYUhzZ0F3TFdMTVFKcm0K",
       "endpoints": [
         "https://github.com/opera163zuo/zxyssh/releases/latest/download/latest.json"
       ]
