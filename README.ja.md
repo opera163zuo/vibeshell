@@ -155,4 +155,4 @@ Docker の一覧改善と、独立コンテナーセッション・送信プロ�
 
 ## ライセンス
 
-zxySSH 2.0.0 以降の全体は **GPL-3.0-only** です。[LICENSE](LICENSE)、[NOTICE](NOTICE)、[保存された MIT 通知](licenses/legacy-MIT.txt) を参照してください。既存の MIT 許諾は取り消さず、第三者はそれぞれのライセンスを保持します。リリースには対応ソースと通知を用意し、法律で許される範囲で無保証とします。
+zxySSH は 1.1.0 以降、全体として **GPL-3.0-only** で配布されています。[LICENSE](LICENSE)、[NOTICE](NOTICE)、[保存された MIT 通知](licenses/legacy-MIT.txt) を参照してください。既存の MIT 許諾は取り消さず、第三者はそれぞれのライセンスを保持します。リリースには対応ソースと通知を用意し、法律で許される範囲で無保証とします。

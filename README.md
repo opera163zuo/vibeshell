@@ -155,4 +155,4 @@ Report security concerns through [private security reporting](https://github.com
 
 ## License
 
-zxySSH 2.0.0 and later are distributed as a whole under **GPL-3.0-only**. See [LICENSE](LICENSE), [NOTICE](NOTICE) and the [preserved MIT notice](licenses/legacy-MIT.txt). Earlier MIT permissions are not revoked; third-party components keep their own licenses. Release downloads include corresponding source and notices. No warranty is provided to the extent permitted by law.
+zxySSH has been distributed as a whole under **GPL-3.0-only** since 1.1.0. See [LICENSE](LICENSE), [NOTICE](NOTICE) and the [preserved MIT notice](licenses/legacy-MIT.txt). Earlier MIT permissions are not revoked; third-party components keep their own licenses. Release downloads include corresponding source and notices. No warranty is provided to the extent permitted by law.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 — 2026-10-21
+## 2.0.1 — 2026-10-21
 
 ### zxySSH, with an Agent-facing MCP service at the centre
 

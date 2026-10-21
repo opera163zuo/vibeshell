@@ -332,10 +332,10 @@ A reference never returns runtime settings, saved credentials or sudo passwords.
 
 **Current delivery status.** The plugin CLI commands and the plugin panels were
 removed when the product narrowed to the MCP service, so no `plugins list`,
-`describe`, `docs` or `run` entry point is available in 2.0.0, and plugin tools
-are deliberately absent from the paired-Agent MCP surface. The runtime, manifests
-and reference catalog remain because the `zxyssh-plugins` crate, its tests and the
-storage model still depend on them.
+`describe`, `docs` or `run` entry point is available in the 2.0 line, and plugin
+tools are deliberately absent from the paired-Agent MCP surface. The runtime,
+manifests and reference catalog remain because the `zxyssh-plugins` crate, its
+tests and the storage model still depend on them.
 
 Re-exposing a plugin action is a security change, not a documentation change. It
 requires updating the Agent tool allowlist, the permission and confirmation checks,

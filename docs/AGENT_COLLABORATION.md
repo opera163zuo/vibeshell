@@ -38,7 +38,7 @@ This changes zxySSH's saved login information, not the remote OS account passwor
 
 ## Plugin runtime in this version
 
-`plugins/builtin/<id>/plugin.json`, `BUILTIN_MANIFESTS` and `docs/plugin-spec.md` remain in the repository, and the reference catalog under `skills/zxyssh/references/` is still parity-checked by `scripts/check-release.mjs`. In 2.0.0 no plugin action is reachable by a person or an Agent: the marketplace and panel UI were removed, the CLI plugin commands were removed, and plugin tools are not advertised over MCP.
+`plugins/builtin/<id>/plugin.json`, `BUILTIN_MANIFESTS` and `docs/plugin-spec.md` remain in the repository, and the reference catalog under `skills/zxyssh/references/` is still parity-checked by `scripts/check-release.mjs`. Since the 2.0 narrowing, no plugin action is reachable by a person or an Agent: the marketplace and panel UI were removed, the CLI plugin commands were removed, and plugin tools are not advertised over MCP.
 
 Treat the reference documents as maintenance-time descriptions of a runtime that is currently not exposed. Do not implement an Agent-facing plugin call by assuming a `plugins` command or a `plugin_*` MCP tool exists; adding that surface is a tool-allowlist, permission and approval change that needs its own design and tests.
 
