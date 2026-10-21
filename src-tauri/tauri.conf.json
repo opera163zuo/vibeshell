@@ -1,9 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "VibeShell",
-  "version": "1.1.0",
-  "identifier": "com.vibeshell.desktop",
-  "mainBinaryName": "vibeshell-desktop",
+  "productName": "zxySSH",
+  "version": "2.0.1",
+  "identifier": "com.zxyssh.desktop",
+  "mainBinaryName": "zxyssh-desktop",
   "build": {
     "beforeDevCommand": "node node_modules/vite/bin/vite.js",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "VibeShell",
+        "title": "zxySSH",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
@@ -104,16 +104,16 @@
           "wix-path-fragment.wxs"
         ],
         "componentGroupRefs": [
-          "VshellPathEnvGroup"
+          "ZxysshPathEnvGroup"
         ]
       }
     }
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERBNzAyNzI3MENGQUZENEEKUldSSy9mb01KeWR3Mmtvdng3VjhNOVNZQzFwRlBNSGFVcDZwLzJlUXhSWGJCNENJZjB0UEVVVFUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQwREM0QjQ1M0RFNUYwQTYKUldTbThPVTlSVXZjMEh0RWtJWnRhczZBcEhSU2NtbDQ4TTk0emEyWlEwYUhzZ0F3TFdMTVFKcm0K",
       "endpoints": [
-        "https://github.com/veithly/vibeshell/releases/latest/download/latest.json"
+        "https://github.com/opera163zuo/zxyssh/releases/latest/download/latest.json"
       ]
     }
   }

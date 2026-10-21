@@ -111,14 +111,18 @@ impl Crypto {
             .ok_or_else(|| anyhow!("Device crypto failed to initialize"))
     }
 
-    /// Shared loader; SSH and database passwords retain independent legacy keys.
+    /// Shared loader for a prefix's device key pair.
     pub(crate) fn from_device_key_files(prefix: &str) -> Result<Self> {
-        let dirs = directories::ProjectDirs::from("com", "vibeshell", "VibeShell")
-            .ok_or_else(|| anyhow!("Could not determine the device key directory"))?;
-        Self::from_key_files(dirs.data_dir(), prefix)
+        let app_dir = crate::platform::default_app_data_dir()?;
+        Self::from_key_files_impl(&app_dir, prefix)
     }
 
+    #[cfg(test)]
     fn from_key_files(app_dir: &std::path::Path, prefix: &str) -> Result<Self> {
+        Self::from_key_files_impl(app_dir, prefix)
+    }
+
+    fn from_key_files_impl(app_dir: &std::path::Path, prefix: &str) -> Result<Self> {
         use std::fs::OpenOptions;
         use std::io::{ErrorKind, Write};
 

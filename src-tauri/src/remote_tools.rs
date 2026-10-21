@@ -28,9 +28,9 @@ impl RemoteSearchOptions {
 
 /// Quote a string for POSIX shell usage.
 ///
-/// Canonical implementation lives in the `vibeshell-plugins` crate so plugin
+/// Canonical implementation lives in the `zxyssh-plugins` crate so plugin
 /// command rendering and the rest of the app share one quoting boundary.
-pub use vibeshell_plugins::shell_quote;
+pub use zxyssh_plugins::shell_quote;
 
 /// Build a remote command that searches with ripgrep and falls back to grep.
 pub fn build_remote_rg_command(options: &RemoteSearchOptions) -> String {

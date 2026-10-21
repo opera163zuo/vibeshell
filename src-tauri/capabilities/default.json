@@ -1,11 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for VibeShell",
+  "description": "Default capabilities for zxySSH",
   "platforms": [
+    "linux",
     "macOS",
-    "windows",
-    "linux"
+    "windows"
   ],
   "remote": {
     "urls": [

@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-22.04, windows-latest, macos-latest]
+        platform: [ubuntu-22.04]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -77,15 +77,14 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt
           rustup default stable
-      - run: cargo fmt --all -- --check
+          cargo fmt --all -- --check
       - run: cargo check --workspace --locked
       - run: cargo test --workspace --locked
-      - run: cargo run --locked -p vibeshell-plugins --example export_references -- --check
-      - name: iOS simulator compile check
-        if: runner.os == 'macOS'
+      - run: cargo run --locked -p zxyssh-plugins --example export_references -- --check
+      - name: Linux MCP service package check
         run: |
-          rustup target add aarch64-apple-ios-sim
-          cargo check --locked --manifest-path src-tauri/Cargo.toml --target aarch64-apple-ios-sim
+          cargo build --release --locked -p zxyssh --bin zxyssh
+          bash scripts/test-lan-mcp-gateway.sh
 
   check-clippy:
     name: Clippy Lint

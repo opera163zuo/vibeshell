@@ -1,5 +1,5 @@
 #!/bin/bash
-# VibeShell Test Runner
+# zxySSH Test Runner
 # Usage: ./scripts/test.sh [--backend] [--frontend] [--all]
 set -euo pipefail
 

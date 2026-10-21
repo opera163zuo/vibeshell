@@ -2,12 +2,12 @@ import type { Plugin } from 'vite';
 
 /** Opt-in, fixed native WebView smoke scenario. No HTTP control endpoint or supplied code. */
 export function nativeUiBridge(): Plugin {
-  const id = '/@vibeshell/native-ui-smoke';
+  const id = '/@zxyssh/native-ui-smoke';
   return {
-    name: 'vibeshell-native-ui-smoke', apply: 'serve',
+    name: 'zxyssh-native-ui-smoke', apply: 'serve',
     resolveId(source) { if (source === id) return id; },
     transformIndexHtml() { return [{ tag: 'script', attrs: { type: 'module', src: id }, injectTo: 'head' }]; },
-    configureServer(server) { server.ws.on('vibeshell:ui-smoke:report', data => console.log('[NATIVE_UI_SMOKE]', JSON.stringify(data))); },
+    configureServer(server) { server.ws.on('zxyssh:ui-smoke:report', data => console.log('[NATIVE_UI_SMOKE]', JSON.stringify(data))); },
     load(source) {
       if (source !== id) return;
       return `
@@ -17,9 +17,9 @@ import { captureTransfer, parseDetachTarget, useDetachedOwnership } from '/src/l
 import { requestDock } from '/src/lib/nativeDock.ts';
 import { getCurrentWindow, getAllWindows } from '@tauri-apps/api/window';
 const label = getCurrentWindow().label;
-const report = (stage, value) => import.meta.hot.send('vibeshell:ui-smoke:report', {label,stage,value});
+const report = (stage, value) => import.meta.hot.send('zxyssh:ui-smoke:report', {label,stage,value});
 const pause = ms => new Promise(r=>setTimeout(r,ms));
-const checkpointKey = 'vibeshell.ui-smoke.return';
+const checkpointKey = 'zxyssh.ui-smoke.return';
 const errors = [];
 window.addEventListener('error',e=>{errors.push(String(e.error?.stack??e.message));report('error',errors.at(-1));});
 window.addEventListener('unhandledrejection',e=>{errors.push(String(e.reason?.stack??e.reason));report('rejection',errors.at(-1));});
@@ -51,18 +51,18 @@ async function run(){
     }else{click(back);report('merge-button-clicked',true);}
     return;
   }
-  if(sessionStorage.getItem('vibeshell.ui-smoke.v5'))return;
-  sessionStorage.setItem('vibeshell.ui-smoke.v5','running');
+  if(sessionStorage.getItem('zxyssh.ui-smoke.v5'))return;
+  sessionStorage.setItem('zxyssh.ui-smoke.v5','running');
   await until(()=>useSessionStore.getState().sessions.length,'initial session');
-  const restart=JSON.parse(localStorage.getItem('vibeshell.ui-smoke.restart')??'null');
+  const restart=JSON.parse(localStorage.getItem('zxyssh.ui-smoke.restart')??'null');
   if(restart){
     await until(()=>panes().length===2,'restored two-pane layout');
     const sessions=useSessionStore.getState().sessions;
     if(sessions.length!==2||sessions[0].serverId!==restart.originalShell||sessions[1].serverId!==restart.testShell)throw new Error('Unexpected workspace; preserve it instead of cleanup');
-    const layout=JSON.parse(localStorage.getItem('vibeshell.workspace-layout.v2'));
+    const layout=JSON.parse(localStorage.getItem('zxyssh.workspace-layout.v2'));
     if(layout.tree.direction!=='column'||layout.tree.splitPercentage!==50)throw new Error('Restored layout differs');
     report('restart-restored',{oldIds:restart.ids,newIds:sessions.map(s=>s.id),tree:layout.tree,position:await getCurrentWindow().outerPosition(),size:await getCurrentWindow().innerSize()});
-    localStorage.removeItem('vibeshell.ui-smoke.restart');
+    localStorage.removeItem('zxyssh.ui-smoke.restart');
     click(tab(sessions[1].id).querySelector('button[aria-label^=Close]'));
     await until(()=>document.querySelector('[role=alertdialog]'),'close confirmation');
     click([...document.querySelectorAll('[role=alertdialog] button')].find(e=>e.textContent===i18n.t('session.closeLocalShell')));
@@ -70,7 +70,7 @@ async function run(){
     report('passed',{closeSession:true,restartLayout:true,remainingSessions:useSessionStore.getState().sessions.map(s=>s.id),errors});return;
   }
   // Recover only a test session explicitly recorded by this smoke scenario.
-  const interrupted=sessionStorage.getItem('vibeshell.ui-smoke.session');
+  const interrupted=sessionStorage.getItem('zxyssh.ui-smoke.session');
   if(useSessionStore.getState().sessions.some(s=>s.id===interrupted)){
     click(tab(interrupted).querySelector('button[aria-label^=Close]'));
     await until(()=>document.querySelector('[role=alertdialog]'),'recover test confirmation');
@@ -91,7 +91,7 @@ async function run(){
   await pause(300);
   click(shell);
   const created=await until(()=>useSessionStore.getState().sessions.find(s=>!before.includes(s.id)),'new shell');
-  const testId=created.id;sessionStorage.setItem('vibeshell.ui-smoke.session',testId);
+  const testId=created.id;sessionStorage.setItem('zxyssh.ui-smoke.session',testId);
   report('new-session-created',{id:testId,type:created.sessionType});
   await until(()=>!document.querySelector('[role=dialog]'),'launcher dismissed');
   click(tab(original));await pause(200);
@@ -109,7 +109,7 @@ async function run(){
   await until(()=>!useDetachedOwnership.getState().owners['session:'+testId],'drop back into bottom split');
   await until(()=>panes().length===2,'bottom split');report('native-drop-bottom',panes());
   click([...document.querySelectorAll('button')].find(e=>e.ariaLabel===i18n.t('workspaceLayout.save')));await pause(500);
-  report('saved-layout',JSON.parse(localStorage.getItem('vibeshell.workspace-layout.v2'))?.tree);
+  report('saved-layout',JSON.parse(localStorage.getItem('zxyssh.workspace-layout.v2'))?.tree);
   localStorage.removeItem(checkpointKey);
   click(tab(testId).querySelector('button[aria-label^=Close]'));
   await pause(100);
@@ -118,7 +118,7 @@ async function run(){
   if(!useSessionStore.getState().sessions.some(s=>s.id===testId))throw new Error('Cancel killed the session');
   report('before-restart',{scenarios:['new dialog','close dialog','new native session','left split','move top','tear-out','merge button','native bottom drop','layout save','cancel close'],errors});
   const sessions=useSessionStore.getState().sessions;
-  localStorage.setItem('vibeshell.ui-smoke.restart',JSON.stringify({ids:sessions.map(s=>s.id),originalShell:sessions[0].serverId,testShell:sessions[1].serverId}));
+  localStorage.setItem('zxyssh.ui-smoke.restart',JSON.stringify({ids:sessions.map(s=>s.id),originalShell:sessions[0].serverId,testShell:sessions[1].serverId}));
   await pause(400);
   click(document.querySelector('.titlebar-shell button[aria-label=Close]'));
   report('main-close-clicked',true);

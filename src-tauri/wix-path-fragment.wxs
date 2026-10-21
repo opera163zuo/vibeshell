@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   WiX fragment: adds the install directory to the user PATH environment
-  variable so that the `vibeshell` CLI is accessible from any terminal after
+  variable so that the `zxyssh` CLI is accessible from any terminal after
   MSI installation.  Removed automatically on uninstall (Permanent="no").
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
@@ -10,7 +10,7 @@
       <Component Id="VshellPathEnv" Guid="B7E3A1F0-9C42-4D8B-A6E5-1F0B3C7D9E2A">
         <RegistryValue
           Root="HKCU"
-          Key="Software\VibeShell"
+          Key="Software\zxySSH"
           Name="PathConfigured"
           Type="integer"
           Value="1"

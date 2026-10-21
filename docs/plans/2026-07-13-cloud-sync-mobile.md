@@ -4,7 +4,7 @@ Status: encrypted manual sync and mobile runtime foundation implemented
 
 ## Outcomes
 
-VibeShell should let a user move between desktop and mobile without rebuilding
+zxySSH should let a user move between desktop and mobile without rebuilding
 their remote workspace by hand. The mobile app remains a local SSH/SFTP client;
 the cloud sync plane stores only encrypted workspace data and does not proxy live
 terminal traffic.
@@ -227,7 +227,7 @@ resume/suspend integration remain follow-up work.
 
 Version 1 ships the provider-neutral protocol with private GitHub Gist and
 WebDAV adapters. Each user supplies the provider account and credentials;
-VibeShell does not operate a synchronization backend. Both adapters retain the
+zxySSH does not operate a synchronization backend. Both adapters retain the
 same client-side encryption and conflict semantics.
 
 iCloud-only or Google-Drive-only storage is not used because it breaks

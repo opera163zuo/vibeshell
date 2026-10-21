@@ -1,4 +1,4 @@
-# VibeShell Document Check
+# zxySSH Document Check
 
 **Readable Markdown**, `inline code`, and ordinary text.
 

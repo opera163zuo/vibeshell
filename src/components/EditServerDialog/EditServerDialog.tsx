@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useServerStore, isKeyAuthType, type Server, type AuthType, type UpdateServerInput } from '../../stores/serverStore';
 import { useSshKeyPicker } from '../../hooks/useSshKeyPicker';
 import { useNotificationStore } from '../../stores/notificationStore';
+import { safeInvoke } from '../../lib/tauri';
 
 interface EditServerDialogProps {
   isOpen: boolean;
@@ -35,6 +36,9 @@ export function EditServerDialog({ isOpen, server, onClose }: EditServerDialogPr
   const [newPassword, setNewPassword] = useState('');
   const [changePassphrase, setChangePassphrase] = useState(false);
   const [newPassphrase, setNewPassphrase] = useState('');
+  const [sudoPassword, setSudoPassword] = useState('');
+  const [sudoCommands, setSudoCommands] = useState('');
+  const [showSudoPassword, setShowSudoPassword] = useState(false);
   const { keyPath, keyContent, isLoadingKey, browseForSshKey, setKeyContent, reset } = useSshKeyPicker({ onError: setLocalError });
   const isKey = isKeyAuthType(formData.authType);
 
@@ -43,13 +47,16 @@ export function EditServerDialog({ isOpen, server, onClose }: EditServerDialogPr
   // previously cancelled dialog are discarded instead of leaking back in.
   useEffect(() => {
     if (!isOpen) {
-      setNewPassword(''); setNewPassphrase(''); setChangePassphrase(false); reset();
+      setNewPassword(''); setNewPassphrase(''); setChangePassphrase(false); setSudoPassword(''); setSudoCommands(''); setShowSudoPassword(false); reset();
       return;
     }
     if (server) {
       setNewPassword('');
       setNewPassphrase('');
       setChangePassphrase(false);
+      setSudoPassword('');
+      setSudoCommands('');
+      setShowSudoPassword(false);
       reset();
       setFormData({
         name: server.name,
@@ -124,12 +131,28 @@ export function EditServerDialog({ isOpen, server, onClose }: EditServerDialogPr
         ...(Object.keys(credentials).length ? { credentials } : {}),
       });
 
+      if (sudoPassword) {
+        const sudoResult = await safeInvoke<void>('save_sudo_credential', {
+          request: { serverName: formData.name.trim(), password: sudoPassword },
+        });
+        if (!sudoResult.success) throw new Error(sudoResult.error.message);
+      }
+      if (sudoCommands.trim()) {
+        const policyResult = await safeInvoke<void>('save_sudo_policy', {
+          request: {
+            serverName: formData.name.trim(),
+            commands: sudoCommands.split('\n').map((command) => command.trim()).filter(Boolean),
+          },
+        });
+        if (!policyResult.success) throw new Error(policyResult.error.message);
+      }
+
       notifySuccess('Server Updated', `${formData.name} has been updated successfully.`);
       onClose();
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to update server');
     }
-  }, [server, formData, updateServer, notifySuccess, onClose, isKey, newPassword, keyContent, keyPath, changePassphrase, newPassphrase, isLoadingKey]);
+  }, [server, formData, updateServer, notifySuccess, onClose, isKey, newPassword, keyContent, keyPath, changePassphrase, newPassphrase, isLoadingKey, sudoPassword]);
 
   const handleChange = useCallback((field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -271,7 +294,7 @@ export function EditServerDialog({ isOpen, server, onClose }: EditServerDialogPr
 
           <fieldset disabled={loading || isLoadingKey} className="space-y-3 border-t border-tokyo-bg-hl pt-3">
             <legend className="text-sm font-medium text-tokyo-fg">Saved credentials</legend>
-            <p className="text-xs text-tokyo-comment">Unchanged fields keep the saved credentials. This updates VibeShell's saved login, not the password on the server.</p>
+            <p className="text-xs text-tokyo-comment">Unchanged fields keep the saved credentials. This updates zxySSH's saved login, not the password on the server.</p>
             {!isKey ? (
               <div>
                 <label htmlFor="edit-server-password" className="block text-sm text-tokyo-fg mb-1">New password</label>
@@ -341,6 +364,48 @@ export function EditServerDialog({ isOpen, server, onClose }: EditServerDialogPr
               <label htmlFor="editAgentForwarding" className="text-sm text-tokyo-fg">
                 SSH Agent Forwarding
               </label>
+            </div>
+
+            {/* Saved sudo credential */}
+            <div>
+              <label className="block text-sm font-medium text-tokyo-fg mb-1">Sudo password (optional)</label>
+              <div className="relative">
+                <input
+                  type={showSudoPassword ? 'text' : 'password'}
+                  value={sudoPassword}
+                  onChange={(e) => setSudoPassword(e.target.value)}
+                  placeholder="Leave empty to keep the current value"
+                  className={cn(
+                    'w-full px-3 py-2 pr-10 rounded-md',
+                    'bg-tokyo-bg border border-tokyo-bg-hl text-tokyo-fg placeholder-tokyo-comment',
+                    'focus:outline-none focus:ring-1 focus:ring-tokyo-blue'
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSudoPassword(!showSudoPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-tokyo-comment hover:text-tokyo-fg"
+                  aria-label={showSudoPassword ? 'Hide sudo password' : 'Show sudo password'}
+                >
+                  {showSudoPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-tokyo-fg mb-1">Allowed sudo commands</label>
+              <textarea
+                value={sudoCommands}
+                onChange={(e) => setSudoCommands(e.target.value)}
+                placeholder="One exact command per line"
+                rows={3}
+                className={cn(
+                  'w-full px-3 py-2 rounded-md resize-y font-mono text-sm',
+                  'bg-tokyo-bg border border-tokyo-bg-hl text-tokyo-fg placeholder-tokyo-comment',
+                  'focus:outline-none focus:ring-1 focus:ring-tokyo-blue'
+                )}
+              />
+              <p className="mt-1 text-xs text-tokyo-comment">Sudo runs only commands that exactly match this list.</p>
             </div>
 
             {/* Post-login Command */}

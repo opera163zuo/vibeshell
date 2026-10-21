@@ -23,7 +23,7 @@ use super::tools::get_compact_tool_definitions;
 const MCP_PROTOCOL_VERSION: &str = "2024-11-05";
 
 /// Server name for MCP identification
-const SERVER_NAME: &str = "vibeshell";
+const SERVER_NAME: &str = "zxyssh";
 
 /// Server version for MCP identification
 const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -103,7 +103,7 @@ pub async fn run_stdio(
     let mut lines = reader.lines();
 
     // Log to stderr (stdout is reserved for JSON-RPC protocol)
-    eprintln!("[VibeShell MCP] Stdio server started, waiting for requests...");
+    eprintln!("[zxySSH MCP] Stdio server started, waiting for requests...");
 
     while let Ok(Some(line)) = lines.next_line().await {
         let line = line.trim().to_string();
@@ -123,7 +123,7 @@ pub async fn run_stdio(
                 resp
             }
             Err(e) => {
-                eprintln!("[VibeShell MCP] Parse error: {}", e);
+                eprintln!("[zxySSH MCP] Parse error: {}", e);
                 JsonRpcResponse::error(None, PARSE_ERROR, format!("Parse error: {}", e))
             }
         };
@@ -135,7 +135,7 @@ pub async fn run_stdio(
         stdout.flush().await?;
     }
 
-    eprintln!("[VibeShell MCP] Stdin closed, shutting down.");
+    eprintln!("[zxySSH MCP] Stdin closed, shutting down.");
     Ok(())
 }
 
@@ -180,7 +180,7 @@ async fn handle_request(state: &McpState, request: JsonRpcRequest) -> JsonRpcRes
         },
         "ping" => JsonRpcResponse::success(request.id, json!({})),
         _ => {
-            eprintln!("[VibeShell MCP] Unknown method: {}", request.method);
+            eprintln!("[zxySSH MCP] Unknown method: {}", request.method);
             JsonRpcResponse::error(
                 request.id,
                 METHOD_NOT_FOUND,
@@ -202,7 +202,7 @@ async fn handle_tool_call(state: &McpState, params: Option<Value>) -> Result<Val
     let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
 
     // Reuse the existing tool execution from the HTTP server
-    let result = super::server::execute_tool_public(state, name, &arguments).await;
+    let result = super::server::execute_tool_public(state, name, &arguments, None).await;
 
     match result {
         Ok(content) => Ok(json!({

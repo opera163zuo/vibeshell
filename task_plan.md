@@ -1,7 +1,7 @@
 # Task Plan: Built-in Agent Gateway
 
 ## Goal
-Run an authenticated, cross-platform Agent Gateway inside the visible VibeShell GUI, let agents and users observe and control the same sessions, auto-launch the GUI when needed, replace CLI-based agent guidance, and verify the workflow end to end.
+Run an authenticated, cross-platform Agent Gateway inside the visible zxySSH GUI, let agents and users observe and control the same sessions, auto-launch the GUI when needed, replace CLI-based agent guidance, and verify the workflow end to end.
 
 ## Phases
 - [x] Phase 1: Establish scope and persistent task records
@@ -19,12 +19,12 @@ Run an authenticated, cross-platform Agent Gateway inside the visible VibeShell 
 3. How should authentication, protocol versioning, application lifecycle, and destructive operations be handled?
 4. Which CLI-only orchestration behaviors must move into the Gateway to preserve agent capabilities?
 5. What can be tested locally, and what needs platform-specific unit coverage rather than execution on this macOS host?
-6. How can the skill launch the installed GUI reliably on macOS, Linux, and Windows without a VibeShell CLI binary?
+6. How can the skill launch the installed GUI reliably on macOS, Linux, and Windows without a zxySSH CLI binary?
 
 ## Decisions Made
-- Treat the running VibeShell GUI as the session master and make the Agent Gateway share its existing state.
-- Never create an invisible, independent agent session master; when VibeShell is not running, launch the visible desktop application and connect after discovery becomes ready.
-- Keep the generated agent skill concise and Gateway-first; do not instruct agents to invoke `vshell`.
+- Treat the running zxySSH GUI as the session master and make the Agent Gateway share its existing state.
+- Never create an invisible, independent agent session master; when zxySSH is not running, launch the visible desktop application and connect after discovery becomes ready.
+- Keep the generated agent skill concise and Gateway-first; do not instruct agents to invoke `zxyssh`.
 - Support macOS, Linux, and Windows through one protocol contract with platform-specific endpoint handling only where required.
 - Bind the Gateway to an ephemeral IPv4 loopback port, rotate a 256-bit bearer token on every GUI launch, and publish an atomically written user-only manifest.
 - Keep stable launch metadata in the manifest so an Agent can start the visible GUI after a clean shutdown; treat endpoint/token data as live only after an authenticated health check.
@@ -39,7 +39,7 @@ Run an authenticated, cross-platform Agent Gateway inside the visible VibeShell 
 - The first activity-event test compile placed `PartialEq/Eq` on the event struct instead of `AgentActivityStatus`. Move the derives to the enum and rerun.
 - The first single-instance smoke script mixed CommonJS `require` with top-level `await`, which Node 26 rejects. Wrap the test in an async IIFE and rerun.
 - Final `cargo fmt --check` found one formatter-only line wrapping difference in the unauthorized response headers. Run `cargo fmt` and recheck.
-- `cargo clippy -p vibeshell --all-targets -- -D warnings` is blocked by three pre-existing lints in `src-tauri/tests/ssh_integration_test.rs` (`field_reassign_with_default` twice and `useless_conversion` once). Leave unrelated integration code unchanged and run strict clippy on the application library.
+- `cargo clippy -p zxyssh --all-targets -- -D warnings` is blocked by three pre-existing lints in `src-tauri/tests/ssh_integration_test.rs` (`field_reassign_with_default` twice and `useless_conversion` once). Leave unrelated integration code unchanged and run strict clippy on the application library.
 - A combined security-cleanup patch did not apply because the CLI command comment differed from the expected context. No partial changes were made; split the patch and use exact current source.
 
 ## Status

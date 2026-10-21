@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Bot,
   Grid2X2,
   List,
   Monitor,
@@ -19,11 +18,10 @@ import { useServerStore, type Server, type Group } from '../../stores/serverStor
 import { useSessionStore } from '../../stores/sessionStore';
 import { useAvailableShells, useLocalShellStore, type ShellInfo } from '../../stores/localShellStore';
 import { useNotificationStore } from '../../stores/notificationStore';
-import { CodingAgentLauncher } from '../CodingAgentLauncher';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { useRuntimeCapabilitiesStore } from '../../stores/runtimeCapabilitiesStore';
 
-type ConnectionTab = 'agent' | 'local' | 'ssh';
+type ConnectionTab = 'local' | 'ssh';
 type LauncherView = 'list' | 'icons';
 
 interface SelectServerDialogProps {
@@ -35,14 +33,12 @@ interface SelectServerDialogProps {
   onAddServer: () => void;
   onEditServer?: (server: Server) => void;
   onNewSession?: (server: Server) => void;
-  onCodingAgentLaunched?: (sessionId: string) => void;
-  initialWorkspace?: string;
   connectedServerIds?: Set<string>;
 }
 
 function loadLauncherView(): LauncherView {
   try {
-    return globalThis.localStorage?.getItem('vibeshell-connection-view') === 'icons' ? 'icons' : 'list';
+    return globalThis.localStorage?.getItem('zxyssh-connection-view') === 'icons' ? 'icons' : 'list';
   } catch {
     return 'list';
   }
@@ -51,7 +47,7 @@ function loadLauncherView(): LauncherView {
 function loadConnectionTab(): ConnectionTab {
   try {
     const saved = globalThis.localStorage?.getItem('newConnectionTab');
-    return saved === 'ssh' || saved === 'agent' ? saved : 'local';
+    return saved === 'ssh' ? saved : 'local';
   } catch {
     return 'local';
   }
@@ -179,8 +175,6 @@ export function SelectServerDialog({
   onAddServer,
   onEditServer,
   onNewSession,
-  onCodingAgentLaunched,
-  initialWorkspace,
   connectedServerIds = new Set(),
 }: SelectServerDialogProps) {
   const { t } = useTranslation();
@@ -260,14 +254,10 @@ export function SelectServerDialog({
 
   useEffect(() => {
     if (!isOpen) return;
-    const focusFrame = initialTab === 'agent' || activeTab === 'agent'
-      ? requestAnimationFrame(() => {
-        const dialog = rootRef.current?.querySelector<HTMLElement>('[role="dialog"]');
-        if (dialog && !dialog.contains(document.activeElement)) {
-          closeButtonRef.current?.focus();
-        }
-      })
-      : null;
+    const focusFrame = requestAnimationFrame(() => {
+      const dialog = rootRef.current?.querySelector<HTMLElement>('[role="dialog"]');
+      if (dialog && !dialog.contains(document.activeElement)) closeButtonRef.current?.focus();
+    });
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         // Close the inner delete confirmation first; a second Escape
@@ -333,7 +323,7 @@ export function SelectServerDialog({
 
   const changeView = useCallback((nextView: LauncherView) => {
     setView(nextView);
-    saveLauncherPreference('vibeshell-connection-view', nextView);
+    saveLauncherPreference('zxyssh-connection-view', nextView);
   }, []);
 
   const sessionCounts = useMemo(() => {
@@ -469,20 +459,9 @@ export function SelectServerDialog({
                 <ServerIcon className="h-4 w-4" />
                 SSH
               </button>
-              {localShellEnabled && (
-                <button
-                  className={cn('workspace-action', effectiveTab === 'agent' && 'is-active')}
-                  onClick={() => changeTab('agent')}
-                >
-                  <Bot className="h-4 w-4" />
-                  {t('codingAgent.tab')}
-                </button>
-              )}
             </div>
 
-            {effectiveTab !== 'agent' && (
-              <>
-                <label className="relative min-w-[180px] flex-1">
+            <label className="relative min-w-[180px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-tokyo-comment" />
                   <input
                     value={query}
@@ -511,8 +490,6 @@ export function SelectServerDialog({
                     <Grid2X2 className="h-4 w-4" />
                   </button>
                 </div>
-              </>
-            )}
 
             {effectiveTab === 'ssh' && (
               <button className="workspace-action border-tokyo-bg-hl bg-tokyo-fg text-tokyo-bg hover:bg-tokyo-fg hover:text-tokyo-bg" onClick={handleAddServer}>
@@ -522,16 +499,8 @@ export function SelectServerDialog({
             )}
           </div>
 
-          <div className={cn(effectiveTab !== 'agent' && 'p-4 sm:p-5')}>
-            {effectiveTab === 'agent' ? (
-              <CodingAgentLauncher
-                initialWorkspace={initialWorkspace}
-                onLaunched={(sessionId) => {
-                  onCodingAgentLaunched?.(sessionId);
-                  onClose();
-                }}
-              />
-            ) : items.length === 0 ? (
+          <div className="p-4 sm:p-5">
+            {items.length === 0 ? (
               <div className="flex min-h-56 flex-col items-center justify-center text-center">
                 <Terminal className="mb-4 h-7 w-7 text-tokyo-comment" />
                 <p className="text-sm font-medium text-tokyo-fg">

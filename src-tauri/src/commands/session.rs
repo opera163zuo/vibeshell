@@ -527,6 +527,89 @@ pub async fn session_connect(
     Ok(info)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectSavedRequest {
+    pub server_name: String,
+    pub cols: Option<u32>,
+    pub rows: Option<u32>,
+    #[serde(default)]
+    pub force_new: bool,
+}
+
+#[tauri::command]
+pub async fn session_connect_saved(
+    app: AppHandle,
+    manager: State<'_, Arc<SessionManager>>,
+    access_state: State<'_, Arc<SessionAccessState>>,
+    db: State<'_, Arc<Database>>,
+    request: ConnectSavedRequest,
+) -> Result<SessionInfo, String> {
+    if access_state.is_remote() {
+        if !request.force_new {
+            if let Some(session) = find_remote_reusable_session(&request.server_name).await? {
+                start_remote_session_forwarder(
+                    app,
+                    session.id.clone(),
+                    access_state.inner().clone(),
+                );
+                return Ok(session);
+            }
+        }
+        return match ipc_send(IpcMessage::CreateSessionSaved {
+            server_name: request.server_name,
+            cols: request.cols,
+            rows: request.rows,
+        })
+        .await?
+        {
+            IpcMessage::SessionCreated { session_id } => {
+                start_remote_session_forwarder(
+                    app,
+                    session_id.clone(),
+                    access_state.inner().clone(),
+                );
+                fetch_remote_session(&session_id).await
+            }
+            IpcMessage::Error { message } => Err(message),
+            other => Err(format!(
+                "Unexpected IPC response while connecting saved session: {:?}",
+                other
+            )),
+        };
+    }
+
+    let credential = db
+        .credential_get(&request.server_name)
+        .map_err(|error| format!("Failed to load saved credentials: {}", error))?
+        .ok_or_else(|| format!("No saved credentials for server '{}'.", request.server_name))?;
+    let ssh_credential =
+        SshCredential::from_stored(credential).map_err(|error| error.to_string())?;
+    if !request.force_new {
+        if let Some(session) = manager
+            .find_reusable_by_server_name(&request.server_name)
+            .await
+        {
+            ensure_session_output_forwarder(app, session.clone()).await;
+            return Ok(session.get_info().await);
+        }
+    }
+    let pty_config = Some(PtyConfig {
+        term: "xterm-256color".to_string(),
+        cols: request.cols.unwrap_or(80),
+        rows: request.rows.unwrap_or(24),
+        pix_width: 0,
+        pix_height: 0,
+    });
+    let session = manager
+        .create_with_credentials(&request.server_name, ssh_credential, pty_config)
+        .await
+        .map_err(|error| error.to_string())?;
+    let info = session.get_info().await;
+    ensure_session_output_forwarder(app, session).await;
+    Ok(info)
+}
+
 /// Kill a specific session by ID
 #[tauri::command]
 pub async fn session_kill(
@@ -767,7 +850,7 @@ pub async fn session_exec_command(
         return match ipc_send(IpcMessage::ExecQuickCommand { session_id, command }).await? {
             IpcMessage::CommandResult { output, exit_code } => Ok(SessionExecResult { output, exit_code }),
             IpcMessage::Error { message } => Err(message),
-            _ => Err("Background service does not support command exit status; restart it with the matching VibeShell version".into()),
+            _ => Err("Background service does not support command exit status; restart it with the matching zxySSH version".into()),
         };
     }
     let session = manager

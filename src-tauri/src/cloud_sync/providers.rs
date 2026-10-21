@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{SyncEnvelope, SyncExchangeRequest, SyncExchangeResponse, SyncTransport};
 
-const OBJECT_STORE_FORMAT: &str = "vibeshell-encrypted-sync";
+const OBJECT_STORE_FORMAT: &str = "zxyssh-encrypted-sync";
 const OBJECT_STORE_VERSION: u32 = 1;
-const OBJECT_STORE_FILENAME: &str = "vibeshell-sync.json";
+const OBJECT_STORE_FILENAME: &str = "zxyssh-sync.json";
 const MAX_OBJECT_STORE_BYTES: usize = 8 * 1024 * 1024;
 const MAX_WRITE_ATTEMPTS: usize = 4;
 
@@ -89,7 +89,7 @@ impl MultiSyncTransport {
         let client = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(10))
             .timeout(Duration::from_secs(30))
-            .user_agent(concat!("VibeShell/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("zxySSH/", env!("CARGO_PKG_VERSION")))
             .build()
             .context("Failed to build cloud sync HTTP client")?;
         Ok(Self { client })
@@ -103,7 +103,7 @@ impl MultiSyncTransport {
             .post("https://api.github.com/gists")
             .bearer_auth(token)
             .json(&serde_json::json!({
-                "description": "VibeShell end-to-end encrypted sync",
+                "description": "zxySSH end-to-end encrypted sync",
                 "public": false,
                 "files": {
                     OBJECT_STORE_FILENAME: { "content": content }
@@ -441,7 +441,7 @@ impl ObjectStoreDocument {
 
     fn validate(&self, vault_id: &str) -> Result<()> {
         if self.format != OBJECT_STORE_FORMAT || self.version != OBJECT_STORE_VERSION {
-            bail!("Unsupported VibeShell encrypted sync document")
+            bail!("Unsupported zxySSH encrypted sync document")
         }
         if self.vault_id != vault_id {
             bail!("Sync provider contains data for a different vault")
@@ -522,7 +522,7 @@ fn parse_document(content: &str) -> Result<ObjectStoreDocument> {
     if content.len() > MAX_OBJECT_STORE_BYTES {
         bail!("Encrypted sync document exceeds the size limit")
     }
-    serde_json::from_str(content).context("Sync provider contains invalid VibeShell JSON")
+    serde_json::from_str(content).context("Sync provider contains invalid zxySSH JSON")
 }
 
 fn serialize_document(document: &ObjectStoreDocument) -> Result<String> {
@@ -697,14 +697,14 @@ mod tests {
     #[test]
     fn provider_validation_rejects_insecure_remote_endpoints() {
         let webdav = SyncProviderConfig::WebDav {
-            endpoint: "http://dav.example.com/vibeshell.json".to_string(),
+            endpoint: "http://dav.example.com/zxyssh.json".to_string(),
             username: "rick".to_string(),
             password: "secret".to_string(),
         };
         assert!(webdav.validate().is_err());
 
         let local = SyncProviderConfig::WebDav {
-            endpoint: "http://127.0.0.1:8080/vibeshell.json".to_string(),
+            endpoint: "http://127.0.0.1:8080/zxyssh.json".to_string(),
             username: String::new(),
             password: String::new(),
         };

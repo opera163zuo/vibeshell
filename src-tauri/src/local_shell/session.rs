@@ -32,7 +32,7 @@ fn build_shell_command(shell_info: &ShellInfo) -> CommandBuilder {
     {
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
-        cmd.env("TERM_PROGRAM", "VibeShell");
+        cmd.env("TERM_PROGRAM", "zxySSH");
         cmd.env("SHELL", &shell_info.path);
 
         if let Some(home) = std::env::var_os("HOME") {
@@ -425,11 +425,18 @@ impl LocalShellSession {
 
     /// Detach a client
     pub fn detach(&self) {
-        let _ = self
-            .client_count
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-                current.checked_sub(1)
-            });
+        let mut current = self.client_count.load(Ordering::Relaxed);
+        while current > 0 {
+            match self.client_count.compare_exchange_weak(
+                current,
+                current - 1,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(observed) => current = observed,
+            }
+        }
     }
 
     /// Get client count
@@ -539,10 +546,7 @@ mod tests {
         {
             assert_eq!(command.get_env("TERM"), Some(OsStr::new("xterm-256color")));
             assert_eq!(command.get_env("COLORTERM"), Some(OsStr::new("truecolor")));
-            assert_eq!(
-                command.get_env("TERM_PROGRAM"),
-                Some(OsStr::new("VibeShell"))
-            );
+            assert_eq!(command.get_env("TERM_PROGRAM"), Some(OsStr::new("zxySSH")));
             assert_eq!(command.get_env("SHELL"), Some(OsStr::new("/bin/zsh")));
         }
     }

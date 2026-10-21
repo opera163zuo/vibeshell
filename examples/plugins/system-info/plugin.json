@@ -4,7 +4,7 @@
   "name": "System Info",
   "description": "Small external plugin example for inspecting a connected host.",
   "version": "1.0.0",
-  "author": "VibeShell Example",
+  "author": "zxySSH Example",
   "category": "operations",
   "icon": "wrench",
   "permissions": ["remote_exec"],

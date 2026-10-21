@@ -1,6 +1,6 @@
-//! One-click installation module for VibeShell skill configuration.
+//! One-click installation module for zxySSH skill configuration.
 //!
-//! This module provides functionality to detect and configure VibeShell skill
+//! This module provides functionality to detect and configure zxySSH skill
 //! in various AI coding tools like Claude Code, Cursor, Codex, and Open Code.
 
 pub mod detector;

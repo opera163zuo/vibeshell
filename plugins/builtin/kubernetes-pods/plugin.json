@@ -4,7 +4,7 @@
   "name": "Kubernetes Pods",
   "description": "Inspect cluster contexts, namespaces, pods, deployments and workload logs with kubectl.",
   "version": "1.1.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "containers",
   "icon": "boxes",
   "permissions": [

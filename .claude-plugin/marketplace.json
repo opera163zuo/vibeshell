@@ -1,22 +1,22 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "vibeshell-agent-skills",
-  "description": "Native SSH, SFTP, and remote server workflows through VibeShell",
+  "name": "zxyssh-agent-skills",
+  "description": "Drive saved SSH sites through the zxySSH MCP service, with credentials held on the host",
   "owner": {
-    "name": "VibeShell"
+    "name": "zxySSH"
   },
   "metadata": {
-    "description": "Official VibeShell coding-agent skill",
-    "version": "1.1.0"
+    "description": "Official zxySSH coding-agent skill",
+    "version": "2.0.1"
   },
   "plugins": [
     {
-      "name": "vibeshell",
-      "version": "1.1.0",
-      "description": "Operate saved SSH servers with the native VibeShell CLI",
+      "name": "zxyssh",
+      "version": "2.0.1",
+      "description": "Drive saved SSH sites through the zxySSH MCP service; credentials stay on the host",
       "source": "./",
       "strict": false,
-      "skills": ["./skills/vibeshell"],
+      "skills": ["./skills/zxyssh"],
       "category": "development"
     }
   ]

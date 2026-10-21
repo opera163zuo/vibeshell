@@ -8,7 +8,7 @@ Use the dedicated development origin on port **1421**. The fixture refuses a pro
 
 The six hosts are fictional documentation addresses in `192.0.2.0/24`. The project paths, account names, status readings, terminal output, agent transcript, Git diff and history entries are examples. No model or agent executable runs. AI prediction is disabled. Unknown native commands throw instead of forwarding to a real backend; example file writes affect only the in-memory map. The page has a visible synthetic-data label and a local-only connection policy.
 
-The fixture uses the dedicated origin's local storage for workspace layout. Reloading resets only VibeShell demo keys on that origin. It does not touch the installed application's database, key material or other browser origins.
+The fixture uses the dedicated origin's local storage for workspace layout. Reloading resets only zxySSH demo keys on that origin. It does not touch the installed application's database, key material or other browser origins.
 
 ## Run
 
@@ -26,7 +26,7 @@ Open `http://127.0.0.1:1421/scripts/readme-demo/index.html?scene=collaboration` 
 | Screenshot | Starting scene | Actual UI interaction |
 | --- | --- | --- |
 | `tour-collaboration.png` | `collaboration` | Open **Agent command history**. The terminal, host status and durable-activity components render fixture responses. |
-| `tour-agent-approval.png` | `collaboration` | Queue the demo request with `window.__VIBESHELL_DEMO__.approveDemo()`; wait for the real approval dialog. Do not present the request as executed. |
+| `tour-agent-approval.png` | `collaboration` | Queue the demo request with `window.__ZXYSSH_DEMO__.approveDemo()`; wait for the real approval dialog. Do not present the request as executed. |
 | `tour-agent-review.png` | `coding` | **More actions → Workspace changes**; the first changed file opens in the real diff view. |
 | `tour-connections.png` | `coding` | **New Session → SSH → Icon view**. |
 | `tour-agent-launcher.png` | `coding` | **New Session → Coding Agent**; enter a sample brief without pressing Start. |

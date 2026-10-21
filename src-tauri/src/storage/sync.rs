@@ -1187,7 +1187,7 @@ fn canonical_content_hash(
     payload: Option<&Value>,
 ) -> Result<String> {
     let mut hasher = Sha256::new();
-    hasher.update(b"vibeshell-sync-content-v1\0");
+    hasher.update(b"zxyssh-sync-content-v1\0");
     hasher.update(entity_kind.as_str().as_bytes());
     hasher.update(b"\0");
     hasher.update(entity_id.as_bytes());
@@ -2144,7 +2144,7 @@ mod tests {
 
     fn test_database() -> (TempDir, Database) {
         let dir = tempfile::tempdir().unwrap();
-        let database = Database::new_at(dir.path().join("vibeshell.db")).unwrap();
+        let database = Database::new_at(dir.path().join("zxyssh.db")).unwrap();
         (dir, database)
     }
 

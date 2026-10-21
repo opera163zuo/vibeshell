@@ -1,11 +1,11 @@
 {
-  "name": "vibeshell",
-  "version": "1.1.0",
+  "name": "zxyssh",
+  "version": "2.0.1",
   "license": "GPL-3.0-only",
   "engines": {
     "node": ">=22.12.0"
   },
-  "description": "Local-first SSH workspace for humans and coding agents",
+  "description": "Ubuntu/Debian Linux SSH workspace and LAN MCP server for humans and cross-platform agents",
   "type": "module",
   "scripts": {
     "dev": "node node_modules/vite/bin/vite.js",
@@ -14,7 +14,6 @@
     "test:watch": "vitest",
     "build:sidecar": "node scripts/prepare-sidecar.mjs",
     "build:desktop": "node scripts/prepare-sidecar.mjs && npx tauri build --config src-tauri/tauri.sidecar.conf.json",
-    "build:msi": "node scripts/prepare-sidecar.mjs --target x86_64-pc-windows-msvc && npx tauri build --config src-tauri/tauri.sidecar.conf.json --bundles nsis --bundles msi",
     "preview": "node node_modules/vite/bin/vite.js preview",
     "tauri": "tauri"
   },

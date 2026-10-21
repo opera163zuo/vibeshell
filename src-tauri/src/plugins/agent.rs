@@ -12,8 +12,8 @@ pub fn list(db: &Database, installed_only: bool) -> Result<Vec<Value>, String> {
             "installed": record.installed, "enabled": record.enabled, "source": record.source,
             "permissions": record.manifest.permissions, "grantedPermissions": record.granted_permissions,
             "sessionTypes": record.manifest.session_types,
-            "reference": format!("vibeshell plugins docs {}", record.manifest.id),
-            "describe": format!("vibeshell plugins describe {}", record.manifest.id)})).collect())
+            "reference": format!("zxyssh plugins docs {}", record.manifest.id),
+            "describe": format!("zxyssh plugins describe {}", record.manifest.id)})).collect())
 }
 
 pub fn describe(db: &Database, id: &str, reference: bool) -> Result<Value, String> {
@@ -29,7 +29,7 @@ pub fn describe(db: &Database, id: &str, reference: bool) -> Result<Value, Strin
         "installed": record.installed, "enabled": record.enabled, "source": record.source,
         "permissions": record.manifest.permissions, "grantedPermissions": record.granted_permissions,
         "sessionTypes": record.manifest.session_types, "actions": agent_actions(&record.manifest),
-        "reference": format!("vibeshell plugins docs {id}")}),
+        "reference": format!("zxyssh plugins docs {id}")}),
     )
 }
 
@@ -178,6 +178,7 @@ pub async fn execute(
         ),
         status: AgentActivityStatus::Started,
         timestamp: chrono::Utc::now().timestamp_millis(),
+        agent: None,
     };
     db.agent_activity_record(&event)
         .map_err(|e| e.to_string())?;

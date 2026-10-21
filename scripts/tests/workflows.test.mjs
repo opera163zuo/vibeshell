@@ -39,7 +39,7 @@ test('selects the newest successful run independent of response order', () => {
   assert.equal(select([{ ...run, id: 43 }, run]), 43);
 });
 
-test('requires every platform, frontend and lint job to have really succeeded', () => {
+test('requires Linux, frontend and lint jobs to have really succeeded', () => {
   assert.doesNotThrow(() => validateCiJobs(jobs()));
   for (const conclusion of ['failure', 'cancelled', 'skipped', null]) {
     const payload = jobs();

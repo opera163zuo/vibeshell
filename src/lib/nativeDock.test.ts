@@ -42,11 +42,11 @@ describe('native window docking handshake', () => {
   it('converts physical coordinates to the correct pane edge and accepts a repeated request only once', async () => {
     const accept = vi.fn(() => true); const stop = await receiveWindowDrops(accept);
     const request = dropRequest();
-    await mocks.handlers.get('vibeshell://dock-drop')!({ payload: request });
-    await mocks.handlers.get('vibeshell://dock-drop')!({ payload: request });
+    await mocks.handlers.get('zxyssh://dock-drop')!({ payload: request });
+    await mocks.handlers.get('zxyssh://dock-drop')!({ payload: request });
     expect(accept).toHaveBeenCalledTimes(1);
     expect(accept).toHaveBeenCalledWith(snapshot, { paneId: 'session:target', side: 'left' });
-    expect(mocks.emit).toHaveBeenLastCalledWith('detach-test', 'vibeshell://dock-ack', { id: request.id, accepted: true });
+    expect(mocks.emit).toHaveBeenLastCalledWith('detach-test', 'zxyssh://dock-ack', { id: request.id, accepted: true });
     stop();
   });
   it.each(['wrong-owner', 'expired', 'outside'])('rejects %s without moving content out of the source', async (reason) => {
@@ -55,18 +55,18 @@ describe('native window docking handshake', () => {
     if (reason === 'wrong-owner') request.source = 'detach-unknown';
     if (reason === 'expired') request.expiresAt = Date.now() - 1;
     if (reason === 'outside') request.point = { x: -100, y: -100 };
-    await mocks.handlers.get('vibeshell://dock-drop')!({ payload: request });
+    await mocks.handlers.get('zxyssh://dock-drop')!({ payload: request });
     expect(accept).not.toHaveBeenCalled();
-    expect(mocks.emit).toHaveBeenLastCalledWith(request.source, 'vibeshell://dock-ack', { id: request.id, accepted: false });
+    expect(mocks.emit).toHaveBeenLastCalledWith(request.source, 'zxyssh://dock-ack', { id: request.id, accepted: false });
     expect(useDetachedOwnership.getState().owners['session:source']).toBe('detach-test'); stop();
   });
   it('waits for the matching acceptance rather than considering send success a transfer', async () => {
     const result = requestDock(snapshot);
     await vi.advanceTimersByTimeAsync(0);
     const request = mocks.emit.mock.calls[0][2];
-    await mocks.handlers.get('vibeshell://dock-ack')!({ payload: { id: request.id, accepted: true } });
+    await mocks.handlers.get('zxyssh://dock-ack')!({ payload: { id: request.id, accepted: true } });
     await expect(result).resolves.toBe(true);
-    expect(mocks.handlers.has('vibeshell://dock-ack')).toBe(false);
+    expect(mocks.handlers.has('zxyssh://dock-ack')).toBe(false);
   });
   it('times out an unacknowledged handoff without releasing source ownership', async () => {
     const result = requestDock(snapshot);

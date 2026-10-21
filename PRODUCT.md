@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Developers, operators, and AI coding agents who work across SSH sessions, SFTP transfers, tunnels, local shells, and remote command workflows. They use VibeShell while deploying, inspecting logs, moving files, recording sessions, and handing context between human and agent work.
+Developers, operators, and AI coding agents who work across SSH sessions, SFTP transfers, tunnels, local shells, and remote command workflows. They use zxySSH while deploying, inspecting logs, moving files, recording sessions, and handing context between human and agent work.
 
 ## Product Purpose
 
-VibeShell gives terminal-first remote work a native, observable workspace. Success means a user can connect to the right machine quickly, see session state at a glance, move between terminal, files, tunnels, snippets, and settings without losing context, and let AI tools act through the same visible workspace.
+zxySSH gives terminal-first remote work a native, observable workspace. Success means a user can connect to the right machine quickly, see session state at a glance, move between terminal, files, tunnels, snippets, and settings without losing context, and let AI tools act through the same visible workspace.
 
 ## Brand Personality
 

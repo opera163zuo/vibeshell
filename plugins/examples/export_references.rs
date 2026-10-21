@@ -11,11 +11,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .ok_or("Missing repository root")?;
-    let catalog = vibeshell_plugins::builtin_catalog()?;
+    let catalog = zxyssh_plugins::builtin_catalog()?;
     for directory in [
-        "skills/vibeshell",
-        ".claude/skills/vibeshell",
-        ".codex/skills/vibeshell",
+        "skills/zxyssh",
+        ".claude/skills/zxyssh",
+        ".codex/skills/zxyssh",
     ] {
         let references = root.join(directory).join("references");
         if !check {
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         for manifest in &catalog {
             let path = references.join(format!("{}.md", manifest.id));
-            let expected = vibeshell_plugins::agent_reference(manifest)?;
+            let expected = zxyssh_plugins::agent_reference(manifest)?;
             if check {
                 if fs::read_to_string(&path)? != expected {
                     return Err(format!("Stale reference: {}", path.display()).into());

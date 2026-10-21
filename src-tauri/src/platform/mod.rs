@@ -1,9 +1,8 @@
 mod app_data;
 mod capabilities;
 
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-pub(crate) use app_data::{copy_legacy_app_data, APP_BUNDLE_IDENTIFIER};
 pub(crate) use app_data::{
-    database_path, default_database_path, default_fingerprint_path, fingerprint_path,
+    database_path, default_app_data_dir, default_database_path, default_fingerprint_path,
+    fingerprint_path,
 };
 pub use capabilities::{RuntimeCapabilities, RuntimePlatform};

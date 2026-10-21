@@ -1,5 +1,5 @@
 import { memo, useCallback, useState, useEffect } from 'react';
-import { AlertCircle, Code2, Loader2, Maximize2, Minimize2, Minus, Monitor, Wifi, X } from 'lucide-react';
+import { AlertCircle, Loader2, Maximize2, Minimize2, Minus, Monitor, Wifi, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useRuntimeCapabilitiesStore } from '../stores/runtimeCapabilitiesStore';
 
@@ -18,12 +18,10 @@ export const TitleBar = memo(function TitleBar({
   activeSessionName,
   activeSessionType,
   activeSessionState,
-  activeSessionPurpose,
 }: {
   activeSessionName?: string;
   activeSessionType?: string;
   activeSessionState?: string;
-  activeSessionPurpose?: string;
 }) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -169,19 +167,15 @@ export const TitleBar = memo(function TitleBar({
     </div>
   );
 
-  const sessionKind = activeSessionPurpose === 'coding_agent'
-    ? 'Agent'
-    : activeSessionType === 'local' ? 'Local' : 'SSH';
+  const sessionKind = activeSessionType === 'local' ? 'Local' : 'SSH';
   const stateLabel = activeSessionState && activeSessionState !== 'connected' ? activeSessionState : null;
   const StatusIcon = activeSessionState === 'connecting'
     ? Loader2
     : activeSessionState === 'error'
       ? AlertCircle
-      : activeSessionPurpose === 'coding_agent'
-        ? Code2
-        : activeSessionType === 'local'
-          ? Monitor
-          : Wifi;
+      : activeSessionType === 'local'
+        ? Monitor
+        : Wifi;
 
   return (
     <div
@@ -204,7 +198,7 @@ export const TitleBar = memo(function TitleBar({
         <span className={cn('titlebar-brand', platform === 'macos' ? '' : 'pl-1')}>
           <img src="/app-icon.svg" className="h-5 w-5" alt="" aria-hidden="true" />
         </span>
-        <span className="text-xs font-semibold text-tokyo-fg">VibeShell</span>
+        <span className="text-xs font-semibold text-tokyo-fg">zxySSH</span>
 
         {/* Session info */}
         {activeSessionName && (

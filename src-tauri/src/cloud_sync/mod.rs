@@ -18,7 +18,7 @@ mod providers;
 pub use portable_file::{CloudSyncFileOperation, CloudSyncFileReport};
 pub use providers::{MultiSyncTransport, SyncProviderConfig, SyncProviderKind};
 
-const PAIRING_PREFIX: &str = "vibeshell-sync-v2.";
+const PAIRING_PREFIX: &str = "zxyssh-sync-v2.";
 const PAIRING_VERSION: u32 = 2;
 const MAX_OUTBOX_BATCH: usize = 256;
 const MAX_SYNC_ROUNDS: usize = 64;
@@ -48,6 +48,9 @@ pub struct SyncExchangeResponse {
     pub has_more: bool,
 }
 
+// async_trait boxes these returns, which already carry a must_use; the macro's
+// own attribute is a duplicate clippy cannot see past.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait SyncTransport: Send + Sync {
     async fn initialize(
@@ -502,10 +505,10 @@ fn decode_pairing_bundle(code: &str) -> Result<PairingBundle> {
     let encoded = code
         .trim()
         .strip_prefix(PAIRING_PREFIX)
-        .ok_or_else(|| anyhow!("Invalid VibeShell cloud sync pairing code"))?;
+        .ok_or_else(|| anyhow!("Invalid zxySSH cloud sync pairing code"))?;
     let decoded = URL_SAFE_NO_PAD
         .decode(encoded)
-        .context("Invalid VibeShell cloud sync pairing code")?;
+        .context("Invalid zxySSH cloud sync pairing code")?;
     let bundle: PairingBundle =
         serde_json::from_slice(&decoded).context("Invalid cloud sync pairing payload")?;
     if bundle.version != PAIRING_VERSION {

@@ -101,9 +101,9 @@ pub async fn cloud_sync_export_file(
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
         let path = FileDialog::new()
-            .set_title("Export VibeShell Workspace")
-            .set_file_name("vibeshell-workspace.vibeshell-sync.json")
-            .add_filter("VibeShell Sync", &["json"])
+            .set_title("Export zxySSH Workspace")
+            .set_file_name("zxyssh-workspace.zxyssh-sync.json")
+            .add_filter("zxySSH Sync", &["json"])
             .save_file();
         path.map(|path| {
             manager
@@ -127,8 +127,8 @@ pub async fn cloud_sync_import_file(
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
         let path = FileDialog::new()
-            .set_title("Import VibeShell Workspace")
-            .add_filter("VibeShell Sync", &["json"])
+            .set_title("Import zxySSH Workspace")
+            .add_filter("zxySSH Sync", &["json"])
             .pick_file();
         path.map(|path| {
             manager

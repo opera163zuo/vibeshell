@@ -486,80 +486,74 @@ mod engine_tests {
     use super::*;
 
     fn pg_endpoint() -> Option<DbEndpoint> {
-        let host = std::env::var("VIBESHELL_TEST_PG_HOST").ok()?;
+        let host = std::env::var("ZXYSSH_TEST_PG_HOST").ok()?;
         Some(DbEndpoint {
             engine: DbEngine::Postgres,
             host,
-            port: std::env::var("VIBESHELL_TEST_PG_PORT")
+            port: std::env::var("ZXYSSH_TEST_PG_PORT")
                 .ok()
                 .and_then(|port| port.parse().ok())
                 .unwrap_or(5432),
-            username: std::env::var("VIBESHELL_TEST_PG_USER").unwrap_or_else(|_| "postgres".into()),
-            password: std::env::var("VIBESHELL_TEST_PG_PASSWORD").unwrap_or_default(),
+            username: std::env::var("ZXYSSH_TEST_PG_USER").unwrap_or_else(|_| "postgres".into()),
+            password: std::env::var("ZXYSSH_TEST_PG_PASSWORD").unwrap_or_default(),
             database: None,
         })
     }
 
     fn mysql_endpoint() -> Option<DbEndpoint> {
-        let host = std::env::var("VIBESHELL_TEST_MYSQL_HOST").ok()?;
+        let host = std::env::var("ZXYSSH_TEST_MYSQL_HOST").ok()?;
         Some(DbEndpoint {
             engine: DbEngine::Mysql,
             host,
-            port: std::env::var("VIBESHELL_TEST_MYSQL_PORT")
+            port: std::env::var("ZXYSSH_TEST_MYSQL_PORT")
                 .ok()
                 .and_then(|port| port.parse().ok())
                 .unwrap_or(3306),
-            username: std::env::var("VIBESHELL_TEST_MYSQL_USER").unwrap_or_else(|_| "root".into()),
-            password: std::env::var("VIBESHELL_TEST_MYSQL_PASSWORD").unwrap_or_default(),
+            username: std::env::var("ZXYSSH_TEST_MYSQL_USER").unwrap_or_else(|_| "root".into()),
+            password: std::env::var("ZXYSSH_TEST_MYSQL_PASSWORD").unwrap_or_default(),
             database: None,
         })
     }
 
     #[tokio::test]
-    #[ignore = "requires a reachable MySQL server (VIBESHELL_TEST_MYSQL_HOST)"]
+    #[ignore = "requires a reachable MySQL server (ZXYSSH_TEST_MYSQL_HOST)"]
     async fn mysql_round_trip() {
-        let endpoint = mysql_endpoint().expect("VIBESHELL_TEST_MYSQL_HOST not set");
+        let endpoint = mysql_endpoint().expect("ZXYSSH_TEST_MYSQL_HOST not set");
         let test = test_connection(&endpoint).await;
         assert!(test.ok, "connection failed: {:?}", test.error);
 
-        run_query(
-            &endpoint,
-            "DROP DATABASE IF EXISTS vibeshell_engine_e2e",
-            10,
-        )
-        .await
-        .ok();
-        run_query(&endpoint, "CREATE DATABASE vibeshell_engine_e2e", 10)
+        run_query(&endpoint, "DROP DATABASE IF EXISTS zxyssh_engine_e2e", 10)
+            .await
+            .ok();
+        run_query(&endpoint, "CREATE DATABASE zxyssh_engine_e2e", 10)
             .await
             .unwrap();
         run_query(
             &endpoint,
-            "CREATE TABLE vibeshell_engine_e2e.items (id INT PRIMARY KEY, label TEXT)",
+            "CREATE TABLE zxyssh_engine_e2e.items (id INT PRIMARY KEY, label TEXT)",
             10,
         )
         .await
         .unwrap();
         run_query(
             &endpoint,
-            "INSERT INTO vibeshell_engine_e2e.items VALUES (1, 'hello'), (2, NULL)",
+            "INSERT INTO zxyssh_engine_e2e.items VALUES (1, 'hello'), (2, NULL)",
             10,
         )
         .await
         .unwrap();
 
-        let tables = list_tables(&endpoint, "vibeshell_engine_e2e")
-            .await
-            .unwrap();
+        let tables = list_tables(&endpoint, "zxyssh_engine_e2e").await.unwrap();
         assert!(tables.iter().any(|table| table.contains("items")));
 
-        let columns = list_columns(&endpoint, "vibeshell_engine_e2e", "items")
+        let columns = list_columns(&endpoint, "zxyssh_engine_e2e", "items")
             .await
             .unwrap();
         assert_eq!(columns.len(), 2);
         assert_eq!(columns[0].name, "id");
 
         let mut ep = endpoint.clone();
-        ep.database = Some("vibeshell_engine_e2e".into());
+        ep.database = Some("zxyssh_engine_e2e".into());
         let (cols, rows, _) = run_query(&ep, "SELECT id, label FROM items ORDER BY id", 10)
             .await
             .unwrap();
@@ -568,15 +562,15 @@ mod engine_tests {
         assert_eq!(rows[0][0], serde_json::Value::from(1));
         assert_eq!(rows[1][1], serde_json::Value::Null);
 
-        run_query(&endpoint, "DROP DATABASE vibeshell_engine_e2e", 10)
+        run_query(&endpoint, "DROP DATABASE zxyssh_engine_e2e", 10)
             .await
             .unwrap();
     }
 
     #[tokio::test]
-    #[ignore = "requires a reachable PostgreSQL server (VIBESHELL_TEST_PG_HOST)"]
+    #[ignore = "requires a reachable PostgreSQL server (ZXYSSH_TEST_PG_HOST)"]
     async fn postgres_round_trip() {
-        let endpoint = pg_endpoint().expect("VIBESHELL_TEST_PG_HOST not set");
+        let endpoint = pg_endpoint().expect("ZXYSSH_TEST_PG_HOST not set");
         let test = test_connection(&endpoint).await;
         assert!(test.ok, "connection failed: {:?}", test.error);
         assert!(test
@@ -590,7 +584,7 @@ mod engine_tests {
 
         run_query(
             &endpoint,
-            "CREATE TABLE vibeshell_engine_e2e (id integer, label text)",
+            "CREATE TABLE zxyssh_engine_e2e (id integer, label text)",
             10,
         )
         .await
@@ -598,27 +592,27 @@ mod engine_tests {
         let tables = list_tables(&endpoint, "postgres").await.unwrap();
         assert!(tables
             .iter()
-            .any(|table| table.contains("vibeshell_engine_e2e")));
-        let columns = list_columns(&endpoint, "postgres", "vibeshell_engine_e2e")
+            .any(|table| table.contains("zxyssh_engine_e2e")));
+        let columns = list_columns(&endpoint, "postgres", "zxyssh_engine_e2e")
             .await
             .unwrap();
         assert_eq!(columns.len(), 2);
         assert_eq!(columns[0].name, "id");
         assert_eq!(columns[1].data_type, "text");
-        run_query(&endpoint, "DROP TABLE vibeshell_engine_e2e", 10)
+        run_query(&endpoint, "DROP TABLE zxyssh_engine_e2e", 10)
             .await
             .unwrap();
 
         let (columns, rows, _) = run_query(
             &endpoint,
-            "SELECT 1 AS one, 'vibeshell' AS name, NULL AS nothing",
+            "SELECT 1 AS one, 'zxyssh' AS name, NULL AS nothing",
             10,
         )
         .await
         .unwrap();
         assert_eq!(columns, vec!["one", "name", "nothing"]);
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0][1], Value::String("vibeshell".into()));
+        assert_eq!(rows[0][1], Value::String("zxyssh".into()));
         assert_eq!(rows[0][2], Value::Null);
     }
 }

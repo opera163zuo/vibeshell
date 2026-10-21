@@ -1,13 +1,15 @@
 //! MCP Server Implementation
 //!
-//! Implements a JSON-RPC 2.0 server using axum that exposes VibeShell's
+//! Implements a JSON-RPC 2.0 server using axum that exposes zxySSH's
 //! SSH/SFTP functionality following the Model Context Protocol (MCP).
 
-use std::sync::Arc;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use axum::{
-    extract::{Request, State},
+    extract::{FromRequestParts, Request, State},
+    http::request::Parts,
     http::{header, HeaderValue, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -33,13 +35,17 @@ use crate::storage::Database;
 
 use super::approval::{AgentApprovalManager, ApprovalOutcome, ApprovalRequest};
 use super::guard::{self, GuardConfig, GUARD_CONFIG_KEY};
-use super::tools::get_compact_tool_definitions;
+use super::pairing::{AuthenticatedAgent, PairingRegistry};
+use super::pairing_http::{audit_label, handle_pair, require_paired_agent, PairRateLimiter};
+use super::tools::{
+    get_compact_agent_tool_definitions, get_compact_tool_definitions, is_agent_tool,
+};
 
 /// MCP protocol version
 pub const MCP_PROTOCOL_VERSION: &str = "2024-11-05";
 
 /// Server name for MCP identification
-const SERVER_NAME: &str = "vibeshell";
+const SERVER_NAME: &str = "zxyssh";
 
 /// Server version for MCP identification
 const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -55,6 +61,9 @@ pub struct McpState {
     terminal_input_emitter: Option<Arc<dyn Fn(TerminalInputEvent) + Send + Sync>>,
     approvals: Option<Arc<AgentApprovalManager>>,
     agent_input_tracker: Arc<guard::SharedAgentInputTracker>,
+    pub(super) pairing_registry: Option<Arc<std::sync::Mutex<PairingRegistry>>>,
+    pub(super) pairing_limiter: Arc<std::sync::Mutex<PairRateLimiter>>,
+    agent_sessions: Arc<Mutex<HashMap<String, HashSet<String>>>>,
 }
 
 impl McpState {
@@ -67,7 +76,18 @@ impl McpState {
             terminal_input_emitter: None,
             approvals: None,
             agent_input_tracker,
+            pairing_registry: None,
+            pairing_limiter: Arc::new(std::sync::Mutex::new(PairRateLimiter::default())),
+            agent_sessions: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    pub fn with_pairing_registry(
+        mut self,
+        registry: Arc<std::sync::Mutex<PairingRegistry>>,
+    ) -> Self {
+        self.pairing_registry = Some(registry);
+        self
     }
 
     pub fn with_activity_emitter(
@@ -121,6 +141,48 @@ impl McpState {
         }
     }
 
+    async fn require_agent_session(
+        &self,
+        agent: &AuthenticatedAgent,
+        session_ref: &str,
+    ) -> Result<String, String> {
+        let session = resolve_session(self, session_ref)
+            .await
+            .map_err(|_| "Agent is not authorized to access this session".to_string())?;
+        let owns_session = self
+            .agent_sessions
+            .lock()
+            .map_err(|_| "Session authorization state is unavailable".to_string())?
+            .get(&agent.id)
+            .is_some_and(|sessions| sessions.contains(&session.id));
+        if !owns_session {
+            return Err("Agent is not authorized to access this session".to_string());
+        }
+        Ok(session.id.clone())
+    }
+
+    fn record_agent_session(
+        &self,
+        agent: &AuthenticatedAgent,
+        session_id: String,
+    ) -> Result<(), String> {
+        self.agent_sessions
+            .lock()
+            .map_err(|_| "Session authorization state is unavailable".to_string())?
+            .entry(agent.id.clone())
+            .or_default()
+            .insert(session_id);
+        Ok(())
+    }
+
+    fn forget_agent_session(&self, agent: &AuthenticatedAgent, session_id: &str) {
+        if let Ok(mut sessions) = self.agent_sessions.lock() {
+            if let Some(owned) = sessions.get_mut(&agent.id) {
+                owned.remove(session_id);
+            }
+        }
+    }
+
     /// Load the persisted command-guard configuration (falling back to safe
     /// defaults when unset or unparseable).
     fn load_guard_config(&self) -> GuardConfig {
@@ -171,6 +233,11 @@ pub struct AgentActivityEvent {
     pub status: AgentActivityStatus,
     pub session_id: Option<String>,
     pub timestamp: i64,
+    /// Which paired Agent caused this operation. `None` for records written
+    /// before LAN Agents existed and for operations from the local loopback
+    /// gateway, where there is only one caller.
+    #[serde(default)]
+    pub agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -245,6 +312,30 @@ impl McpServer {
     ) -> Self {
         self.state = self.state.with_agent_input_tracker(tracker);
         self
+    }
+
+    pub fn with_pairing_registry(
+        mut self,
+        registry: Arc<std::sync::Mutex<PairingRegistry>>,
+    ) -> Self {
+        self.state = self.state.with_pairing_registry(registry);
+        self
+    }
+
+    /// HTTP surface for a LAN-facing service: every MCP route requires a paired
+    /// Agent bearer token, and only `/health` and `/pair` stay reachable without
+    /// one. Pairing is additionally bounded by the per-peer request limiter.
+    pub fn router_with_pairing(&self) -> Router {
+        const MAX_REQUEST_BYTES: usize = 16 * 1024 * 1024;
+        let state = self.state.clone();
+        Router::new()
+            .route("/health", get(handle_health))
+            .route("/pair", post(handle_pair))
+            .route("/", post(handle_jsonrpc))
+            .route("/mcp", post(handle_jsonrpc))
+            .with_state(state.clone())
+            .layer(middleware::from_fn_with_state(state, require_paired_agent))
+            .layer(axum::extract::DefaultBodyLimit::max(MAX_REQUEST_BYTES))
     }
 
     pub fn router(&self, bearer_token: String) -> Router {
@@ -370,10 +461,47 @@ const INTERNAL_ERROR: i32 = -32603;
 
 // === Request Handler ===
 
+/// The paired Agent that authenticated the current request. Requests arriving
+/// through the loopback desktop gateway carry no paired identity, so the
+/// rejection type is infallible and the audit label falls back to `local`.
+pub struct RequestAgent(Option<AuthenticatedAgent>);
+
+#[async_trait::async_trait]
+impl<S> FromRequestParts<S> for RequestAgent
+where
+    S: Send + Sync,
+{
+    type Rejection = std::convert::Infallible;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        Ok(Self(parts.extensions.get::<AuthenticatedAgent>().cloned()))
+    }
+}
+
 async fn handle_jsonrpc(
     State(state): State<McpState>,
+    RequestAgent(agent): RequestAgent,
     Json(request): Json<JsonRpcRequest>,
-) -> impl IntoResponse {
+) -> Response {
+    let agent_label = audit_label(agent.as_ref());
+
+    // JSON-RPC notifications carry no id and must not receive a response body.
+    if request.id.is_none() {
+        if request.jsonrpc != "2.0" || !request.method.starts_with("notifications/") {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(JsonRpcResponse::error(
+                    None,
+                    INVALID_REQUEST,
+                    "Expected a JSON-RPC notification".to_string(),
+                    None,
+                )),
+            )
+                .into_response();
+        }
+        return StatusCode::ACCEPTED.into_response();
+    }
+
     // Validate JSON-RPC version
     if request.jsonrpc != "2.0" {
         return (
@@ -384,7 +512,8 @@ async fn handle_jsonrpc(
                 "Invalid JSON-RPC version".to_string(),
                 None,
             )),
-        );
+        )
+            .into_response();
     }
 
     // Route to appropriate handler
@@ -392,8 +521,10 @@ async fn handle_jsonrpc(
         "initialize" => handle_initialize(request.params).await,
         "notifications/initialized" => Ok(json!({})),
         "ping" => Ok(json!({})),
-        "tools/list" => handle_tools_list().await,
-        "tools/call" => handle_tools_call(&state, request.params).await,
+        "tools/list" => handle_tools_list(agent.as_ref()).await,
+        "tools/call" => {
+            handle_tools_call(&state, request.params, Some(&agent_label), agent.as_ref()).await
+        }
         _ => Err((
             METHOD_NOT_FOUND,
             format!("Unknown method: {}", request.method),
@@ -404,11 +535,16 @@ async fn handle_jsonrpc(
         Ok(value) => (
             StatusCode::OK,
             Json(JsonRpcResponse::success(request.id, value)),
-        ),
-        Err((code, message)) => (
-            StatusCode::OK,
-            Json(JsonRpcResponse::error(request.id, code, message, None)),
-        ),
+        )
+            .into_response(),
+        Err((code, message)) => {
+            log::warn!("[MCP] {agent_label} called {}: {message}", request.method);
+            (
+                StatusCode::OK,
+                Json(JsonRpcResponse::error(request.id, code, message, None)),
+            )
+                .into_response()
+        }
     }
 }
 
@@ -428,9 +564,12 @@ async fn handle_initialize(_params: Option<Value>) -> Result<Value, (i32, String
     }))
 }
 
-/// Handle the `tools/list` method
-async fn handle_tools_list() -> Result<Value, (i32, String)> {
-    let tools = get_compact_tool_definitions();
+async fn handle_tools_list(agent: Option<&AuthenticatedAgent>) -> Result<Value, (i32, String)> {
+    let tools = if agent.is_some() {
+        get_compact_agent_tool_definitions()
+    } else {
+        get_compact_tool_definitions()
+    };
     Ok(json!({
         "tools": tools
     }))
@@ -440,6 +579,8 @@ async fn handle_tools_list() -> Result<Value, (i32, String)> {
 async fn handle_tools_call(
     state: &McpState,
     params: Option<Value>,
+    agent: Option<&str>,
+    paired_agent: Option<&AuthenticatedAgent>,
 ) -> Result<Value, (i32, String)> {
     let params = params.ok_or((INVALID_PARAMS, "Missing params".to_string()))?;
 
@@ -448,7 +589,58 @@ async fn handle_tools_call(
         .and_then(|v| v.as_str())
         .ok_or((INVALID_PARAMS, "Missing tool name".to_string()))?;
 
-    let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+    if paired_agent.is_some() && !is_agent_tool(name) {
+        return Err((
+            METHOD_NOT_FOUND,
+            format!("Tool '{}' is not available to paired Agents", name),
+        ));
+    }
+
+    let mut arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+    let mut authorized_session_id = None;
+    if let Some(paired_agent) = paired_agent {
+        if name == "session_create" {
+            if arguments
+                .get("server_name")
+                .and_then(Value::as_str)
+                .is_none()
+            {
+                return Err((
+                    INVALID_PARAMS,
+                    "Paired Agents must create sessions by server_name".to_string(),
+                ));
+            }
+            let mut forced_arguments = arguments.clone();
+            forced_arguments["force_new"] = json!(true);
+            arguments = forced_arguments;
+        } else if matches!(
+            name,
+            "session_send_input"
+                | "session_sudo"
+                | "session_read"
+                | "session_resize"
+                | "session_kill"
+        ) {
+            if name == "session_kill" && arguments.get("all").and_then(Value::as_bool) == Some(true)
+            {
+                return Err((
+                    INVALID_PARAMS,
+                    "Paired Agents may only terminate their own sessions".to_string(),
+                ));
+            }
+            let session_id = arguments.get("session_id").and_then(Value::as_str).ok_or((
+                INVALID_PARAMS,
+                "Missing required field: session_id".to_string(),
+            ))?;
+            authorized_session_id = Some(
+                state
+                    .require_agent_session(paired_agent, session_id)
+                    .await
+                    .map_err(|message| (INVALID_PARAMS, message))?,
+            );
+        }
+    }
+
     let activity_id = Uuid::new_v4().to_string();
     let summary = activity_summary(name, &arguments);
     let session_id = arguments
@@ -464,11 +656,41 @@ async fn handle_tools_call(
             status: AgentActivityStatus::Started,
             session_id: session_id.clone(),
             timestamp: chrono::Utc::now().timestamp_millis(),
+            agent: agent.map(str::to_string),
         })
         .map_err(|error| (INTERNAL_ERROR, error))?;
 
     // Execute the tool
-    let result = execute_tool(state, name, &arguments).await;
+    let mut result = execute_tool(state, name, &arguments, agent, paired_agent.is_some()).await;
+
+    if result.is_ok() {
+        if let Some(paired_agent) = paired_agent {
+            if name == "session_create" {
+                let created_id = result
+                    .as_ref()
+                    .ok()
+                    .and_then(|content| serde_json::from_str::<Value>(content).ok())
+                    .and_then(|value| value.get("id").and_then(Value::as_str).map(str::to_string));
+                match created_id {
+                    Some(id) => match state.session_manager.resolve(&id).await {
+                        Ok(session) => {
+                            if let Err(error) =
+                                state.record_agent_session(paired_agent, session.id.clone())
+                            {
+                                result = Err(error);
+                            }
+                        }
+                        Err(error) => result = Err(error.to_string()),
+                    },
+                    None => result = Err("Session creation returned no session id".to_string()),
+                }
+            } else if name == "session_kill" {
+                if let Some(session_id) = authorized_session_id.as_deref() {
+                    state.forget_agent_session(paired_agent, session_id);
+                }
+            }
+        }
+    }
 
     match result {
         Ok(content) => {
@@ -486,6 +708,7 @@ async fn handle_tools_call(
                 status: AgentActivityStatus::Succeeded,
                 session_id,
                 timestamp: chrono::Utc::now().timestamp_millis(),
+                agent: agent.map(str::to_string),
             }) {
                 log::error!("Operation completed; completion audit failed: {error}");
             }
@@ -504,6 +727,7 @@ async fn handle_tools_call(
                 status: AgentActivityStatus::Failed,
                 session_id,
                 timestamp: chrono::Utc::now().timestamp_millis(),
+                agent: agent.map(str::to_string),
             }) {
                 log::error!("Failed operation completion audit could not be saved: {error}");
             }
@@ -528,7 +752,6 @@ fn activity_summary(name: &str, args: &Value) -> String {
         "session_send_input" => {
             Some("Terminal input submission; complete commands are recorded separately")
         }
-        "plugin_execute" => args.get("actionId").and_then(Value::as_str),
         "sftp_ls" | "sftp_mkdir" | "sftp_rm" | "sftp_read" | "sftp_write" | "get_content"
         | "edit_file" | "add_file" => args.get("path").and_then(Value::as_str),
         "sftp_upload" | "sftp_upload_directory" | "sftp_sync_directory" => args
@@ -567,11 +790,17 @@ pub async fn execute_tool_public(
     state: &McpState,
     name: &str,
     args: &Value,
+    agent: Option<&str>,
 ) -> Result<String, String> {
     // Both transports use the exact same guarded/audited entry point.
-    let response = handle_tools_call(state, Some(json!({"name": name, "arguments": args})))
-        .await
-        .map_err(|(_, message)| message)?;
+    let response = handle_tools_call(
+        state,
+        Some(json!({"name": name, "arguments": args})),
+        agent,
+        None,
+    )
+    .await
+    .map_err(|(_, message)| message)?;
     let content = response["content"][0]["text"]
         .as_str()
         .unwrap_or_default()
@@ -583,75 +812,16 @@ pub async fn execute_tool_public(
     }
 }
 
-async fn execute_tool(state: &McpState, name: &str, args: &Value) -> Result<String, String> {
+async fn execute_tool(
+    state: &McpState,
+    name: &str,
+    args: &Value,
+    agent: Option<&str>,
+    paired_agent: bool,
+) -> Result<String, String> {
     match name {
-        "plugin_list" => serde_json::to_string(&crate::plugins::agent::list(
-            &state.database,
-            args.get("installed_only")
-                .and_then(Value::as_bool)
-                .unwrap_or(true),
-        )?)
-        .map_err(|e| e.to_string()),
-        "plugin_describe" => {
-            let data = crate::plugins::agent::describe(
-                &state.database,
-                args.get("plugin_id")
-                    .and_then(Value::as_str)
-                    .ok_or("Missing plugin_id")?,
-                args.get("reference")
-                    .and_then(Value::as_bool)
-                    .unwrap_or(false),
-            )?;
-            match data {
-                Value::String(text) => Ok(text),
-                other => serde_json::to_string(&other).map_err(|e| e.to_string()),
-            }
-        }
-        "plugin_execute" => {
-            let mut request: crate::plugins::PluginExecuteRequest =
-                serde_json::from_value(args.clone())
-                    .map_err(|e| format!("Invalid plugin request: {e}"))?;
-            // Never treat a model-provided confirmed=true as human approval.
-            request.confirmed = false;
-            if !crate::plugins::agent::is_local(&state.session_manager, &request.session_id).await {
-                request.session_id = resolve_session(state, &request.session_id)
-                    .await?
-                    .id
-                    .clone();
-            }
-            let prepared = crate::plugins::agent::prepare(
-                &state.database,
-                &request,
-                crate::plugins::agent::is_local(&state.session_manager, &request.session_id).await,
-            )?;
-            if prepared.requires_confirmation {
-                state
-                    .require_approval(
-                        "plugin_execute",
-                        Some(&request.session_id),
-                        &prepared.command,
-                        vec![format!(
-                            "Plugin action {}/{} requires approval",
-                            request.plugin_id, request.action_id
-                        )],
-                    )
-                    .await?;
-                request.confirmed = true;
-            }
-            serde_json::to_string(
-                &crate::plugins::agent::execute(
-                    &state.database,
-                    &state.session_manager,
-                    request,
-                    "mcp.plugin",
-                    Some(&prepared.command),
-                )
-                .await?,
-            )
-            .map_err(|e| e.to_string())
-        }
         // Server Management
-        "server_list" => tool_server_list(state, args).await,
+        "server_list" => tool_server_list(state, args, paired_agent).await,
         "server_add" => tool_server_add(state, args).await,
         "server_get" => tool_server_get(state, args).await,
         "server_update" => tool_server_update(state, args).await,
@@ -663,7 +833,8 @@ async fn execute_tool(state: &McpState, name: &str, args: &Value) -> Result<Stri
         "session_attach" => tool_session_attach(state, args).await,
         "session_detach" => tool_session_detach(state, args).await,
         "session_kill" => tool_session_kill(state, args).await,
-        "session_send_input" => tool_session_send_input(state, args).await,
+        "session_send_input" => tool_session_send_input(state, args, agent).await,
+        "session_sudo" => tool_session_sudo(state, args).await,
         "session_read" => tool_session_read(state, args).await,
         "session_resize" => tool_session_resize(state, args).await,
 
@@ -696,7 +867,11 @@ async fn execute_tool(state: &McpState, name: &str, args: &Value) -> Result<Stri
 
 // === Server Management Tool Implementations ===
 
-async fn tool_server_list(state: &McpState, args: &Value) -> Result<String, String> {
+async fn tool_server_list(
+    state: &McpState,
+    args: &Value,
+    paired_agent: bool,
+) -> Result<String, String> {
     let group_id = args.get("group_id").and_then(|v| v.as_str());
     let tags: Option<Vec<String>> = args
         .get("tags")
@@ -711,14 +886,21 @@ async fn tool_server_list(state: &McpState, args: &Value) -> Result<String, Stri
     let compact: Vec<Value> = servers
         .iter()
         .map(|server| {
-            json!({
-                "id": unique_short_id(&server.id, &server_ids),
-                "name": &server.name,
-                "host": &server.host,
-                "port": server.port,
-                "user": &server.username,
-                "auth": &server.auth_type,
-            })
+            if paired_agent {
+                json!({
+                    "id": unique_short_id(&server.id, &server_ids),
+                    "name": &server.name,
+                })
+            } else {
+                json!({
+                    "id": unique_short_id(&server.id, &server_ids),
+                    "name": &server.name,
+                    "host": &server.host,
+                    "port": server.port,
+                    "user": &server.username,
+                    "auth": &server.auth_type,
+                })
+            }
         })
         .collect();
     serde_json::to_string(&compact).map_err(|e| e.to_string())
@@ -1008,7 +1190,7 @@ async fn tool_session_create(state: &McpState, args: &Value) -> Result<String, S
         .map_err(|e| format!("Failed to look up credentials: {}", e))?
         .ok_or_else(|| {
             format!(
-                "No saved credentials for server '{}'. Please save credentials in the VibeShell GUI first.",
+                "No saved credentials for server '{}'. Please save credentials in the zxySSH GUI first.",
                 server_name
             )
         })?;
@@ -1098,7 +1280,11 @@ async fn tool_session_kill(state: &McpState, args: &Value) -> Result<String, Str
     }
 }
 
-async fn tool_session_send_input(state: &McpState, args: &Value) -> Result<String, String> {
+async fn tool_session_send_input(
+    state: &McpState,
+    args: &Value,
+    agent: Option<&str>,
+) -> Result<String, String> {
     let session_id = args
         .get("session_id")
         .and_then(Value::as_str)
@@ -1196,6 +1382,7 @@ async fn tool_session_send_input(state: &McpState, args: &Value) -> Result<Strin
             status: AgentActivityStatus::Started,
             session_id: Some(resolved_session_id.clone()),
             timestamp: chrono::Utc::now().timestamp_millis(),
+            agent: agent.map(str::to_string),
         };
         if let Err(error) = state.emit_activity(event.clone()) {
             state.agent_input_tracker.restore(tracker_checkpoint).await;
@@ -1267,6 +1454,57 @@ fn named_key_bytes(key: &str) -> Result<&'static [u8], String> {
         "left" => Ok(b"\x1b[D"),
         _ => Err(format!("Unsupported named key: {}", key)),
     }
+}
+
+async fn tool_session_sudo(state: &McpState, args: &Value) -> Result<String, String> {
+    let session_id = args
+        .get("session_id")
+        .and_then(Value::as_str)
+        .ok_or("Missing required field: session_id")?;
+    let command = args
+        .get("command")
+        .and_then(Value::as_str)
+        .filter(|command| !command.trim().is_empty())
+        .ok_or("Missing non-empty field: command")?;
+    if command.contains('\0') {
+        return Err("Command contains a NUL byte".to_string());
+    }
+
+    let session = resolve_session(state, session_id).await?;
+    let allowed_commands = state
+        .database
+        .sudo_policy_get(&session.server_name)
+        .map_err(|error| format!("Failed to load sudo policy: {error}"))?;
+    if !allowed_commands.iter().any(|allowed| allowed == command) {
+        return Err("Sudo command is not in the server's exact allowlist".to_string());
+    }
+    let password = state
+        .database
+        .sudo_credential_get(&session.server_name)
+        .map_err(|error| format!("Failed to load configured sudo credentials: {error}"))?
+        .ok_or_else(|| {
+            format!(
+                "No sudo credential is configured for '{}'.",
+                session.server_name
+            )
+        })?;
+    let password = zeroize::Zeroizing::new(password);
+    let stdin = zeroize::Zeroizing::new(format!("{}\n{}\n", password.as_str(), command));
+    let output = session
+        .exec_command_with_stdin("sudo -S -p '' -- sh -s", Some(stdin.as_str()))
+        .await
+        .map_err(|error| {
+            let message = error.to_string();
+            if message.contains("a terminal is required")
+                || message.contains("password is required")
+            {
+                "Sudo refused non-interactive execution; no password was sent to the terminal."
+                    .to_string()
+            } else {
+                "Configured sudo command failed".to_string()
+            }
+        })?;
+    Ok(output.replace(password.as_str(), "[sudo password redacted]"))
 }
 
 async fn tool_session_read(state: &McpState, args: &Value) -> Result<String, String> {
@@ -1649,7 +1887,7 @@ async fn tool_sftp_upload_directory(
 }
 
 /// Local directories an automated download may write into: the user's
-/// Downloads folder and VibeShell's own data directory. Anything else
+/// Downloads folder and zxySSH's own data directory. Anything else
 /// (dotfiles, LaunchAgents, crontabs, /etc) is rejected.
 fn allowed_download_roots() -> Vec<std::path::PathBuf> {
     let mut roots = Vec::new();
@@ -1659,8 +1897,8 @@ fn allowed_download_roots() -> Vec<std::path::PathBuf> {
         roots.push(downloads);
     }
     if let Some(data_dir) = directories::BaseDirs::new().map(|dirs| dirs.data_dir().to_path_buf()) {
-        // Mirrors platform::APP_BUNDLE_IDENTIFIER (cfg'd out on mobile targets).
-        roots.push(data_dir.join("com.vibeshell.desktop"));
+        // Mirrors platform::app_data's bundle identifier directory (cfg'd out on mobile targets).
+        roots.push(data_dir.join("com.zxyssh.desktop"));
     }
     roots
 }
@@ -1716,7 +1954,7 @@ pub(crate) fn confine_download_target(local_path: &str) -> Result<std::path::Pat
             .collect::<Vec<_>>()
             .join(", ");
         return Err(format!(
-            "Rejected local download path '{}': downloads are limited to the Downloads folder and the VibeShell data directory (allowed: {})",
+            "Rejected local download path '{}': downloads are limited to the Downloads folder and the zxySSH data directory (allowed: {})",
             local_path, allowed
         ));
     }
@@ -2172,10 +2410,26 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_tools_list() {
-        let result = handle_tools_list().await.unwrap();
+        let result = handle_tools_list(None).await.unwrap();
         assert!(result["tools"].is_array());
         let tools = result["tools"].as_array().unwrap();
         assert!(!tools.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_transport_without_an_approval_ui_fails_closed() {
+        let temp = tempfile::tempdir().unwrap();
+        let database = Arc::new(Database::new_at(temp.path().join("guard.db")).unwrap());
+        let session_manager = Arc::new(SessionManager::new(database.clone()));
+        let state = McpState::new(database, session_manager);
+        let error = state
+            .require_approval("exec", None, "rm -rf /", vec!["destructive".to_string()])
+            .await
+            .expect_err("headless transports must not self-approve");
+        assert!(
+            error.contains("no approval UI is available"),
+            "unexpected error: {error}"
+        );
     }
 
     #[tokio::test]
@@ -2264,13 +2518,12 @@ mod tests {
         let database = Arc::new(Database::new_at(temp.path().join("stdio.db")).unwrap());
         let manager = Arc::new(SessionManager::new(database.clone()));
         let state = McpState::new(database.clone(), manager);
-        let catalog = execute_tool_public(&state, "plugin_list", &json!({"installed_only":false}))
+        let catalog = execute_tool_public(&state, "server_list", &json!({}), None)
             .await
             .unwrap();
-        assert_eq!(
-            serde_json::from_str::<Vec<Value>>(&catalog).unwrap().len(),
-            crate::plugins::builtin_catalog().unwrap().len()
-        );
+        assert!(serde_json::from_str::<Vec<Value>>(&catalog)
+            .unwrap()
+            .is_empty());
         let command = format!("printf '{}'\nwhoami", "界".repeat(500));
         assert_eq!(
             activity_summary("exec", &json!({"command":command})),
@@ -2279,7 +2532,8 @@ mod tests {
         assert!(execute_tool_public(
             &state,
             "exec",
-            &json!({"session_id":"absent","command":command})
+            &json!({"session_id":"absent","command":command}),
+            None
         )
         .await
         .is_err());
@@ -2323,7 +2577,7 @@ mod tests {
         assert!(confine_download_target("").is_err());
 
         // Arbitrary absolute paths outside the allowlist are rejected.
-        assert!(confine_download_target("/tmp/vibeshell-plant.sh").is_err());
+        assert!(confine_download_target("/tmp/zxyssh-plant.sh").is_err());
         assert!(confine_download_target("/etc/cron.d/evil").is_err());
     }
 

@@ -1,72 +1,51 @@
-# Human–Agent collaboration in VibeShell 1.1
+# Human–Agent collaboration in zxySSH 2.0
 
 [Overview](../README.md) · [简体中文](../README.zh-CN.md) · [Plugin specification](plugin-spec.md)
 
+## One host owns the credentials
+
+The desktop and the MCP service read the same saved sites. Credentials, private keys, passphrases and sudo passwords are decrypted only inside the Rust service. They do not cross into the React frontend, an Agent prompt, an activity record or a log line.
+
+A paired Agent is a terminal user, not an operator of the host. It can list sites by name, open its own session, type into that session, read its output, resize it and close it. Arbitrary `exec`, remote search, SFTP transfer, uploads, local files and site CRUD are not on the paired-Agent tool surface; asking for them is rejected rather than silently degraded.
+
 ## Visible operations without interfering with a person
 
-The workspace activity strip shows the most recent Agent/CLI operation. Open it to inspect the full command, session, timestamp and lifecycle state. Independent exec does not inject synthetic text into the person's PTY; its command is visible in history instead.
+The workspace activity panel shows each Agent operation with its tool, session, timestamp and lifecycle state. Repeated calls stay separate records and multiline input is retained in full; older entries page in. The UI combines event notification with incremental polling while active, and recovers history after a restart. Polling is not a promise of zero latency.
 
-Native CLI and MCP share persistent local activity records. Each execution has its own identity, so repeating a command does not collapse the history. Full multiline commands are retained; older entries can be paged in. The UI combines event notifications with incremental polling while active and can recover history after restart. Polling is not a promise of zero latency.
+`started` means an operation was accepted for processing; `succeeded` means that API operation completed; `failed` includes errors and denied operations. For terminal input, success means the bytes were delivered, not that the remote command succeeded.
 
-`started` means an operation was accepted for processing; `succeeded` means that API operation completed; `failed` includes errors and denied operations. For terminal input, success means delivery, not successful command completion. Split keystrokes remain pending until submitted; submitted commands are recorded separately.
+Agent-created sessions appear as their own tabs and never steal the person's active tab. Two connections to the same server stay two sessions distinguished by session identity.
 
-The activity store is locally encrypted and is not cloud-synced. SFTP events record operation/path context, not file contents. Saved credentials and protected stdin are not logged as commands. An ordinary command string can itself contain a secret, so do not place secrets in arguments.
+The activity store is locally encrypted and is not cloud-synced. SFTP events record operation and path context, not file contents. Saved credentials and protected input are never logged as commands, and an ordinary command string can itself contain a secret, so do not put secrets in arguments.
 
-For a genuine password prompt, use the application's protected UI or `vibeshell send-secret SESSION_ID --enter` with protected, piped stdin. The CLI rejects interactive stdin and secret command-line arguments. Redaction follows the pending input line through a later Enter. It cannot prevent a remote program from echoing input, and must not be used to hide commands.
+A transport with no approval UI attached fails a confirmation-requiring call closed instead of running it unattended. Approval means a person saw this command, on this session, before it ran.
 
-## Shared sessions and tabs
+## Sessions and process ownership
 
-With GUI-first startup, the native CLI service shares the GUI SessionManager. With daemon-first startup, the GUI discovers daemon-owned sessions and keeps existing connections intact. Terminal input, resize, SFTP, tunnels, recordings and database probes route to the process that owns the selected SSH session.
+Terminal input, resize, read, sudo and kill are routed to the process that owns the selected SSH session. The GUI owns the service when it starts one; a same-user service started by systemd can own sessions that outlive a GUI window, while GUI-owned connections end when that process exits.
 
-A new live Agent session becomes an independent UI tab without changing the person's active selection. Connections to the same server are distinguished by session identity. History links let the person explicitly switch to the relevant tab.
+If a reply is lost after input was sent, the client does not replay it. A transport error cannot prove the operation never ran, so retrying a mutation needs a real idempotency argument rather than an optimistic assumption.
 
-Connections require their owner process to stay alive: daemon-owned sessions can outlive a GUI window, while GUI-owned sessions end when that process exits. The daemon does not own the GUI's private local shell objects; local plugin actions require the service that actually owns that local session.
+## Privileged commands through the service
 
-If a reply is lost after a command was sent, the client does not automatically replay it. A transport error cannot prove the operation never ran. Retries of mutations need a real idempotency contract, not optimistic assumptions.
+Each site can store a sudo password and an exact list of non-interactive commands. `session_sudo` requires both: the service decrypts the password, injects it over the SSH channel, and refuses anything not configured, anything needing an interactive password change, and anything where no policy exists. The Agent never supplies or receives the password, so pressure to "just pass the sudo password" has nowhere to go.
 
 ## Editing saved credentials
 
-The server edit dialog can change a saved password, replace private-key content/file, and update or clear a key passphrase. Untouched fields preserve stored values. Existing secrets are not loaded into the form. Changing authentication type requires appropriate new credentials.
+The server add/edit dialog holds the SSH credential, the sudo password and the sudo command allowlist. Untouched fields preserve stored values and existing secrets are not loaded back into the form, so an edit cannot echo a stored secret. Metadata, renames and secret updates share one SQLite transaction; failure rolls back the whole edit, and a name conflict does not delete another server's credentials. Closing the dialog clears secret drafts and invalidates pending key-file reads, preventing a stale async result from overwriting a newer choice.
 
-Metadata, renames and secret updates share a SQLite transaction. Failure rolls back the whole edit; name conflicts do not delete another server's credentials. Closing the dialog clears secret drafts and invalidates pending key-file reads, preventing an old async result from overwriting a new choice.
+This changes zxySSH's saved login information, not the remote OS account password. A valid private key also does not establish the server's identity: host-key verification remains necessary, including the real destination behind a jump host.
 
-This changes VibeShell's saved login information, not the remote OS account password. A valid private key also does not establish the server's identity: host-key verification remains necessary.
+## Plugin runtime in this version
 
-## AI-readable plugin interface
+`plugins/builtin/<id>/plugin.json`, `BUILTIN_MANIFESTS` and `docs/plugin-spec.md` remain in the repository, and the reference catalog under `skills/zxyssh/references/` is still parity-checked by `scripts/check-release.mjs`. Since the 2.0 narrowing, no plugin action is reachable by a person or an Agent: the marketplace and panel UI were removed, the CLI plugin commands were removed, and plugin tools are not advertised over MCP.
 
-The interface covers built-ins and validated imported declarative plugins. Server Performance additionally exposes the native `status` action.
+Treat the reference documents as maintenance-time descriptions of a runtime that is currently not exposed. Do not implement an Agent-facing plugin call by assuming a `plugins` command or a `plugin_*` MCP tool exists; adding that surface is a tool-allowlist, permission and approval change that needs its own design and tests.
 
-```bash
-vibeshell plugins list --installed --json
-vibeshell plugins describe server-performance
-vibeshell plugins docs server-performance
-vibeshell plugins run server-performance status --session SESSION_ID --inputs '{}'
-```
-
-Use an existing session and check enabled state before running. Without `--installed`, the list includes uninstalled catalog entries. Descriptions expose action input schemas, permission requirements, confirmation and sudo capabilities, but not saved settings or credentials.
-
-| MCP tool | Parameters | Result |
-| --- | --- | --- |
-| `plugin_list` | `installed_only` (default true) | Current install/enabled state and documentation entry points |
-| `plugin_describe` | `plugin_id`, `reference` | Action schemas; `reference: true` returns Markdown |
-| `plugin_execute` | `pluginId`, `actionId`, `sessionId`, `inputs`, optional `trySudo` | Bounded output, duration and truncation state, or an error |
-
-Execution checks installed/enabled state, granted and declared permissions, session type and inputs. It never installs or enables a plugin as a side effect. CLI `--confirm` is only appropriate after the person approves the exact operation; sudo is a separate explicit opt-in. MCP obtains approval from the human gateway, and rechecks that the command has not changed during review.
-
-Nonzero command exits are errors. SSH output and runtime are bounded; the plugin then applies its UTF-8-safe output cap. It does not use a `head` pipeline that would hide the command's exit status. Local execution drains stdout/stderr concurrently, closes unused stdin and bounds captured output and time.
-
-External tools and permissions remain the environment's responsibility. A Docker, Kubernetes or database manifest does not install its server or client program. Remote performance collection currently assumes Linux `/proc`.
-
-## Main Skill and reference documents
-
-The main Skill contains discovery commands, shared safety rules and a compact built-in index. Detailed usage belongs in `references/<plugin-id>.md`. The repository generator and native installer use the same validated manifests and reference renderer; references are checked in beside all three Skill copies for direct GitHub/plugin installation.
-
-Regenerate repository references with `cargo run --locked -p vibeshell-plugins --example export_references`; add `-- --check` in CI. This touches no user directories or live sessions. The application installer writes reference files before the main Skill and is idempotent for unchanged content.
-
-After importing or updating a plugin, `vibeshell plugins docs <id>` is authoritative for the running installation. Static documents are a snapshot, not evidence a plugin is currently enabled. Documentation never grants authority or overrides the user's instructions.
+Regenerate repository references with `cargo run --locked -p zxyssh-plugins --example export_references`; add `-- --check` in CI. This touches no user directories or live sessions.
 
 ## Validation boundaries
 
-Regression tests cover repeated/multiline command records, pagination, tab focus, atomic credential edits, stale async key reads, plugin permissions and reference/catalog parity. The isolated OpenSSH fixture covers common authentication, PTY, SFTP, forwarding and jump-host behavior.
+Regression tests cover the Agent tool allowlist, session ownership, batch-kill refusal, pairing, revocation, body limits, audit-at-rest, atomic credential edits and reference/catalog parity. `scripts/test-lan-mcp-gateway.sh` drives a real listener end to end inside a throwaway state directory. The loopback OpenSSH fixture covers common authentication, PTY and SFTP behavior.
 
-These checks do not prove every external server, plugin dependency, MFA flow or platform works. UI interaction, binary packaging, signature validation and installed-app behavior require separate verification. Keep desktop, service/CLI and Skill versions aligned during upgrades, and preserve active work before restarting an owner process.
+These checks do not prove every external server, MFA flow or platform works. Plain HTTP carries the bearer token in clear text, so it is only acceptable on a trusted internal network; UI interaction, binary packaging, signature validation and installed-app behavior need separate verification. Keep desktop, service and Skill versions aligned during upgrades, and preserve active work before restarting an owner process.

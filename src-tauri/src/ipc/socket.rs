@@ -34,12 +34,12 @@ use crate::sftp::{
 };
 use crate::storage::{AuthType, Database};
 
-const DEFAULT_SOCKET_NAME: &str = "vibeshell.sock";
-const SOCKET_NAME_ENV: &str = "VIBESHELL_IPC_NAME";
+const DEFAULT_SOCKET_NAME: &str = "zxyssh.sock";
+const SOCKET_NAME_ENV: &str = "ZXYSSH_IPC_NAME";
 const SESSION_IDLE_TTL: std::time::Duration = std::time::Duration::from_secs(30 * 60);
 const SESSION_REAPER_INTERVAL: std::time::Duration = std::time::Duration::from_secs(60);
 
-/// Server metadata returned to CLI for `vibeshell servers`.
+/// Server metadata returned to CLI for `zxyssh servers`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IpcServerInfo {
     pub id: String,
@@ -53,7 +53,7 @@ pub struct IpcServerInfo {
     pub tags: Vec<String>,
 }
 
-/// Session metadata returned to CLI for `vibeshell sessions`.
+/// Session metadata returned to CLI for `zxyssh sessions`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IpcSessionInfo {
     pub id: String,
@@ -139,6 +139,12 @@ pub enum IpcMessage {
     /// Create a new session connecting to the specified server
     CreateSession {
         server_name: String,
+    },
+    /// Create and connect a new session using credentials stored by the owner.
+    CreateSessionSaved {
+        server_name: String,
+        cols: Option<u32>,
+        rows: Option<u32>,
     },
     /// Create and connect a new session with explicit credentials
     CreateSessionWithCredentials {
@@ -353,24 +359,24 @@ type SocketName = interprocess::local_socket::Name<'static>;
 
 /// Per-user private directory holding the IPC socket on unix.
 ///
-/// A fixed location such as `/tmp/vibeshell.sock` lets any local user
+/// A fixed location such as `/tmp/zxyssh.sock` lets any local user
 /// pre-create or squat the path and would expose the endpoint to every
 /// account on the machine. The endpoint therefore lives in a directory owned
-/// by the current user (mode 0700): `$XDG_RUNTIME_DIR/vibeshell-ipc` when the
+/// by the current user (mode 0700): `$XDG_RUNTIME_DIR/zxyssh-ipc` when the
 /// platform provides a runtime dir (Linux), otherwise
-/// `$TMPDIR/vibeshell-ipc-<uid-tag>` keyed by a hash of `$HOME`.
+/// `$TMPDIR/zxyssh-ipc-<uid-tag>` keyed by a hash of `$HOME`.
 #[cfg(not(windows))]
 fn ipc_socket_dir() -> Result<PathBuf> {
     if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
         let runtime_dir = runtime_dir.trim();
         if !runtime_dir.is_empty() {
-            let dir = Path::new(runtime_dir).join("vibeshell-ipc");
+            let dir = Path::new(runtime_dir).join("zxyssh-ipc");
             ensure_private_directory(&dir)?;
             return Ok(dir);
         }
     }
 
-    let dir = std::env::temp_dir().join(format!("vibeshell-ipc-{}", ipc_user_tag()));
+    let dir = std::env::temp_dir().join(format!("zxyssh-ipc-{}", ipc_user_tag()));
     ensure_private_directory(&dir)?;
     Ok(dir)
 }
@@ -444,7 +450,7 @@ fn bounded_socket_path(mut directory: PathBuf, name: &str) -> Result<PathBuf> {
         .map(|byte| format!("{byte:02x}"))
         .collect();
     if directory.join(&shortened).as_os_str().as_bytes().len() > 100 {
-        directory = PathBuf::from("/tmp").join(format!("vibeshell-ipc-{}", ipc_user_tag()));
+        directory = PathBuf::from("/tmp").join(format!("zxyssh-ipc-{}", ipc_user_tag()));
         match fs::create_dir(&directory) {
             Ok(()) => (),
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => (),
@@ -477,7 +483,7 @@ fn get_socket_name() -> Result<SocketName> {
     #[cfg(not(windows))]
     {
         // On Unix, use a socket file in a per-user private directory
-        // (`VIBESHELL_IPC_NAME` still only names the file inside that dir).
+        // (`ZXYSSH_IPC_NAME` still only names the file inside that dir).
         socket_file_path()?
             .to_string_lossy()
             .to_string()
@@ -1110,7 +1116,7 @@ impl IpcServer {
                                 || crate::mcp::guard::classify_command(&command.command, &config)
                                     .requires_approval)
                         {
-                            denied = Some("Terminal command requires approval in the VibeShell Agent Gateway; no input was sent".to_string());
+                            denied = Some("Terminal command requires approval in the zxySSH Agent Gateway; no input was sent".to_string());
                         }
                         descriptions.push((
                             "cli.input".into(),
@@ -1130,6 +1136,7 @@ impl IpcServer {
                 ..
             } => descriptions.push(("cli.exec".into(), Some(session_id.clone()), command.clone())),
             IpcMessage::CreateSession { server_name }
+            | IpcMessage::CreateSessionSaved { server_name, .. }
             | IpcMessage::CreateSessionWithCredentials { server_name, .. } => {
                 descriptions.push(("cli.session_create".into(), None, server_name.clone()))
             }
@@ -1168,6 +1175,7 @@ impl IpcServer {
                 summary,
                 status: AgentActivityStatus::Started,
                 timestamp: chrono::Utc::now().timestamp_millis(),
+                agent: None,
             })
             .collect();
         for event in &events {
@@ -1309,6 +1317,47 @@ impl IpcServer {
                 });
                 IpcMessage::SessionList { sessions }
             }
+            IpcMessage::CreateSessionSaved {
+                server_name,
+                cols,
+                rows,
+            } => match database.credential_get(&server_name) {
+                Ok(Some(cred)) => {
+                    let ssh_cred = match crate::session::SshCredential::from_stored(cred) {
+                        Ok(credential) => credential,
+                        Err(error) => {
+                            return IpcMessage::Error {
+                                message: error.to_string(),
+                            }
+                        }
+                    };
+                    let pty_config = Some(crate::ssh::PtyConfig {
+                        term: "xterm-256color".to_string(),
+                        cols: cols.unwrap_or(80),
+                        rows: rows.unwrap_or(24),
+                        pix_width: 0,
+                        pix_height: 0,
+                    });
+                    match rt.block_on(session_manager.create_with_credentials(
+                        &server_name,
+                        ssh_cred,
+                        pty_config,
+                    )) {
+                        Ok(session) => IpcMessage::SessionCreated {
+                            session_id: session.id.clone(),
+                        },
+                        Err(error) => IpcMessage::Error {
+                            message: error.to_string(),
+                        },
+                    }
+                }
+                Ok(None) => IpcMessage::Error {
+                    message: format!("No saved credentials for server '{}'.", server_name),
+                },
+                Err(error) => IpcMessage::Error {
+                    message: error.to_string(),
+                },
+            },
             IpcMessage::CreateSession { server_name } => {
                 // Look up saved credentials for the server and connect
                 match database.credential_get(&server_name) {
@@ -1348,7 +1397,7 @@ impl IpcServer {
                     }
                     std::result::Result::Ok(None) => IpcMessage::Error {
                         message: format!(
-                            "No saved credentials for server '{}'. Save the password or private key in VibeShell, or connect through the GUI. No SSH connection was created.",
+                            "No saved credentials for server '{}'. Save the password or private key in zxySSH, or connect through the GUI. No SSH connection was created.",
                             server_name
                         ),
                     },
@@ -2100,7 +2149,7 @@ pub struct IpcClient;
 impl IpcClient {
     fn connect_error_message() -> String {
         format!(
-            "Failed to connect to the VibeShell IPC service on {}",
+            "Failed to connect to the zxySSH IPC service on {}",
             socket_name_display()
         )
     }
@@ -2368,7 +2417,7 @@ mod tests {
     #[test]
     fn socket_names_are_bounded_stable_and_confined() {
         use std::os::unix::ffi::OsStrExt;
-        let dir = std::env::temp_dir().join("vibeshell-ipc-path-test");
+        let dir = std::env::temp_dir().join("zxyssh-ipc-path-test");
         let name = "long-endpoint-".repeat(30);
         let path = bounded_socket_path(dir.clone(), &name).unwrap();
         assert!(path.as_os_str().as_bytes().len() <= 100);
@@ -2572,8 +2621,8 @@ mod tests {
     fn test_socket_name_display() {
         let display = IpcClient::socket_name_display();
         assert!(
-            display.contains("vibeshell"),
-            "Socket name should contain vibeshell"
+            display.contains("zxyssh"),
+            "Socket name should contain zxyssh"
         );
         #[cfg(windows)]
         assert!(
@@ -2583,8 +2632,8 @@ mod tests {
         #[cfg(not(windows))]
         {
             assert!(
-                display.contains("vibeshell-ipc"),
-                "Unix socket should live in a per-user vibeshell-ipc directory: {}",
+                display.contains("zxyssh-ipc"),
+                "Unix socket should live in a per-user zxyssh-ipc directory: {}",
                 display
             );
             assert!(
@@ -2592,7 +2641,7 @@ mod tests {
                 "Unix socket display should end with the socket file name: {}",
                 display
             );
-            // The old fixed `/tmp/vibeshell.sock` path must not be used.
+            // The old fixed `/tmp/zxyssh.sock` path must not be used.
             assert_ne!(display, format!("/tmp/{}", DEFAULT_SOCKET_NAME));
         }
     }

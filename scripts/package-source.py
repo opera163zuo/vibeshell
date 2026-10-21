@@ -43,11 +43,11 @@ def main():
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     manifest = json.loads(subprocess.check_output(["git", "show", "HEAD:package.json"], cwd=ROOT))
     version = manifest["version"]
-    with tempfile.TemporaryDirectory(prefix="vibeshell-source-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="zxyssh-source-") as tmp:
         tmp = Path(tmp)
         tree_tar = tmp / "tree.tar"
         subprocess.run(["git", "archive", "--format=tar", "-o", str(tree_tar), "HEAD"], cwd=ROOT, check=True)
-        source = tmp / f"VibeShell-Source-{version}"
+        source = tmp / f"zxySSH-Source-{version}"
         source.mkdir()
         with tarfile.open(tree_tar) as archive:
             archive.extractall(source, filter="data")
@@ -77,7 +77,7 @@ def main():
             if "resolved" in entry:
                 entry["resolved"] = "file:vendor/npm/" + local[entry["resolved"]]
         (source / "package-lock.offline.json").write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
-        (source / "SOURCE-README.txt").write_text(f"""VibeShell {version} — corresponding source materials
+        (source / "SOURCE-README.txt").write_text(f"""zxySSH {version} — corresponding source materials
 Git revision: {revision}
 
 This bundle contains the committed source tree, build/release scripts, Cargo.lock,
@@ -88,7 +88,7 @@ included. General-purpose compiler/bundler tools may include platform binaries.
 
 Read README.md and docs/RELEASING.md for the platform prerequisites and commands.
 For vendored Rust: cargo --config .cargo/vendor-config.toml build --offline --locked
-  --release -p vshell --bin vibeshell
+  --release -p zxyssh --bin zxyssh
 For npm without fetching registry archives: keep the original lockfile, copy
 package-lock.offline.json to package-lock.json in your extracted build directory,
 then run npm ci --offline. This alternate lock changes only resolved archive
@@ -100,9 +100,9 @@ source. Disable updater-artifact generation in a local Tauri config override or
 use your own updater signing key/public key for your own distribution. Never
 replace a running user's application or close SSH sessions as part of a build.
 
-VibeShell as a whole: GPL-3.0-only. Read LICENSE, NOTICE and licenses/legacy-MIT.txt.
+zxySSH as a whole: GPL-3.0-only. Read LICENSE, NOTICE and licenses/legacy-MIT.txt.
 """, encoding="utf-8")
-        destination = args.output / f"VibeShell-Source-{version}.tar.gz"
+        destination = args.output / f"zxySSH-Source-{version}.tar.gz"
         with tarfile.open(destination, "w:gz") as archive:
             archive.add(source, arcname=source.name)
         if destination.stat().st_size >= 2_000_000_000:

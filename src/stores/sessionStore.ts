@@ -2,13 +2,11 @@ import { create } from 'zustand';
 import { safeInvoke, TauriError, sendInputBatched } from '../lib/tauri';
 import { useNotificationStore } from './notificationStore';
 import { useFileWorkspaceStore } from './fileWorkspaceStore';
-import { usePluginWorkspaceStore } from './pluginWorkspaceStore';
 import { useServerStore } from './serverStore';
 import { useFingerprintStore, parseHostKeyError } from './fingerprintStore';
 // Single source of truth for the local_shell_* Tauri wrappers lives in
 // localShellStore; the sessionStore local-shell methods delegate to it.
 import { isSessionMissingError, useLocalShellStore } from './localShellStore';
-import type { CodingAgentLaunchRequest } from '../types/codingAgent';
 
 /**
  * Helper to show error notification
@@ -47,8 +45,7 @@ function mapLocalSessionInfo(info: LocalShellSessionInfo): Session {
     state: localStateMap[info.state],
     createdAt: info.createdAt * 1000,
     sessionType: 'local',
-    purpose: info.agentId ? 'coding_agent' : 'shell',
-    agentId: info.agentId ?? undefined,
+    purpose: 'shell',
     cwd: info.cwd ?? undefined,
   };
 }
@@ -97,7 +94,6 @@ export interface LocalShellSessionInfo {
   shellId: string;
   shellName: string;
   cwd?: string | null;
-  agentId?: string | null;
   state: 'starting' | 'running' | 'stopped' | 'error';
   createdAt: number;
   clients: number;
@@ -107,7 +103,7 @@ export interface LocalShellSessionInfo {
  * Connection state for a session
  */
 export type SessionState = 'connecting' | 'connected' | 'disconnected' | 'error';
-export type SessionPurpose = 'shell' | 'coding_agent';
+export type SessionPurpose = 'shell';
 
 /**
  * Represents an active session (SSH or Local Shell)
@@ -129,9 +125,7 @@ export interface Session {
   sessionType: SessionType;
   /** What the local PTY is being used for. SSH sessions omit this. */
   purpose?: SessionPurpose;
-  /** Coding agent adapter ID for embedded agent sessions. */
-  agentId?: string;
-  /** Workspace selected when the coding agent was launched. */
+  /** Workspace selected for a local shell session. */
   cwd?: string;
 }
 
@@ -169,6 +163,13 @@ interface SessionStore {
   // Tauri backend integration
   /** Connect to a server by name and create a session (without full SSH connection) */
   connectSession: (serverName: string) => Promise<Session | null>;
+  /** Connect with credentials stored by the backend without returning them to the UI. */
+  connectWithSavedCredentials: (
+    serverName: string,
+    cols?: number,
+    rows?: number,
+    forceNew?: boolean
+  ) => Promise<Session | null>;
   /** Connect to a server with credentials and start SSH session */
   connectWithCredentials: (
     serverName: string,
@@ -213,8 +214,6 @@ interface SessionStore {
     cols?: number,
     rows?: number
   ) => Promise<Session | null>;
-  /** Launch a local coding agent inside a PTY-backed session. */
-  launchCodingAgentSession: (request: CodingAgentLaunchRequest) => Promise<Session | null>;
   /** Send input to a local shell session (delegates to localShellStore) */
   sendLocalShellInput: (sessionId: string, data: string) => Promise<boolean>;
   /** Send input fast to a local shell session (fire-and-forget; delegates to localShellStore) */
@@ -261,7 +260,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   removeSession: (id) => {
     useFileWorkspaceStore.getState().closeTabsForSession(id);
-    usePluginWorkspaceStore.getState().closeTabsForSession(id);
     set((state) => {
       const newSessions = state.sessions.filter((s) => s.id !== id);
       let newActiveId = state.activeSessionId;
@@ -304,7 +302,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   clearAllSessions: () => {
     useFileWorkspaceStore.getState().retainTabsForSessions([]);
-    usePluginWorkspaceStore.getState().retainTabsForSessions([]);
     set({ sessions: [], activeSessionId: null });
   },
 
@@ -340,6 +337,40 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       showError('Failed to Create Session', result.error);
       return null;
     }
+  },
+
+  connectWithSavedCredentials: async (
+    serverName: string,
+    cols = 80,
+    rows = 24,
+    forceNew = false
+  ) => {
+    set({ loading: true, error: null });
+    const request = { serverName, cols, rows, forceNew };
+    let result = await safeInvoke<SessionInfo>('session_connect_saved', { request });
+    const approvedHosts = new Set<string>();
+    for (let approvals = 0; !result.success && approvals < 2; approvals += 1) {
+      const hostKeyError = parseHostKeyError(result.error.message);
+      if (!hostKeyError?.host || !hostKeyError.port || !hostKeyError.fingerprint) break;
+      const identity = JSON.stringify([hostKeyError.host, hostKeyError.port]);
+      if (approvedHosts.has(identity)) break;
+      approvedHosts.add(identity);
+      const approved = await useFingerprintStore.getState().requestHostKeyApproval({
+        host: hostKeyError.host, port: hostKeyError.port, fingerprint: hostKeyError.fingerprint,
+        algorithm: hostKeyError.keyType ?? 'unknown', serverName, status: hostKeyError.kind,
+        storedFingerprint: hostKeyError.storedFingerprint, storedAlgorithm: hostKeyError.storedKeyType,
+      });
+      if (!approved) break;
+      result = await safeInvoke<SessionInfo>('session_connect_saved', { request });
+    }
+    if (result.success) {
+      const session = mapSessionInfo(result.data);
+      set((state) => ({ sessions: upsertSession(state.sessions, session), activeSessionId: state.activeSessionId ?? session.id, loading: false }));
+      return session;
+    }
+    set({ error: result.error.message, loading: false });
+    showError('Connection Failed', result.error);
+    return null;
   },
 
   connectWithCredentials: async (
@@ -622,9 +653,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       useFileWorkspaceStore
         .getState()
         .retainTabsForSessions(sessions.map((session) => session.id));
-      usePluginWorkspaceStore
-        .getState()
-        .retainTabsForSessions(sessions.map((session) => session.id));
 
       set((state) => {
         const activeSessionStillExists = state.activeSessionId
@@ -689,7 +717,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
             mapped.state !== session.state
             || mapped.serverName !== session.serverName
             || mapped.cwd !== session.cwd
-            || mapped.agentId !== session.agentId
           ) {
             changed = true;
             return [{ ...session, ...mapped }];
@@ -736,9 +763,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     useFileWorkspaceStore
       .getState()
       .retainTabsForSessions(get().sessions.map((session) => session.id));
-    usePluginWorkspaceStore
-      .getState()
-      .retainTabsForSessions(get().sessions.map((session) => session.id));
   },
 
   // Local shell session methods
@@ -773,25 +797,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }
   },
 
-  launchCodingAgentSession: async (request: CodingAgentLaunchRequest) => {
-    set({ loading: true, error: null });
-    const result = await safeInvoke<LocalShellSessionInfo>('coding_agent_launch', { request });
-
-    if (!result.success) {
-      set({ loading: false, error: result.error.message });
-      showError('Failed to Start Coding Agent', result.error);
-      return null;
-    }
-
-    const session = mapLocalSessionInfo(result.data);
-    set((state) => ({
-      sessions: upsertSession(state.sessions, session),
-      activeSessionId: session.id,
-      loading: false,
-    }));
-    return session;
-  },
-
   sendLocalShellInput: async (sessionId: string, data: string) => {
     // Thin delegator: localShellStore owns the local_shell_send_input wrapper.
     return useLocalShellStore.getState().sendInput(sessionId, data);
@@ -809,7 +814,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     // localShellStore.killSession is the single implementation of
     // local_shell_kill and already treats "session not found" as closed.
     // On success (or when the backend already dropped the session) also
-    // remove the tab here, which closes any file/plugin workspace tabs
+    // remove the tab here, which closes any file workspace tabs
     // bound to the session.
     const killed = await useLocalShellStore.getState().killSession(sessionId);
     if (killed) {

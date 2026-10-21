@@ -441,7 +441,7 @@ pub fn effective_directory_transfer_options(
 ) -> DirectoryTransferOptions {
     let mut config = load_upload_ignore_config().unwrap_or_else(|_| default_upload_ignore_config());
 
-    if let Ok(env_excludes) = std::env::var("VIBESHELL_SFTP_EXCLUDES") {
+    if let Ok(env_excludes) = std::env::var("ZXYSSH_SFTP_EXCLUDES") {
         config
             .excluded_paths
             .extend(parse_exclude_list(&env_excludes));
@@ -794,8 +794,8 @@ fn sync_protected_paths<'a>(
 }
 
 fn upload_ignore_config_path() -> Result<PathBuf, String> {
-    let dirs = ProjectDirs::from("com", "vibeshell", "VibeShell")
-        .ok_or_else(|| "Could not determine VibeShell config directory".to_string())?;
+    let dirs = ProjectDirs::from("com", "zxyssh", "zxySSH")
+        .ok_or_else(|| "Could not determine zxySSH config directory".to_string())?;
     Ok(dirs.config_dir().join("sftp-upload-ignore.json"))
 }
 
@@ -1168,7 +1168,7 @@ mod tests {
             .expect("system clock before unix epoch")
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "vibeshell-sync-{}-{}-{}",
+            "zxyssh-sync-{}-{}-{}",
             name,
             std::process::id(),
             stamp

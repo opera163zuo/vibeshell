@@ -118,7 +118,7 @@ pub(super) fn parse(
                     .unwrap_or(false) =>
             {
                 warnings.push(format!(
-                    "PuTTY profile '{}' uses a .ppk key; convert it to OpenSSH format or select another key in VibeShell",
+                    "PuTTY profile '{}' uses a .ppk key; convert it to OpenSSH format or select another key in zxySSH",
                     session_name
                 ));
                 None

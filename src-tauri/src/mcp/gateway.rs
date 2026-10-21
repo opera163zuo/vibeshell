@@ -104,7 +104,7 @@ impl AgentGateway {
         let thread_manifest_path = manifest_path.clone();
 
         let thread = std::thread::Builder::new()
-            .name("vibeshell-agent-gateway".to_string())
+            .name("zxyssh-agent-gateway".to_string())
             .spawn(move || {
                 let runtime = match tokio::runtime::Builder::new_multi_thread()
                     .enable_all()
@@ -163,6 +163,8 @@ impl AgentGateway {
                     *thread_live.lock().expect("gateway status lock poisoned") = Some(info.clone());
                     let _ = ready_tx.send(Ok(info));
 
+                    // The desktop gateway stays loopback-only with its manifest
+                    // token; LAN pairing belongs to `zxyssh mcp-serve`.
                     let server = McpServer::new(database, session_manager)
                         .with_activity_emitter(activity_emitter)
                         .with_terminal_input_emitter(terminal_input_emitter)
@@ -277,8 +279,8 @@ impl GatewayManifest {
 }
 
 pub fn gateway_manifest_path() -> Result<PathBuf> {
-    let project_dirs = ProjectDirs::from("com", "vibeshell", "VibeShell")
-        .ok_or_else(|| anyhow!("Could not determine VibeShell data directory"))?;
+    let project_dirs = ProjectDirs::from("com", "zxyssh", "zxySSH")
+        .ok_or_else(|| anyhow!("Could not determine zxySSH data directory"))?;
     Ok(project_dirs.data_dir().join(GATEWAY_MANIFEST_FILE))
 }
 
@@ -288,7 +290,7 @@ fn resolve_launch_path() -> PathBuf {
         return PathBuf::from(path);
     }
 
-    std::env::current_exe().unwrap_or_else(|_| PathBuf::from("vibeshell"))
+    std::env::current_exe().unwrap_or_else(|_| PathBuf::from("zxyssh"))
 }
 
 fn generate_token() -> String {

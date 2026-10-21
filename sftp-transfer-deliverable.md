@@ -24,7 +24,7 @@ Batch download currently handles selected files. Recursive remote directory down
 - Rust suite: 196 passed, 6 ignored.
 - Frontend production build: passed.
 - Rust check: passed.
-- Installed bundle: arm64, version 1.0.2, identifier `com.vibeshell.desktop`, strict code-sign verification passed.
+- Installed bundle: arm64, version 1.0.2, identifier `com.zxyssh.desktop`, strict code-sign verification passed.
 - Installed binary SHA-256 matched the built bundle: `142756662fe53dae51e3031366e1756abbcca07f5fe87f515a5659cf36f58f41`.
 - Live installed-app QA loaded the local SFTP listing, opened a complete context menu, selected 127 entries, and exposed `Download 10 files`, `Compress (127 items)`, and `Delete (127 items)` without freezing.
 - No real upload, download, or delete operation was performed during live QA.

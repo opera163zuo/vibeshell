@@ -1,9 +1,9 @@
-//! AI tool detection for VibeShell skill installation.
+//! AI tool detection for zxySSH skill installation.
 //!
 //! This module detects installed AI coding tools and checks whether
-//! the VibeShell SKILL.md is installed in each tool's skills directory.
+//! the zxySSH SKILL.md is installed in each tool's skills directory.
 //!
-//! Installed-tool detection checks known config and skill roots. VibeShell
+//! Installed-tool detection checks known config and skill roots. zxySSH
 //! installation status is based on SKILL.md presence only — we do NOT modify
 //! or require MCP config files (mcp.json, etc.).
 
@@ -11,9 +11,11 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-const SKILL_DIR_NAMES: [&str; 2] = ["vibeshell", "vshell"];
+// Detection also recognises the pre-rebrand directories, so an old install
+// is reported (and later uninstalled) instead of being silently duplicated.
+const SKILL_DIR_NAMES: [&str; 3] = ["zxyssh", "vibeshell", "vshell"];
 
-/// Represents an AI coding tool that can have the VibeShell skill installed.
+/// Represents an AI coding tool that can have the zxySSH skill installed.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiTool {
     /// Unique identifier for the tool (e.g., "claude-code", "cursor")
@@ -24,8 +26,8 @@ pub struct AiTool {
     pub config_path: PathBuf,
     /// Whether the AI tool is detected/installed on the system
     pub installed: bool,
-    /// Whether the VibeShell SKILL.md is installed in the tool
-    pub vibeshell_installed: bool,
+    /// Whether the zxySSH SKILL.md is installed in the tool
+    pub zxyssh_installed: bool,
 }
 
 impl AiTool {
@@ -33,7 +35,7 @@ impl AiTool {
     ///
     /// Detection:
     /// - `installed`: true if any of the candidate directories exist
-    /// - `vibeshell_installed`: true if SKILL.md exists in the skills dir
+    /// - `zxyssh_installed`: true if SKILL.md exists in the skills dir
     fn from_definition(definition: &ToolDefinition) -> Self {
         let config_path = select_preferred_config_path(&definition.config_candidates)
             .unwrap_or_else(|| PathBuf::from("mcp.json"));
@@ -47,14 +49,14 @@ impl AiTool {
                 .iter()
                 .any(|path| path.exists() || path.parent().map(|p| p.exists()).unwrap_or(false));
 
-        let vibeshell_installed = check_skill_installed_in_dirs(&definition.skill_dir_candidates);
+        let zxyssh_installed = check_skill_installed_in_dirs(&definition.skill_dir_candidates);
 
         Self {
             id: definition.id.to_string(),
             name: definition.name.to_string(),
             config_path,
             installed,
-            vibeshell_installed,
+            zxyssh_installed,
         }
     }
 }
@@ -375,7 +377,7 @@ fn tool_definitions(home: &Path) -> Vec<ToolDefinition> {
 /// Detect all supported AI tools and their skill installation status.
 ///
 /// Returns a list of all known AI tools with their current status,
-/// including whether they are installed and whether the VibeShell skill is installed.
+/// including whether they are installed and whether the zxySSH skill is installed.
 pub fn detect_ai_tools() -> Vec<AiTool> {
     get_home_dir()
         .map(|home| {
@@ -404,7 +406,7 @@ pub fn get_installed_tools() -> Vec<AiTool> {
 ///
 /// Installed coding agents are targeted directly, and the universal
 /// `~/.agents/skills` location is always included so agents that support the
-/// shared convention discover VibeShell without a separate installation step.
+/// shared convention discover zxySSH without a separate installation step.
 pub fn get_default_install_tools() -> Vec<AiTool> {
     let mut tools = get_installed_tools();
     if !tools.iter().any(|tool| tool.id == "agents") {
@@ -415,11 +417,11 @@ pub fn get_default_install_tools() -> Vec<AiTool> {
     tools
 }
 
-/// Get all tools that have the VibeShell skill installed.
+/// Get all tools that have the zxySSH skill installed.
 pub fn get_configured_tools() -> Vec<AiTool> {
     detect_ai_tools()
         .into_iter()
-        .filter(|t| t.vibeshell_installed)
+        .filter(|t| t.zxyssh_installed)
         .collect()
 }
 
@@ -540,7 +542,8 @@ mod tests {
     }
 
     #[test]
-    fn test_skill_dir_names_include_current_and_legacy_names() {
+    fn test_skill_dir_names_cover_the_current_and_previous_installs() {
+        assert!(SKILL_DIR_NAMES.contains(&"zxyssh"));
         assert!(SKILL_DIR_NAMES.contains(&"vibeshell"));
         assert!(SKILL_DIR_NAMES.contains(&"vshell"));
     }

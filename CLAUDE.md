@@ -1,7 +1,7 @@
-# CLAUDE.md — VibeShell
+# CLAUDE.md — zxySSH
 
 ## What is this project?
-VibeShell is a desktop SSH/SFTP terminal application. Think of it as a modern alternative to PuTTY/Tabby/Xshell, built with Tauri 2 (Rust) + React 18 (TypeScript).
+zxySSH is a desktop SSH/SFTP terminal application. Think of it as a modern alternative to PuTTY/Tabby/Xshell, built with Tauri 2 (Rust) + React 18 (TypeScript).
 
 ## Quick start
 ```bash

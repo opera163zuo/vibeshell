@@ -1,5 +1,5 @@
 [package]
-name = "vibeshell-desktop"
+name = "zxyssh-desktop"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -8,11 +8,11 @@ description = "High-performance SSH/SFTP terminal with AI integration"
 rust-version = "1.89"
 
 [lib]
-name = "vibeshell_core"
+name = "zxyssh_core"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [[bin]]
-name = "vibeshell-desktop"
+name = "zxyssh-desktop"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -24,7 +24,7 @@ tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-vibeshell-plugins = { path = "../plugins" }
+zxyssh-plugins = { path = "../plugins" }
 rusqlite = { version = "0.31", features = ["bundled"] }
 tokio-postgres = "0.7"
 tokio-stream = "0.1"

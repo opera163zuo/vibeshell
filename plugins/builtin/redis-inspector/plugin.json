@@ -4,7 +4,7 @@
   "name": "Redis Inspector",
   "description": "Inspect and manage Redis: health, keyspace stats, key lookups, clients, slowlog and runtime configuration. Automatically uses a Docker redis container when redis-cli is not installed on the host.",
   "version": "1.2.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "data",
   "icon": "redis",
   "permissions": [

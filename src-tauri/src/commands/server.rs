@@ -301,14 +301,99 @@ pub fn save_credential(
     .map_err(|e| format!("Failed to save credentials: {}", e))
 }
 
-/// Get credentials for a server
+/// Input for saved sudo credentials.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveSudoCredentialInput {
+    pub server_name: String,
+    pub password: String,
+}
+
 #[tauri::command]
-pub fn get_credential(
+pub fn save_sudo_credential(
+    db: State<'_, Arc<Database>>,
+    request: SaveSudoCredentialInput,
+) -> Result<(), String> {
+    db.sudo_credential_save(&request.server_name, &request.password)
+        .map_err(|error| format!("Failed to save sudo credentials: {error}"))
+}
+
+#[tauri::command]
+pub fn clear_sudo_credential(
     db: State<'_, Arc<Database>>,
     request: CredentialServerInput,
-) -> Result<Option<crate::storage::database::Credential>, String> {
-    db.credential_get(&request.server_name)
-        .map_err(|e| format!("Failed to get credentials: {}", e))
+) -> Result<(), String> {
+    db.sudo_credential_delete(&request.server_name)
+        .map_err(|error| format!("Failed to clear sudo credentials: {error}"))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveSudoPolicyInput {
+    pub server_name: String,
+    pub commands: Vec<String>,
+}
+
+#[tauri::command]
+pub fn save_sudo_policy(
+    db: State<'_, Arc<Database>>,
+    request: SaveSudoPolicyInput,
+) -> Result<(), String> {
+    db.sudo_policy_save(&request.server_name, &request.commands)
+        .map_err(|error| format!("Failed to save sudo policy: {error}"))
+}
+
+#[tauri::command]
+pub fn clear_sudo_policy(
+    db: State<'_, Arc<Database>>,
+    request: CredentialServerInput,
+) -> Result<(), String> {
+    db.sudo_policy_delete(&request.server_name)
+        .map_err(|error| format!("Failed to clear sudo policy: {error}"))
+}
+
+/// Non-secret metadata describing whether saved credentials are available.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CredentialStatus {
+    pub auth_type: Option<String>,
+    pub has_credential: bool,
+}
+
+#[tauri::command]
+pub fn credential_status(
+    db: State<'_, Arc<Database>>,
+    request: CredentialServerInput,
+) -> Result<CredentialStatus, String> {
+    let credential = db
+        .credential_get(&request.server_name)
+        .map_err(|e| format!("Failed to check credential status: {}", e))?;
+    Ok(CredentialStatus {
+        auth_type: credential.as_ref().map(|value| value.auth_type.clone()),
+        has_credential: credential.is_some(),
+    })
+}
+
+#[cfg(test)]
+mod credential_status_tests {
+    use super::CredentialStatus;
+    use serde_json::json;
+
+    #[test]
+    fn status_serializes_only_non_secret_fields() {
+        let value = serde_json::to_value(CredentialStatus {
+            auth_type: Some("password".into()),
+            has_credential: true,
+        })
+        .unwrap();
+        assert_eq!(
+            value,
+            json!({ "authType": "password", "hasCredential": true })
+        );
+        for secret_field in ["credential", "passphrase", "keyPath"] {
+            assert!(value.get(secret_field).is_none());
+        }
+    }
 }
 
 #[cfg(test)]

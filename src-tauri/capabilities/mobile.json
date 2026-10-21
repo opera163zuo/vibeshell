@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "mobile",
-  "description": "Minimal capabilities for VibeShell mobile clients",
+  "description": "Minimal capabilities for zxySSH mobile clients",
   "platforms": ["iOS", "android"],
   "remote": {
     "urls": [

@@ -79,15 +79,15 @@ const filePane = `file:${fileTab.id}`;
 const pluginPane = `plugin:${pluginTab.id}`;
 // Dedicated origin only: reset just this demo's workspace keys on navigation.
 for (const key of Object.keys(localStorage)) {
-  if (key.startsWith('vibeshell.') || key.startsWith('vibeshell-') || key.startsWith('vibeshell_')) localStorage.removeItem(key);
+  if (key.startsWith('zxyssh.') || key.startsWith('zxyssh-') || key.startsWith('zxyssh_')) localStorage.removeItem(key);
 }
-localStorage.setItem('vibeshell-lang', lang);
+localStorage.setItem('zxyssh-lang', lang);
 localStorage.setItem('newConnectionTab', 'ssh');
-localStorage.setItem('vibeshell-connection-view', 'icons');
-localStorage.setItem('vibeshell-coding-workspace', workspace);
-localStorage.setItem('vibeshell-coding-agent', 'codex');
-localStorage.setItem('vibeshell_command_history:demo-api', JSON.stringify(['docker compose logs --tail 30 api', 'docker compose ps', 'git status --short']));
-localStorage.setItem('vibeshell.workspace-layout.v2', JSON.stringify({ version: 2,
+localStorage.setItem('zxyssh-connection-view', 'icons');
+localStorage.setItem('zxyssh-coding-workspace', workspace);
+localStorage.setItem('zxyssh-coding-agent', 'codex');
+localStorage.setItem('zxyssh_command_history:demo-api', JSON.stringify(['docker compose logs --tail 30 api', 'docker compose ps', 'git status --short']));
+localStorage.setItem('zxyssh.workspace-layout.v2', JSON.stringify({ version: 2,
   sessions: [...ssh.map(s => ({ id: s.id, serverId: s.server_id, serverName: s.server_name, sessionType: 'ssh' })),
     { id: local[0].id, serverId: 'zsh', serverName: local[0].shellName, sessionType: 'local', purpose: 'coding_agent', cwd: workspace }],
   files: [fileTab], plugins: [pluginTab], activeSessionId: active,
@@ -190,7 +190,7 @@ const { useNavigationStore } = await import('../../src/stores/navigationStore');
 const { useAgentApprovalStore } = await import('../../src/stores/agentApprovalStore');
 const { useSettingsStore } = await import('../../src/stores/settingsStore');
 const { useCustomThemeStore } = await import('../../src/lib/customTheme');
-Object.assign(window, { __VIBESHELL_DEMO__: {
+Object.assign(window, { __ZXYSSH_DEMO__: {
   scenario, blocked, calls, errors,
   ready: () => document.querySelectorAll('.xterm-screen').length > 0,
   approveDemo: () => useAgentApprovalStore.setState({ queue: [{ id: 'demo-approval', tool: 'mcp:session_exec', command: 'sudo systemctl restart northstar-api', reasons: ['Elevated privileges', 'Service restart can interrupt active requests'], sessionId: 'demo-session-api', timestamp: time }] }),

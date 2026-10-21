@@ -222,7 +222,7 @@ function isSftpConnectionError(message: string): boolean {
 
 function loadSftpViewMode(): SftpViewMode {
   try {
-    const stored = globalThis.localStorage?.getItem('vibeshell-sftp-view');
+    const stored = globalThis.localStorage?.getItem('zxyssh-sftp-view');
     if (stored === 'columns' || stored === 'icons') return stored;
   } catch {
     // Storage can be unavailable in hardened webviews and test environments.
@@ -1359,7 +1359,7 @@ export const SftpPanel = forwardRef<SftpPanelHandle, SftpPanelProps>(function Sf
     }
     setViewMode(nextMode);
     try {
-      globalThis.localStorage?.setItem('vibeshell-sftp-view', nextMode);
+      globalThis.localStorage?.setItem('zxyssh-sftp-view', nextMode);
     } catch {
       // The selected mode still applies for the current session.
     }

@@ -43,6 +43,21 @@ describe('sessionStore.syncRemoteSessions', () => {
     useFileWorkspaceStore.setState({ tabs: [], activeTabId: null });
   });
 
+  it('uses the saved-connect command without sending credentials', async () => {
+    safeInvokeMock.mockResolvedValue({
+      success: true,
+      data: { id: 'saved-session', serverId: 'server-1', serverName: 'prod', state: 'connected', createdAt: 1, clients: 1 },
+    });
+
+    const session = await useSessionStore.getState().connectWithSavedCredentials('prod', 80, 24, true);
+
+    expect(session?.id).toBe('saved-session');
+    expect(safeInvokeMock).toHaveBeenCalledWith('session_connect_saved', {
+      request: { serverName: 'prod', cols: 80, rows: 24, forceNew: true },
+    });
+    expect(JSON.stringify(safeInvokeMock.mock.calls)).not.toMatch(/credential|passphrase/);
+  });
+
   it('clears file tabs when all sessions are cleared', () => {
     openFileForSession('ssh-session');
 

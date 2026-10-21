@@ -13,7 +13,7 @@ const unlockedStatus = {
   unlocked: true,
   syncing: false,
   provider: 'webdav' as const,
-  endpoint: 'https://dav.example.com/vibeshell-sync.json',
+  endpoint: 'https://dav.example.com/zxyssh-sync.json',
   vaultId: 'vault-1',
   pendingChanges: 2,
   conflicts: 0,
@@ -83,9 +83,9 @@ describe('cloudSyncStore', () => {
         success: true,
         data: {
           provider: 'webdav',
-          endpoint: 'https://dav.example.com/vibeshell-sync.json',
+          endpoint: 'https://dav.example.com/zxyssh-sync.json',
           vaultId: 'vault-1',
-          pairingCode: 'vibeshell-sync-v2.secret',
+          pairingCode: 'zxyssh-sync-v2.secret',
         },
       })
       .mockResolvedValueOnce({ success: true, data: unlockedStatus })
@@ -108,18 +108,18 @@ describe('cloudSyncStore', () => {
 
     await useCloudSyncStore.getState().createVault({
       provider: 'webdav',
-      endpoint: 'https://dav.example.com/vibeshell-sync.json',
+      endpoint: 'https://dav.example.com/zxyssh-sync.json',
       username: '',
       password: '',
     });
 
     expect(useCloudSyncStore.getState().pairingInfo?.pairingCode).toBe(
-      'vibeshell-sync-v2.secret'
+      'zxyssh-sync-v2.secret'
     );
     expect(safeInvokeMock).toHaveBeenNthCalledWith(1, 'cloud_sync_create_vault', {
       request: {
         provider: 'webdav',
-        endpoint: 'https://dav.example.com/vibeshell-sync.json',
+        endpoint: 'https://dav.example.com/zxyssh-sync.json',
         username: '',
         password: '',
       },

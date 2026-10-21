@@ -1,6 +1,6 @@
-# vibeshell-plugins
+# zxyssh-plugins
 
-The VibeShell plugin specification crate: manifest types, validation, command
+The zxySSH plugin specification crate: manifest types, validation, command
 rendering, and the compiled-in catalog of built-in plugins.
 
 - **Normative spec:** [`docs/plugin-spec.md`](../docs/plugin-spec.md)
@@ -21,7 +21,7 @@ plugins/
 1. Create or edit `builtin/<plugin-id>/plugin.json`.
 2. If the directory is new, register `("<plugin-id>", include_str!(...))` in
    `BUILTIN_MANIFESTS` in `src/lib.rs`.
-3. `cargo test -p vibeshell-plugins` — the catalog test validates every
+3. `cargo test -p zxyssh-plugins` — the catalog test validates every
    manifest with the built-in policy and fails if a directory is missing from
    the registration list (or vice versa).
 

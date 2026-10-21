@@ -1,6 +1,6 @@
 //! MCP Tool Definitions
 //!
-//! Defines all tools exposed by the VibeShell MCP server for AI assistants.
+//! Defines all tools exposed by the zxySSH MCP server for AI assistants.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -32,31 +32,25 @@ impl ToolDefinition {
     }
 }
 
-/// Returns all tool definitions for the MCP server
+/// Returns the SSH, session, command and SFTP tools required by the headless service.
 pub fn get_tool_definitions() -> Vec<ToolDefinition> {
     vec![
-        plugin_list_tool(),
-        plugin_describe_tool(),
-        plugin_execute_tool(),
-        // === Server Management Tools ===
         server_list_tool(),
         server_add_tool(),
         server_get_tool(),
         server_update_tool(),
         server_delete_tool(),
-        // === Session Management Tools ===
         session_list_tool(),
         session_create_tool(),
         session_attach_tool(),
         session_detach_tool(),
         session_kill_tool(),
         session_send_input_tool(),
+        session_sudo_tool(),
         session_read_tool(),
         session_resize_tool(),
-        // === Command Execution Tools ===
         exec_tool(),
         remote_rg_tool(),
-        // === SFTP Operations Tools ===
         sftp_ls_tool(),
         sftp_upload_tool(),
         sftp_upload_directory_tool(),
@@ -71,6 +65,60 @@ pub fn get_tool_definitions() -> Vec<ToolDefinition> {
         edit_file_tool(),
         add_file_tool(),
     ]
+}
+
+/// Returns the minimal tool surface available to paired HTTP Agents.
+pub fn get_agent_tool_definitions() -> Vec<ToolDefinition> {
+    const AGENT_TOOLS: &[&str] = &[
+        "server_list",
+        "session_create",
+        "session_send_input",
+        "session_sudo",
+        "session_read",
+        "session_resize",
+        "session_kill",
+    ];
+    get_tool_definitions()
+        .into_iter()
+        .filter(|tool| AGENT_TOOLS.contains(&tool.name.as_str()))
+        .map(|mut tool| {
+            if tool.name == "session_create" {
+                if let Some(schema) = tool.input_schema.as_object_mut() {
+                    if let Some(properties) =
+                        schema.get_mut("properties").and_then(Value::as_object_mut)
+                    {
+                        properties.remove("server_id");
+                    }
+                    schema.insert("required".into(), json!(["server_name"]));
+                }
+            }
+            tool
+        })
+        .collect()
+}
+
+pub fn get_compact_agent_tool_definitions() -> Vec<ToolDefinition> {
+    get_agent_tool_definitions()
+        .into_iter()
+        .map(|mut tool| {
+            tool.description = compact_description(&tool.name);
+            compact_schema(&mut tool.input_schema);
+            tool
+        })
+        .collect()
+}
+
+pub fn is_agent_tool(name: &str) -> bool {
+    matches!(
+        name,
+        "server_list"
+            | "session_create"
+            | "session_send_input"
+            | "session_sudo"
+            | "session_read"
+            | "session_resize"
+            | "session_kill"
+    )
 }
 
 /// Compact definitions for agents that already know the Gateway workflow.
@@ -90,15 +138,8 @@ pub fn get_compact_tool_definitions() -> Vec<ToolDefinition> {
 fn compact_description(name: &str) -> String {
     match name {
         "session_send_input" => "Send visible terminal input (approval-gated).".to_string(),
+        "session_sudo" => "Run a server-configured non-interactive sudo command.".to_string(),
         "session_read" => "Read recent visible terminal output.".to_string(),
-        "plugin_list" => "List installed plugins and live reference commands.".to_string(),
-        "plugin_describe" => {
-            "Read action input schemas; reference=true returns usage documentation.".to_string()
-        }
-        "plugin_execute" => {
-            "Run an installed/enabled plugin action on a session; human approval is enforced."
-                .to_string()
-        }
         "exec" => "Run isolated SSH command (approval-gated).".to_string(),
         "server_list" => "List saved servers.".to_string(),
         "session_list" => "List sessions.".to_string(),
@@ -119,25 +160,6 @@ fn compact_schema(value: &mut Value) {
         Value::Array(items) => items.iter_mut().for_each(compact_schema),
         _ => {}
     }
-}
-
-fn plugin_list_tool() -> ToolDefinition {
-    ToolDefinition::new("plugin_list", "Discover current plugin installation, enablement and reference commands. No settings or secrets are returned.",
-        json!({"type":"object","properties":{"installed_only":{"type":"boolean","default":true}},"additionalProperties":false}))
-}
-
-fn plugin_describe_tool() -> ToolDefinition {
-    ToolDefinition::new("plugin_describe", "Read a plugin's exact action schemas, or its current Markdown usage reference. Works for native and imported plugins.",
-        json!({"type":"object","properties":{"plugin_id":{"type":"string"},"reference":{"type":"boolean","default":false}},"required":["plugin_id"],"additionalProperties":false}))
-}
-
-fn plugin_execute_tool() -> ToolDefinition {
-    ToolDefinition::new("plugin_execute", "Run one installed/enabled plugin action on an existing session. Read plugin_describe first. Risky actions require approval in the human UI; the model cannot grant itself approval. No passwords in inputs.",
-        json!({"type":"object","properties":{
-            "pluginId":{"type":"string"},"actionId":{"type":"string"},"sessionId":{"type":"string"},
-            "inputs":{"type":"object","description":"Must match this action's inputSchema from plugin_describe"},
-            "trySudo":{"type":"boolean","default":false}
-        },"required":["pluginId","actionId","sessionId"],"additionalProperties":false}))
 }
 
 // === Server Management Tools ===
@@ -433,6 +455,21 @@ fn session_send_input_tool() -> ToolDefinition {
     )
 }
 
+fn session_sudo_tool() -> ToolDefinition {
+    ToolDefinition::new(
+        "session_sudo",
+        "Run a configured sudo command through a non-interactive SSH exec channel; the sudo password is held by the server and never returned.",
+        json!({
+            "type": "object",
+            "properties": {
+                "session_id": {"type": "string"},
+                "command": {"type": "string", "description": "Command to run as root through the configured sudo policy"}
+            },
+            "required": ["session_id", "command"],
+            "additionalProperties": false
+        }),
+    )
+}
 fn session_read_tool() -> ToolDefinition {
     ToolDefinition::new(
         "session_read",
@@ -965,13 +1002,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn paired_agent_surface_is_terminal_only() {
+        let tools = get_agent_tool_definitions();
+        let names = tools
+            .iter()
+            .map(|tool| tool.name.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        assert_eq!(names.len(), 7);
+        for allowed in [
+            "server_list",
+            "session_create",
+            "session_send_input",
+            "session_sudo",
+            "session_read",
+            "session_resize",
+            "session_kill",
+        ] {
+            assert!(names.contains(allowed), "missing {allowed}");
+            assert!(is_agent_tool(allowed));
+        }
+        for denied in ["exec", "rg", "sftp_upload", "server_add", "server_delete"] {
+            assert!(!names.contains(denied), "unexpected {denied}");
+            assert!(!is_agent_tool(denied));
+        }
+    }
+
+    #[test]
     fn test_get_tool_definitions() {
         let tools = get_tool_definitions();
 
-        // Includes the three shared plugin discovery/execution tools.
-        assert_eq!(tools.len(), 31);
+        // The headless service only exposes SSH/session/command/SFTP operations.
+        assert_eq!(tools.len(), 29);
         for name in ["plugin_list", "plugin_describe", "plugin_execute"] {
-            assert!(tools.iter().any(|tool| tool.name == name));
+            assert!(!tools.iter().any(|tool| tool.name == name));
         }
 
         // Check that all tools have non-empty names and descriptions
@@ -1025,7 +1088,7 @@ mod tests {
     #[test]
     fn compact_definitions_drop_repeated_schema_prose() {
         let tools = get_compact_tool_definitions();
-        assert_eq!(tools.len(), 31);
+        assert_eq!(tools.len(), 29);
         let encoded = serde_json::to_string(&tools).unwrap();
         assert!(!encoded.contains("Filter servers by group ID"));
         assert!(!encoded.contains("\"default\""));

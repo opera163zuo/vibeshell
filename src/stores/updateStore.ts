@@ -5,9 +5,9 @@ import type { DownloadEvent } from '@tauri-apps/plugin-updater';
 export const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 const GITHUB_LATEST_RELEASE_API =
-  'https://api.github.com/repos/veithly/vibeshell/releases/latest';
-const GITHUB_LATEST_RELEASE_PAGE = 'https://github.com/veithly/vibeshell/releases/latest';
-const UPDATE_STATE_KEY = 'vibeshell_update_state';
+  'https://api.github.com/repos/opera163zuo/zxyssh/releases/latest';
+const GITHUB_LATEST_RELEASE_PAGE = 'https://github.com/opera163zuo/zxyssh/releases/latest';
+const UPDATE_STATE_KEY = 'zxyssh_update_state';
 const REQUEST_TIMEOUT_MS = 12_000;
 
 interface GitHubReleaseAsset {
@@ -128,19 +128,9 @@ export function isNewerVersion(candidate: string, current: string | null): boole
   return current !== null && compareVersions(candidate, current) > 0;
 }
 
-function getPlatformAssetPriority(userAgent = navigator.userAgent): string[] {
-  const agent = userAgent.toLowerCase();
-
-  if (agent.includes('windows')) {
-    return ['.msi', '.exe', '.zip'];
-  }
-  if (agent.includes('mac os') || agent.includes('macintosh')) {
-    return ['.dmg', '.pkg', '.app.tar.gz', '.zip'];
-  }
-  if (agent.includes('linux') || agent.includes('x11')) {
-    return ['.appimage', '.deb', '.rpm', '.tar.gz'];
-  }
-  return ['.dmg', '.msi', '.appimage', '.deb', '.zip', '.tar.gz'];
+function getPlatformAssetPriority(): string[] {
+  // Published zxySSH builds are Linux-only.
+  return ['.appimage', '.deb', '.rpm', '.tar.gz'];
 }
 
 function isMetadataAsset(assetName: string): boolean {
@@ -153,12 +143,9 @@ function isMetadataAsset(assetName: string): boolean {
   );
 }
 
-export function selectPreferredAsset(
-  assets: ReleaseAsset[],
-  userAgent = navigator.userAgent
-): ReleaseAsset | null {
+export function selectPreferredAsset(assets: ReleaseAsset[]): ReleaseAsset | null {
   const installableAssets = assets.filter((asset) => !isMetadataAsset(asset.name));
-  const priorities = getPlatformAssetPriority(userAgent);
+  const priorities = getPlatformAssetPriority();
 
   for (const extension of priorities) {
     const asset = installableAssets.find((candidate) =>
@@ -224,7 +211,7 @@ async function fetchSignedUpdaterRelease(): Promise<AppRelease | null> {
   return {
     version: normalizeVersion(update.version),
     tagName: `v${normalizeVersion(update.version)}`,
-    name: `VibeShell ${update.version}`,
+    name: `zxySSH ${update.version}`,
     htmlUrl: GITHUB_LATEST_RELEASE_PAGE,
     downloadUrl: GITHUB_LATEST_RELEASE_PAGE,
     publishedAt: update.date ?? null,

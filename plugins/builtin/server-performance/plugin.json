@@ -4,7 +4,7 @@
   "name": "Server Performance",
   "description": "Live CPU, memory, disk, network, load and uptime metrics for the active host.",
   "version": "1.0.0",
-  "author": "VibeShell",
+  "author": "zxySSH",
   "category": "monitoring",
   "icon": "activity",
   "permissions": [

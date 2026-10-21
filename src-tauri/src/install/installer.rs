@@ -1,4 +1,4 @@
-//! Install and remove the native VibeShell CLI skill for AI coding tools.
+//! Install and remove the native zxySSH CLI skill for AI coding tools.
 
 use anyhow::{anyhow, Context, Result};
 use std::fs;
@@ -8,9 +8,11 @@ use super::detector::{
     find_tool, skill_dir_candidates_for_tool, skill_install_dirs_for_tool, AiTool,
 };
 
-const SKILL_DIR_NAME: &str = "vibeshell";
-const LEGACY_SKILL_DIR_NAME: &str = "vshell";
-const NATIVE_SKILL_MD_TEMPLATE: &str = include_str!("../../../skills/vibeshell/SKILL.md");
+const SKILL_DIR_NAME: &str = "zxyssh";
+// Only the uninstall path still looks for these: a machine that installed the
+// pre-rebrand Skill must be able to remove those directories.
+const PREVIOUS_SKILL_DIR_NAMES: [&str; 2] = ["vibeshell", "vshell"];
+const NATIVE_SKILL_MD_TEMPLATE: &str = include_str!("../../../skills/zxyssh/SKILL.md");
 
 fn render_skill_md() -> Result<String> {
     Ok(NATIVE_SKILL_MD_TEMPLATE.to_string())
@@ -60,7 +62,7 @@ fn install_skill_file_to_dirs(skills_dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>>
         write_if_changed(&skill_path, &skill_content)?;
 
         // Remove the obsolete Node gateway helper from prior installations. The
-        // native skill talks directly to the `vibeshell` executable.
+        // native skill talks directly to the `zxyssh` executable.
         let legacy_gateway = skill_dir.join("gateway.mjs");
         if legacy_gateway.exists() {
             fs::remove_file(&legacy_gateway).with_context(|| {
@@ -71,18 +73,22 @@ fn install_skill_file_to_dirs(skills_dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>>
             })?;
         }
 
-        let legacy_skill_dir = skills_dir.join(LEGACY_SKILL_DIR_NAME);
-        if legacy_skill_dir.exists() && legacy_skill_dir != skill_dir {
-            fs::remove_dir_all(&legacy_skill_dir).with_context(|| {
-                format!(
-                    "Failed to remove legacy skill directory {:?}",
-                    legacy_skill_dir
-                )
-            })?;
+        // Erase the pre-rebrand Skill directories so the old brand stops being
+        // advertised to coding agents once the current one is installed.
+        for previous_name in PREVIOUS_SKILL_DIR_NAMES {
+            let previous_skill_dir = skills_dir.join(previous_name);
+            if previous_skill_dir.exists() && previous_skill_dir != skill_dir {
+                fs::remove_dir_all(&previous_skill_dir).with_context(|| {
+                    format!(
+                        "Failed to remove the previous skill directory {:?}",
+                        previous_skill_dir
+                    )
+                })?;
+            }
         }
 
         log::info!(
-            "[Install] Native VibeShell skill installed to {:?}",
+            "[Install] Native zxySSH skill installed to {:?}",
             skill_path
         );
         installed_paths.push(skill_path);
@@ -94,13 +100,16 @@ fn install_skill_file_to_dirs(skills_dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>>
 fn uninstall_skill_file(tool_id: &str) -> Result<()> {
     if let Some(skills_dirs) = skill_dir_candidates_for_tool(tool_id) {
         for skills_dir in skills_dirs {
-            for dir_name in [SKILL_DIR_NAME, LEGACY_SKILL_DIR_NAME] {
+            for dir_name in [SKILL_DIR_NAME]
+                .iter()
+                .chain(PREVIOUS_SKILL_DIR_NAMES.iter())
+            {
                 let skill_dir = skills_dir.join(dir_name);
                 if skill_dir.exists() {
                     fs::remove_dir_all(&skill_dir).with_context(|| {
                         format!("Failed to remove skill directory {:?}", skill_dir)
                     })?;
-                    log::info!("[Install] VibeShell skill removed from {:?}", skill_dir);
+                    log::info!("[Install] zxySSH skill removed from {:?}", skill_dir);
                 }
             }
         }
@@ -214,19 +223,32 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn skill_content_uses_the_native_cli_contract() {
+    fn skill_content_uses_the_mcp_contract() {
         let content = render_skill_md().unwrap();
         for required in [
-            "name: vibeshell",
-            "native `vibeshell` executable",
-            "vibeshell servers",
-            "vibeshell ssh <server>",
-            "vibeshell sessions",
-            "vibeshell sftp",
-            "vibeshell import auto",
-            "headless daemon",
+            "name: zxyssh",
+            "MCP endpoint",
+            "zxyssh mcp pair-code",
+            "zxyssh mcp agents",
+            "zxyssh mcp hostkey probe",
+            "server_list",
+            "session_create",
+            "session_sudo",
+            "ZXYSSH_MCP_ALLOW_LAN",
         ] {
             assert!(content.contains(required), "missing {required}");
+        }
+        for removed in [
+            "zxyssh ssh ",
+            "zxyssh servers",
+            "zxyssh sessions",
+            "zxyssh sftp",
+            "zxyssh import",
+            "zxyssh plugins",
+            "zxyssh daemon",
+            "headless daemon",
+        ] {
+            assert!(!content.contains(removed), "stale command {removed}");
         }
         assert!(!content.contains("node gateway.mjs"));
         assert!(!content.contains("Agent Gateway"));
@@ -238,11 +260,11 @@ mod tests {
         let canonical = render_skill_md().unwrap();
         assert_eq!(
             canonical,
-            include_str!("../../../.claude/skills/vibeshell/SKILL.md")
+            include_str!("../../../.claude/skills/zxyssh/SKILL.md")
         );
         assert_eq!(
             canonical,
-            include_str!("../../../.codex/skills/vibeshell/SKILL.md")
+            include_str!("../../../.codex/skills/zxyssh/SKILL.md")
         );
     }
 
@@ -255,8 +277,8 @@ mod tests {
 
         assert_eq!(installed, vec![skill_path.clone()]);
         let content = fs::read_to_string(skill_path).unwrap();
-        assert!(content.contains("name: vibeshell"));
-        assert!(content.contains("native `vibeshell` executable"));
+        assert!(content.contains("name: zxyssh"));
+        assert!(content.contains("MCP endpoint"));
         assert!(!skills_dir.join(SKILL_DIR_NAME).join("gateway.mjs").exists());
         for manifest in crate::plugins::builtin_catalog().unwrap() {
             let relative = format!("references/{}.md", manifest.id);
@@ -271,7 +293,7 @@ mod tests {
                 reference,
                 crate::plugins::agent_reference(&manifest).unwrap()
             );
-            assert!(reference.contains("## MCP equivalent"));
+            assert!(reference.contains("## Running this from the MCP service"));
             for action in crate::plugins::agent_actions(&manifest) {
                 assert!(reference.contains(&format!("## `{}`", action["id"].as_str().unwrap())));
             }

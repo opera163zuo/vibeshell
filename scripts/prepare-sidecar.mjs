@@ -36,27 +36,23 @@ function hostTargetTriple() {
 
 const target =
   argumentValue('--target') ??
-  process.env.VIBESHELL_TARGET ??
+  process.env.ZXYSSH_TARGET ??
   process.env.TAURI_ENV_TARGET_TRIPLE ??
   process.env.CARGO_BUILD_TARGET ??
   hostTargetTriple();
 
-if (target === 'universal-apple-darwin') {
-  throw new Error(
-    'Build each macOS architecture separately; universal-apple-darwin is not a Cargo target triple.',
-  );
-}
 
 const profile = args.includes('--debug') ? 'debug' : 'release';
-const extension = target.includes('windows') ? '.exe' : '';
-const binaryName = `vibeshell${extension}`;
+if (!target.includes('linux')) throw new Error('zxySSH release builds support Linux targets only.');
+const extension = '';
+const binaryName = `zxyssh${extension}`;
 const cargoArgs = [
   'build',
   '--locked',
   '--package',
-  'vshell',
+  'zxyssh',
   '--bin',
-  'vibeshell',
+  'zxyssh',
   '--target',
   target,
 ];
@@ -65,7 +61,7 @@ if (profile === 'release') {
 }
 
 if (!args.includes('--no-build')) {
-  console.log(`Building native VibeShell CLI for ${target} (${profile})...`);
+  console.log(`Building native zxySSH CLI for ${target} (${profile})...`);
   const result = spawnSync('cargo', cargoArgs, {
     cwd: repoRoot,
     stdio: 'inherit',
@@ -82,12 +78,12 @@ const source = join(repoRoot, 'target', target, profile, binaryName);
 const destinationDir = join(repoRoot, 'src-tauri', 'binaries');
 const destination = join(
   destinationDir,
-  `vibeshell-${target}${extension}`,
+  `zxyssh-${target}${extension}`,
 );
 
 mkdirSync(destinationDir, { recursive: true });
 copyFileSync(source, destination);
-if (!target.includes('windows')) {
+if (target.includes('linux')) {
   chmodSync(destination, 0o755);
 }
 

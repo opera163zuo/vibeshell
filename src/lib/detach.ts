@@ -3,30 +3,25 @@ import i18n from 'i18next';
 import { useNotificationStore } from '../stores/notificationStore';
 import { useSessionStore, type Session } from '../stores/sessionStore';
 import { useFileWorkspaceStore, type FileWorkspaceTab } from '../stores/fileWorkspaceStore';
-import { usePluginWorkspaceStore, type PluginPanelState, type PluginWorkspaceTab } from '../stores/pluginWorkspaceStore';
-import { filePaneId, pluginPaneId, sessionPaneId } from './paneIds';
+import { filePaneId, sessionPaneId } from './paneIds';
 import { readTextBuffer, writeTextBuffer, setTextBufferLocked, waitForTextSave, type TextEditBuffer } from './fileEditBuffer';
 
 export type DetachTarget =
   | { kind: 'terminal'; sessionId: string; title: string }
-  | { kind: 'plugin'; pluginId: string; sessionId: string; serverName: string; sessionType: 'ssh' | 'local' }
   | { kind: 'file'; source?: 'local'; sessionId: string; path: string; name: string; size: number };
-export const DETACHED_READY_EVENT = 'vibeshell://detached-ready';
-export const DETACHED_CLOSED_EVENT = 'vibeshell://detached-closed';
-export const WORKSPACE_QUITTING_EVENT = 'vibeshell://workspace-quitting';
-export const SESSION_TAB_DND_MIME = 'application/x-vibeshell-session-tab';
-export const PLUGIN_TAB_DND_MIME = 'application/x-vibeshell-plugin-tab';
-export const FILE_TAB_DND_MIME = 'application/x-vibeshell-file-tab';
-const HANDOFF_PREFIX = 'vibeshell.window-handoff.';
-const LAYOUT_KEY = 'vibeshell.detached-layout.v2';
+export const DETACHED_READY_EVENT = 'zxyssh://detached-ready';
+export const DETACHED_CLOSED_EVENT = 'zxyssh://detached-closed';
+export const WORKSPACE_QUITTING_EVENT = 'zxyssh://workspace-quitting';
+export const SESSION_TAB_DND_MIME = 'application/x-zxyssh-session-tab';
+export const FILE_TAB_DND_MIME = 'application/x-zxyssh-file-tab';
+const HANDOFF_PREFIX = 'zxyssh.window-handoff.';
+const LAYOUT_KEY = 'zxyssh.detached-layout.v2';
 
 export interface TransferSnapshot {
   target: DetachTarget;
   session?: Session;
   file?: FileWorkspaceTab;
   buffer?: TextEditBuffer | null;
-  plugin?: PluginWorkspaceTab;
-  panel?: PluginPanelState;
 }
 export interface DetachedLayoutEntry { target: DetachTarget; geometryKey: string }
 export const useDetachedOwnership = create<{ owners: Record<string, string> }>(() => ({ owners: {} }));
@@ -41,13 +36,11 @@ export function canCloseWorkspaceSession(sessionId: string): boolean {
 
 export function detachTargetKey(target: DetachTarget): string {
   if (target.kind === 'terminal') return sessionPaneId(target.sessionId);
-  if (target.kind === 'plugin') return pluginPaneId(`${target.sessionId}::${target.pluginId}`);
   return filePaneId(`${target.sessionId}\u0000${target.path}`);
 }
 export function detachQueryString(target: DetachTarget): string {
   const params = new URLSearchParams({ detach: target.kind, session: target.sessionId });
   if (target.kind === 'terminal') params.set('title', target.title);
-  if (target.kind === 'plugin') { params.set('plugin', target.pluginId); params.set('server', target.serverName); params.set('type', target.sessionType); }
   if (target.kind === 'file') { params.set('path', target.path); params.set('name', target.name); params.set('size', String(target.size)); if (target.source === 'local') params.set('source', 'local'); }
   return params.toString();
 }
@@ -56,7 +49,6 @@ export function parseDetachTarget(search: string): DetachTarget | null {
   const sessionId = p.get('session');
   if (!sessionId || sessionId.length > 512) return null;
   if (p.get('detach') === 'terminal') return { kind: 'terminal', sessionId, title: p.get('title') ?? 'Terminal' };
-  if (p.get('detach') === 'plugin' && p.get('plugin')) return { kind: 'plugin', sessionId, pluginId: p.get('plugin')!, serverName: p.get('server') ?? '', sessionType: p.get('type') === 'local' ? 'local' : 'ssh' };
   if (p.get('detach') === 'file' && p.get('path') && p.get('name')) return { kind: 'file', ...(p.get('source') === 'local' ? { source: 'local' as const } : {}), sessionId, path: p.get('path')!, name: p.get('name')!, size: Math.max(0, Number(p.get('size')) || 0) };
   return null;
 }
@@ -70,11 +62,6 @@ export function captureTransfer(target: DetachTarget): TransferSnapshot {
     snapshot.file = useFileWorkspaceStore.getState().tabs.find((tab) => tab.sessionId === target.sessionId && tab.path === target.path);
     if (!snapshot.file) throw new Error('File tab no longer exists');
     snapshot.buffer = readTextBuffer(snapshot.file.id);
-  }
-  if (target.kind === 'plugin') {
-    const id = `${target.sessionId}::${target.pluginId}`;
-    snapshot.plugin = usePluginWorkspaceStore.getState().tabs.find((tab) => tab.id === id);
-    snapshot.panel = usePluginWorkspaceStore.getState().panels[id];
   }
   return snapshot;
 }
@@ -91,13 +78,6 @@ export function hydrateTransfer(snapshot: TransferSnapshot): void {
     const tab = { ...snapshot.file, dirty: snapshot.buffer ? snapshot.buffer.text !== snapshot.buffer.saved : snapshot.file.dirty };
     useFileWorkspaceStore.setState((state) => ({ tabs: state.tabs.some((t) => t.id === tab.id)
       ? state.tabs.map((t) => t.id === tab.id ? tab : t) : [...state.tabs, tab] }));
-  }
-  if (snapshot.plugin) {
-    const tab = snapshot.plugin;
-    usePluginWorkspaceStore.setState((state) => ({
-      tabs: state.tabs.some((t) => t.id === tab.id) ? state.tabs : [...state.tabs, tab],
-      panels: snapshot.panel ? { ...state.panels, [tab.id]: snapshot.panel } : state.panels,
-    }));
   }
 }
 export function readDetachedLayout(): DetachedLayoutEntry[] {
@@ -164,7 +144,7 @@ export function openDetachedWindow(
           stopReady = stop;
           const nativeWindow = new WebviewWindow(label, {
             url: `index.html?${detachQueryString(target)}`,
-            title: target.kind === 'terminal' ? target.title : target.kind === 'file' ? target.name : target.pluginId,
+            title: target.kind === 'terminal' ? target.title : target.name,
             width: options?.width ?? 980, height: options?.height ?? 660,
             minWidth: 480, minHeight: 320, decorations: false, dragDropEnabled: false, visible: false,
           });
@@ -175,7 +155,7 @@ export function openDetachedWindow(
       await ready;
       addDetachedToLayout(target, geometryKey);
       useDetachedOwnership.setState((state) => ({ owners: { ...state.owners, [key]: label } }));
-      await emitTo(label, 'vibeshell://detached-committed', { label });
+      await emitTo(label, 'zxyssh://detached-committed', { label });
       return label;
     } catch (error) {
       console.error('[Workspace] Could not detach tab:', error);

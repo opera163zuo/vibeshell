@@ -18,23 +18,17 @@ describe('updateStore version helpers', () => {
 
 describe('updateStore release asset selection', () => {
   const assets = [
-    { name: 'VibeShell_0.1.19_x64.dmg', downloadUrl: 'https://example.com/mac' },
-    { name: 'VibeShell_0.1.19_x64.msi', downloadUrl: 'https://example.com/win' },
+    { name: 'zxySSH_0.1.19_x64.dmg', downloadUrl: 'https://example.com/mac' },
+    { name: 'zxySSH_0.1.19_x64.msi', downloadUrl: 'https://example.com/win' },
     { name: 'latest.json', downloadUrl: 'https://example.com/latest.json' },
-    { name: 'VibeShell_0.1.19_amd64.AppImage', downloadUrl: 'https://example.com/linux' },
+    { name: 'zxySSH_0.1.19_amd64.AppImage', downloadUrl: 'https://example.com/linux' },
   ];
 
-  it('prefers Windows installers on Windows', () => {
-    expect(selectPreferredAsset(assets, 'Windows NT')?.downloadUrl).toBe('https://example.com/win');
-  });
-
-  it('prefers macOS installers on macOS', () => {
-    expect(selectPreferredAsset(assets, 'Macintosh; Intel Mac OS X')?.downloadUrl).toBe(
-      'https://example.com/mac'
-    );
+  it('prefers Linux installers regardless of the client user agent', () => {
+    expect(selectPreferredAsset(assets)?.downloadUrl).toBe('https://example.com/linux');
   });
 
   it('skips metadata assets when selecting a download', () => {
-    expect(selectPreferredAsset([assets[2]], 'Windows NT')).toBeNull();
+    expect(selectPreferredAsset([assets[2]])).toBeNull();
   });
 });

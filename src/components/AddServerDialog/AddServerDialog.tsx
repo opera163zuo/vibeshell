@@ -21,6 +21,8 @@ const INITIAL_FORM_DATA = {
   // 'key_with_passphrase' with an optional (possibly empty) passphrase.
   authType: 'password' as 'password' | 'key_with_passphrase',
   password: '',
+  sudoPassword: '',
+  sudoCommands: '',
   keyPassphrase: '',
   jumpHostId: '',
   agentForwarding: false,
@@ -37,6 +39,7 @@ export function AddServerDialog({ isOpen, onClose }: AddServerDialogProps) {
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showSudoPassword, setShowSudoPassword] = useState(false);
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -61,6 +64,7 @@ export function AddServerDialog({ isOpen, onClose }: AddServerDialogProps) {
       resetKeyPicker();
       setLocalError(null);
       setShowPassword(false);
+      setShowSudoPassword(false);
       setShowPassphrase(false);
       clearError();
     }
@@ -132,6 +136,24 @@ export function AddServerDialog({ isOpen, onClose }: AddServerDialogProps) {
           await updateServer(createdServer.id, { credential_id: credentialResult.data });
         } else {
           console.warn('Failed to save credentials, will prompt on connect:', credentialResult.error.message);
+        }
+      }
+
+      if (!isMobile && formData.sudoPassword) {
+        const sudoResult = await safeInvoke<void>('save_sudo_credential', {
+          request: { serverName: createdServer.name, password: formData.sudoPassword },
+        });
+        if (!sudoResult.success) {
+          console.warn('Failed to save sudo credentials:', sudoResult.error.message);
+        }
+        const policyResult = await safeInvoke<void>('save_sudo_policy', {
+          request: {
+            serverName: createdServer.name,
+            commands: formData.sudoCommands.split('\n').map((command) => command.trim()).filter(Boolean),
+          },
+        });
+        if (!policyResult.success) {
+          console.warn('Failed to save sudo policy:', policyResult.error.message);
         }
       }
 
@@ -343,6 +365,56 @@ export function AddServerDialog({ isOpen, onClose }: AddServerDialogProps) {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Server-side sudo credential */}
+            {!isMobile && (
+              <div>
+                <label className="block text-sm font-medium text-tokyo-fg mb-1">
+                  Sudo password <span className="text-tokyo-comment font-normal">(optional, stored only by the backend)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSudoPassword ? 'text' : 'password'}
+                    value={formData.sudoPassword}
+                    onChange={(e) => handleChange('sudoPassword', e.target.value)}
+                    placeholder="Optional server-side sudo password"
+                    className={cn(
+                      'w-full px-3 py-2 pr-10 rounded-md',
+                      'bg-tokyo-bg border border-tokyo-bg-hl',
+                      'text-tokyo-fg placeholder-tokyo-comment',
+                      'focus:outline-none focus:ring-1 focus:ring-tokyo-blue focus:border-tokyo-blue'
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSudoPassword(!showSudoPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-tokyo-comment hover:text-tokyo-fg"
+                    aria-label={showSudoPassword ? 'Hide sudo password' : 'Show sudo password'}
+                  >
+                    {showSudoPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isMobile && (
+              <div>
+                <label className="block text-sm font-medium text-tokyo-fg mb-1">Allowed sudo commands</label>
+                <textarea
+                  value={formData.sudoCommands}
+                  onChange={(e) => handleChange('sudoCommands', e.target.value)}
+                  placeholder="One exact command per line, e.g. systemctl status nginx"
+                  rows={3}
+                  className={cn(
+                    'w-full px-3 py-2 rounded-md resize-y font-mono text-sm',
+                    'bg-tokyo-bg border border-tokyo-bg-hl',
+                    'text-tokyo-fg placeholder-tokyo-comment',
+                    'focus:outline-none focus:ring-1 focus:ring-tokyo-blue focus:border-tokyo-blue'
+                  )}
+                />
+                <p className="mt-1 text-xs text-tokyo-comment">Sudo is refused unless the requested command exactly matches this list.</p>
               </div>
             )}
 

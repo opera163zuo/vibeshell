@@ -434,7 +434,7 @@ function RecordingSection() {
       >
         <div className="flex min-w-0 items-start gap-2 text-sm text-tokyo-comment font-mono sm:items-center">
           <FolderOpen className="w-4 h-4 flex-shrink-0" />
-          <span className="break-all">%APPDATA%/vibeshell/recordings</span>
+          <span className="break-all">%APPDATA%/zxyssh/recordings</span>
         </div>
       </SettingRow>
 
@@ -1011,7 +1011,7 @@ export function Settings() {
                   <TextInput
                     value={cloudWebDavEndpoint}
                     onChange={setCloudWebDavEndpoint}
-                    placeholder="https://dav.example.com/vibeshell-sync.json"
+                    placeholder="https://dav.example.com/zxyssh-sync.json"
                     className="sm:w-80"
                   />
                 </SettingRow>
@@ -1048,7 +1048,7 @@ export function Settings() {
               <TextArea
                 value={cloudPairingCode}
                 onChange={setCloudPairingCode}
-                placeholder="vibeshell-sync-v2..."
+                placeholder="zxyssh-sync-v2..."
               />
             </SettingRow>
             <div className="flex justify-end">
@@ -1565,7 +1565,7 @@ export function Settings() {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <a
-                  href="https://github.com/veithly/vibeshell"
+                  href="https://github.com/opera163zuo/zxyssh"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg

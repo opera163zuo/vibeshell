@@ -4,13 +4,13 @@
 - The GUI constructs the shared `Database` and `SessionManager` in `src-tauri/src/lib.rs`.
 - The GUI already starts a local socket IPC server used by the CLI.
 - The MCP HTTP and stdio servers currently create a separate `SessionManager` from the CLI process.
-- The desktop bundle currently includes `vshell` as an external binary and attempts to add it to `PATH`.
+- The desktop bundle currently includes `zxyssh` as an external binary and attempts to add it to `PATH`.
 
 ## Requirements
 - No CLI dependency for agent control.
-- Gateway runs as part of the VibeShell GUI and shares GUI sessions.
+- Gateway runs as part of the zxySSH GUI and shares GUI sessions.
 - Agent-created sessions and actions remain visible to the user in that same GUI.
-- If VibeShell is not running, agent instructions launch the visible application and wait for Gateway readiness.
+- If zxySSH is not running, agent instructions launch the visible application and wait for Gateway readiness.
 - Agent skill teaches direct Gateway use.
 - macOS, Linux, and Windows are supported.
 - Implementation is exercised with focused and full project verification.
@@ -20,7 +20,7 @@
 - The CLI `skill-server` creates a separate `SessionManager`; the GUI Gateway must use the exact Arcs created in `run()`.
 - Current MCP `exec` uses an isolated SSH channel and is not rendered in xterm.
 - The frontend polls backend sessions every two seconds, so shared-manager sessions appear, but operation visibility needs an explicit activity event/view.
-- The existing desktop bundle builds and installs a `vshell` sidecar and mutates PATH; those paths are unnecessary for the Gateway-first Agent integration.
+- The existing desktop bundle builds and installs a `zxyssh` sidecar and mutates PATH; those paths are unnecessary for the Gateway-first Agent integration.
 - The generated skill is entirely CLI-oriented and its current install test can target real user directories.
 - No single-instance plugin is configured, creating a cold-launch race for multiple Agents.
 
@@ -38,14 +38,14 @@
 - Added session reuse plus `session_send_input`, `session_read`, and `session_resize` for shared visible PTY workflows.
 - Added a compact Agent activity dock that receives started/succeeded/failed events and immediately refreshes GUI sessions.
 - Replaced CLI/PATH settings with Gateway status and removed sidecar/PATH behavior from Tauri and Windows packaging.
-- Replaced the generated `vshell` skill with a validated `vibeshell` Gateway skill containing macOS, Linux, Windows launch and discovery flows.
+- Replaced the generated `zxyssh` skill with a validated `zxyssh` Gateway skill containing macOS, Linux, Windows launch and discovery flows.
 - Updated release assets and README to describe the built-in Gateway rather than a bundled CLI.
 
 ## Verification
 - `npm run build`: passed.
 - `cargo check --workspace`: passed.
 - `cargo test --workspace`: 155 passed, 5 ignored.
-- `cargo clippy -p vibeshell --lib -- -D warnings`: passed.
+- `cargo clippy -p zxyssh --lib -- -D warnings`: passed.
 - `cargo fmt --all -- --check`: passed.
 - `git diff --check`: passed.
 - `npx tauri build --no-bundle`: passed; release binary produced.
@@ -109,8 +109,8 @@
 - Repository-wide Rust formatting remains blocked by pre-existing formatting differences in `src-tauri/src/commands/plugin.rs` and `src-tauri/src/plugins/mod.rs`; no SFTP formatting difference was reported.
 
 ## Packaging and Live QA
-- Tauri produced `target/release/bundle/macos/VibeShell.app`; updater signing then reported missing `TAURI_SIGNING_PRIVATE_KEY`.
+- Tauri produced `target/release/bundle/macos/zxySSH.app`; updater signing then reported missing `TAURI_SIGNING_PRIVATE_KEY`.
 - Re-signed the local bundle ad hoc and passed `codesign --verify --deep --strict`.
-- Replaced `/Applications/VibeShell.app` through a temporary backup, verified matching SHA-256, arm64 architecture, bundle identifier, version, and running process, then removed the backup.
+- Replaced `/Applications/zxySSH.app` through a temporary backup, verified matching SHA-256, arm64 architecture, bundle identifier, version, and running process, then removed the backup.
 - Installed binary SHA-256: `142756662fe53dae51e3031366e1756abbcca07f5fe87f515a5659cf36f58f41`.
 - Live UI QA used a local shell only: SFTP listing rendered, single-item menu was complete, Select All selected 127 entries, and the batch menu exposed download for 10 files plus batch compress/delete. No transfer or deletion was executed.

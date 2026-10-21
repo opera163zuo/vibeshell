@@ -2,7 +2,6 @@ import i18n from 'i18next';
 import { safeInvoke } from './tauri';
 import { getFileViewerKind } from './fileWorkspace';
 import { LOCAL_FILE_ORIGIN, useFileWorkspaceStore } from '../stores/fileWorkspaceStore';
-import { usePluginWorkspaceStore } from '../stores/pluginWorkspaceStore';
 import { useNavigationStore } from '../stores/navigationStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { openDetachedWindow, useDetachedOwnership } from './detach';
@@ -37,7 +36,6 @@ export async function openLocalFiles(paths?: readonly string[]): Promise<void> {
           // Unknown extensions get a bounded UTF-8 read. The backend rejects
           // binary/unsupported encodings rather than corrupting them on save.
           viewerKind: kind === 'unsupported' ? 'text' : kind });
-        usePluginWorkspaceStore.getState().activateTab(null);
         useNavigationStore.getState().goToMain();
       } catch (error) {
         useNotificationStore.getState().error(i18n.t('localFiles.openFailed'), `${path}: ${String(error)}`);
@@ -70,8 +68,8 @@ export async function listenForLocalFileRequests(): Promise<() => void> {
     finally { draining = false; }
   };
   const stops = await Promise.all([
-    listen('vibeshell://open-files-pending', () => { void drain(); }),
-    listen('vibeshell://choose-local-files', () => { void openLocalFiles(); }),
+    listen('zxyssh://open-files-pending', () => { void drain(); }),
+    listen('zxyssh://choose-local-files', () => { void openLocalFiles(); }),
   ]);
   void drain();
   return () => { disposed = true; stops.forEach(stop => stop()); };

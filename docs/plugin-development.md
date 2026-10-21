@@ -1,6 +1,6 @@
-# VibeShell Plugin Development
+# zxySSH Plugin Development
 
-VibeShell plugin API v1 adds session tools without loading third-party code into the main webview. A plugin is a validated JSON manifest. VibeShell renders its controls and chooses the declared command on the Rust side.
+zxySSH plugin API v1 adds session tools without loading third-party code into the main webview. A plugin is a validated JSON manifest. zxySSH renders its controls and chooses the declared command on the Rust side.
 
 The normative reference is the [Plugin Specification](plugin-spec.md); this guide focuses on authoring workflow. Field rules summarized here are defined by the spec.
 
@@ -8,14 +8,14 @@ The normative reference is the [Plugin Specification](plugin-spec.md); this guid
 
 The plugin marketplace combines two sources:
 
-- `builtin`: reviewed manifests shipped with VibeShell, one directory per plugin in the [`plugins/builtin/`](../plugins/builtin) monorepo crate. Installing one enables it immediately.
+- `builtin`: reviewed manifests shipped with zxySSH, one directory per plugin in the [`plugins/builtin/`](../plugins/builtin) monorepo crate. Installing one enables it immediately.
 - `external`: a local JSON manifest imported by the user. External plugins are unsigned, installed disabled, and require an explicit permission confirmation before they can run.
 
 Open **Plugin Marketplace** from the workspace toolbar. Use **Import manifest** to select a local `plugin.json`. The complete working example is [examples/plugins/system-info/plugin.json](../examples/plugins/system-info/plugin.json).
 
 Every plugin can also be **exported** from the marketplace: external plugins export the manifest they were imported with, built-in plugins export the shipped manifest (a ready-made authoring template). Settings never travel with an export — they are device state and are included in workspace backups instead.
 
-To update an external plugin, import a newer manifest with the same `id`. VibeShell preserves its non-sensitive settings, replaces the manifest, disables the plugin, and revokes its grants. Review the new version before enabling it again.
+To update an external plugin, import a newer manifest with the same `id`. zxySSH preserves its non-sensitive settings, replaces the manifest, disables the plugin, and revokes its grants. Review the new version before enabling it again.
 
 Version 1 intentionally does not download remote packages or load JavaScript, HTML, Rust dynamic libraries, or WASM. A future remote registry needs package signing and update verification before it can safely extend this model.
 
@@ -76,7 +76,7 @@ Plugin installations are part of the encrypted portable backup file and of cloud
 | `permissions` | yes | Command plugins must include `remote_exec`. |
 | `sessionTypes` | yes | One or both of `ssh` and `local`. Local execution runs through the machine's own shell. |
 | `defaultSettings` | no | Non-secret JSON object, limited to 16 KB once installed. |
-| `entry` | yes | `commands` for external plugins. `native` is reserved for compiled VibeShell plugins. |
+| `entry` | yes | `commands` for external plugins. `native` is reserved for compiled zxySSH plugins. |
 
 ## Actions
 
@@ -102,11 +102,11 @@ An external plugin can declare 1-24 actions. Each action has a static `program` 
 
 Supported input kinds are `text`, `integer`, `boolean`, and `select`. An action may declare at most 8 inputs. A select input may declare up to 32 options. Labels, descriptions, placeholders, and options also have bounded lengths so a manifest cannot create an unbounded control tree. Input values are limited to 1,024 bytes and cannot contain NUL or newline characters.
 
-Templates use the exact form `{{input.<id>}}`. Every referenced input must be declared. VibeShell substitutes the raw value into one argument and then POSIX-shell-quotes the complete argument. The frontend cannot submit a replacement command.
+Templates use the exact form `{{input.<id>}}`. Every referenced input must be declared. zxySSH substitutes the raw value into one argument and then POSIX-shell-quotes the complete argument. The frontend cannot submit a replacement command.
 
 An input template must occupy a complete argument; forms such as `prefix={{input.value}}` are rejected. This protects the outer remote command's argument structure. It is not a sandbox for the invoked program: a program may intentionally interpret an argument as SQL, a regular expression, or shell source. The manifest author owns that semantic boundary.
 
-Set `requiresConfirmation` on actions that execute user-provided code, modify state, or otherwise deserve a final review. VibeShell asks for confirmation every time the action runs.
+Set `requiresConfirmation` on actions that execute user-provided code, modify state, or otherwise deserve a final review. zxySSH asks for confirmation every time the action runs.
 
 Do not put passwords, tokens, private keys, SQL credentials, or other secrets in a manifest, plugin setting, or action input. Database actions should use authentication already configured on the remote server, such as Unix sockets, `.pgpass`, or an existing client profile.
 
@@ -128,7 +128,7 @@ For delimiter-separated rows, ask the host to render a table:
 }
 ```
 
-The command should print one row per line. Table output supports 1-16 columns. VibeShell caps remote output at approximately 1 MB before it reaches the client and preserves UTF-8 boundaries when truncating it.
+The command should print one row per line. Table output supports 1-16 columns. zxySSH caps remote output at approximately 1 MB before it reaches the client and preserves UTF-8 boundaries when truncating it.
 
 ## Security Boundary
 
@@ -144,7 +144,7 @@ The command should print one row per line. Table output supports 1-16 columns. V
 
 ## Built-in Catalog
 
-Built-in plugins live in the `plugins/` workspace crate (`vibeshell-plugins`), one directory per plugin under `plugins/builtin/<id>/plugin.json`. To add one, create the directory, then register the id in `BUILTIN_MANIFESTS` in `plugins/src/lib.rs` — a test fails the build if the directory list and the registration list drift apart. VibeShell currently ships these installable plugins, all uninstalled by default:
+Built-in plugins live in the `plugins/` workspace crate (`zxyssh-plugins`), one directory per plugin under `plugins/builtin/<id>/plugin.json`. To add one, create the directory, then register the id in `BUILTIN_MANIFESTS` in `plugins/src/lib.rs` — a test fails the build if the directory list and the registration list drift apart. zxySSH currently ships these installable plugins, all uninstalled by default:
 
 - Server Performance
 - Docker Containers (inspect + lifecycle: start/stop/restart, volumes, networks)
