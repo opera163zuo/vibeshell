@@ -113,7 +113,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERBNzAyNzI3MENGQUZENEEKUldSSy9mb01KeWR3Mmtvdng3VjhNOVNZQzFwRlBNSGFVcDZwLzJlUXhSWGJCNENJZjB0UEVVVFUK",
       "endpoints": [
-        "https://github.com/opera163zuo/vibeshell/releases/latest/download/latest.json"
+        "https://github.com/opera163zuo/zxyssh/releases/latest/download/latest.json"
       ]
     }
   }

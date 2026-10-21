@@ -6,11 +6,11 @@
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-  [![手动 CI](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml)
-  [![Release](https://img.shields.io/github/v/release/opera163zuo/vibeshell)](https://github.com/opera163zuo/vibeshell/releases)
+  [![手动 CI](https://github.com/opera163zuo/zxyssh/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/zxyssh/actions/workflows/ci.yml)
+  [![Release](https://img.shields.io/github/v/release/opera163zuo/zxyssh)](https://github.com/opera163zuo/zxyssh/releases)
   [![GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-  [下载](https://github.com/opera163zuo/vibeshell/releases) · [Agent / CLI 指南](skills/zxyssh/SKILL.md) · [更新记录](CHANGELOG.md) · [参与开发](CONTRIBUTING.md)
+  [下载](https://github.com/opera163zuo/zxyssh/releases) · [Agent / CLI 指南](skills/zxyssh/SKILL.md) · [更新记录](CHANGELOG.md) · [参与开发](CONTRIBUTING.md)
 </div>
 
 ![同一工作区里的终端、主机状态与 Agent 操作历史](docs/assets/screenshots/tour-collaboration.png)
@@ -135,7 +135,7 @@ zxySSH 桌面包和原生 CLI 仅面向 Linux 发布。移动端仍是实验性�
 项目使用 Tauri 2、Rust、React、TypeScript 和 xterm.js。开发需要 Node.js 22.12+、当前稳定 Rust，以及系统对应的 [Tauri 前置依赖](https://v2.tauri.app/start/prerequisites/)。
 
 ```bash
-git clone --branch dev https://github.com/opera163zuo/vibeshell.git
+git clone --branch dev https://github.com/opera163zuo/zxyssh.git
 cd zxyssh
 npm ci
 npm run tauri -- dev
@@ -151,7 +151,7 @@ Docker 清单改进以及容器独立会话、出站代理的剩余工作见[九
 
 [贡献指南](CONTRIBUTING.md) · [架构](AGENTS.md) · [发布流程](docs/RELEASING.md) · [协作接口](docs/AGENT_COLLABORATION.md)
 
-安全问题请走 [私密报告](https://github.com/opera163zuo/vibeshell/security/advisories/new)，不要在 Issue 里贴真实凭据。审批不是沙箱，敏感输入保护也不能阻止远端程序回显；响应丢失后，不应自动重放可能已执行的修改命令。
+安全问题请走 [私密报告](https://github.com/opera163zuo/zxyssh/security/advisories/new)，不要在 Issue 里贴真实凭据。审批不是沙箱，敏感输入保护也不能阻止远端程序回显；响应丢失后，不应自动重放可能已执行的修改命令。
 
 ## 许可证
 

@@ -4,7 +4,9 @@
 
 ### zxySSH, with an Agent-facing MCP service at the centre
 
-The application is rebranded as **zxySSH**. The package, binaries, Skill directories, systemd units, environment variables, release metadata and documentation move to the `zxyssh` name, and the bundle identifier becomes `com.zxyssh.desktop`. Existing installations keep their saved servers, encrypted credentials, host fingerprints and activity history: the previous `vibeshell.db`, fingerprint file and VibeShell device-key locations are migrated to the new data directory on first start.
+The application is rebranded as **zxySSH**. The package, binaries, Skill directories, systemd units, environment variables, release metadata and documentation move to the `zxyssh` name, and the bundle identifier becomes `com.zxyssh.desktop`.
+
+**Automatic migration from a pre-rebrand install was removed.** The 2.0.1 build reads only its own data directory, so an existing installation keeps its saved servers, encrypted credentials, host fingerprints and activity history only if `vibeshell.db`, `ssh_fingerprints.json`, `ssh_credentials.key` and `ssh_credentials.salt` are copied from `~/.local/share/com.vibeshell.desktop` to `~/.local/share/com.zxyssh.desktop` before the first start, keeping the `ssh_credentials.*` names and renaming the database to `zxyssh.db`. Without that step the app starts with an empty site list, and a *newly generated* device key cannot decrypt the old ciphertext, so back up the previous directory first. The Skill installer still recognises the `vibeshell` and `vshell` directories in order to delete them.
 
 The product now has one job: run SSH on a Linux host and expose it to AI Agents through MCP. `zxyssh mcp serve` answers JSON-RPC over `/mcp` and publishes `/health` and `/pair`. Agents pair with a single-use six-digit code, receive a bearer token, and are administered entirely from the service CLI (`pair-code`, `agents`, `revoke`, `rename`, `rotate`, `hostkey`, `credential`). A LAN listener requires an explicit bind address plus `ZXYSSH_MCP_ALLOW_LAN=true`, refuses wildcard addresses, and refuses to start while no Agent is paired.
 

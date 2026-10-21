@@ -15,7 +15,8 @@ selection contribution by FellowTraveler. Third-party components retain
 their own licenses and copyright notices; the project's GPL notice does
 not relicense them.
 
-Source and build instructions: https://github.com/veithly/vibeshell
+Source and build instructions for this distribution:
+https://github.com/opera163zuo/zxyssh
 For a released binary, use its matching vX.Y.Z source tag, Cargo.lock,
 package-lock.json and .github/workflows/release.yml. Release distributions
 include license notices and a matching source archive. The release source

@@ -92,7 +92,7 @@ src-tauri/                    # Rust backend
   │   ├── install/            # AI tool skill installer
   │   ├── cloud_sync/         # Encrypted cloud sync vault
   │   ├── dbconn/             # Database connection management
-  │   ├── platform/           # Platform/window integration, legacy app-data migration
+  │   ├── platform/           # Platform/window integration and app-data locations
   │   ├── plugins/            # Plugin runtime (no marketplace UI or Agent tools)
   │   └── lib.rs              # App entry, command registration
   └── Cargo.toml

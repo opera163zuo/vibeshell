@@ -9,7 +9,9 @@ use super::detector::{
 };
 
 const SKILL_DIR_NAME: &str = "zxyssh";
-const LEGACY_SKILL_DIR_NAMES: [&str; 2] = ["vibeshell", "vshell"];
+// Only the uninstall path still looks for these: a machine that installed the
+// pre-rebrand Skill must be able to remove those directories.
+const PREVIOUS_SKILL_DIR_NAMES: [&str; 2] = ["vibeshell", "vshell"];
 const NATIVE_SKILL_MD_TEMPLATE: &str = include_str!("../../../skills/zxyssh/SKILL.md");
 
 fn render_skill_md() -> Result<String> {
@@ -71,13 +73,15 @@ fn install_skill_file_to_dirs(skills_dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>>
             })?;
         }
 
-        for legacy_name in LEGACY_SKILL_DIR_NAMES {
-            let legacy_skill_dir = skills_dir.join(legacy_name);
-            if legacy_skill_dir.exists() && legacy_skill_dir != skill_dir {
-                fs::remove_dir_all(&legacy_skill_dir).with_context(|| {
+        // Erase the pre-rebrand Skill directories so the old brand stops being
+        // advertised to coding agents once the current one is installed.
+        for previous_name in PREVIOUS_SKILL_DIR_NAMES {
+            let previous_skill_dir = skills_dir.join(previous_name);
+            if previous_skill_dir.exists() && previous_skill_dir != skill_dir {
+                fs::remove_dir_all(&previous_skill_dir).with_context(|| {
                     format!(
-                        "Failed to remove legacy skill directory {:?}",
-                        legacy_skill_dir
+                        "Failed to remove the previous skill directory {:?}",
+                        previous_skill_dir
                     )
                 })?;
             }
@@ -96,7 +100,10 @@ fn install_skill_file_to_dirs(skills_dirs: Vec<PathBuf>) -> Result<Vec<PathBuf>>
 fn uninstall_skill_file(tool_id: &str) -> Result<()> {
     if let Some(skills_dirs) = skill_dir_candidates_for_tool(tool_id) {
         for skills_dir in skills_dirs {
-            for dir_name in [SKILL_DIR_NAME, "vibeshell", "vshell"] {
+            for dir_name in [SKILL_DIR_NAME]
+                .iter()
+                .chain(PREVIOUS_SKILL_DIR_NAMES.iter())
+            {
                 let skill_dir = skills_dir.join(dir_name);
                 if skill_dir.exists() {
                     fs::remove_dir_all(&skill_dir).with_context(|| {

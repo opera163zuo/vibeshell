@@ -8,7 +8,7 @@ The Linux server owns SSH connections, saved server profiles, host-key verificat
 
 ## Current status
 
-Branch `feature/lan-mcp-gateway` in the `opera163zuo/zxyssh` fork; draft PR: https://github.com/opera163zuo/vibeshell/pull/1
+Branch `feature/lan-mcp-gateway` in the `opera163zuo/zxyssh` fork; draft PR: https://github.com/opera163zuo/zxyssh/pull/1
 
 Phases 0-4 are implemented and verified end-to-end on a Debian 13 host against a local sshd fixture:
 

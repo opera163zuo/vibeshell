@@ -1565,7 +1565,7 @@ export function Settings() {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <a
-                  href="https://github.com/opera163zuo/vibeshell"
+                  href="https://github.com/opera163zuo/zxyssh"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg

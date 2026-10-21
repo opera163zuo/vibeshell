@@ -215,11 +215,7 @@ pub fn run() {
             std::fs::create_dir_all(&app_data_dir)?;
 
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            let primary_install = app.config().identifier == platform::APP_BUNDLE_IDENTIFIER;
-            #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            if primary_install {
-                platform::copy_legacy_app_data(&app_data_dir)?;
-            }
+            let primary_install = app.config().identifier == "com.zxyssh.desktop";
 
             let database = Arc::new(Database::new_at(platform::database_path(&app_data_dir))?);
             let session_manager = Arc::new(SessionManager::new(database.clone()));

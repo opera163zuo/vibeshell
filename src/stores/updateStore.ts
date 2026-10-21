@@ -5,8 +5,8 @@ import type { DownloadEvent } from '@tauri-apps/plugin-updater';
 export const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 const GITHUB_LATEST_RELEASE_API =
-  'https://api.github.com/repos/opera163zuo/vibeshell/releases/latest';
-const GITHUB_LATEST_RELEASE_PAGE = 'https://github.com/opera163zuo/vibeshell/releases/latest';
+  'https://api.github.com/repos/opera163zuo/zxyssh/releases/latest';
+const GITHUB_LATEST_RELEASE_PAGE = 'https://github.com/opera163zuo/zxyssh/releases/latest';
 const UPDATE_STATE_KEY = 'zxyssh_update_state';
 const REQUEST_TIMEOUT_MS = 12_000;
 

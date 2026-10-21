@@ -52,7 +52,7 @@ The release workflow:
 The update manifest is served from:
 
 ```text
-https://github.com/opera163zuo/vibeshell/releases/latest/download/latest.json
+https://github.com/opera163zuo/zxyssh/releases/latest/download/latest.json
 ```
 
 The app checks that endpoint and uses Tauri's `downloadAndInstall()` flow for

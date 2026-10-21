@@ -111,23 +111,18 @@ impl Crypto {
             .ok_or_else(|| anyhow!("Device crypto failed to initialize"))
     }
 
-    /// Shared loader; SSH and database passwords retain independent legacy keys.
+    /// Shared loader for a prefix's device key pair.
     pub(crate) fn from_device_key_files(prefix: &str) -> Result<Self> {
-        let legacy_dirs = legacy_crypto_dirs()?;
         let app_dir = crate::platform::default_app_data_dir()?;
-        Self::from_key_files_with_legacy(&app_dir, &legacy_dirs, prefix)
+        Self::from_key_files_impl(&app_dir, prefix)
     }
 
     #[cfg(test)]
     fn from_key_files(app_dir: &std::path::Path, prefix: &str) -> Result<Self> {
-        Self::from_key_files_with_legacy(app_dir, &[], prefix)
+        Self::from_key_files_impl(app_dir, prefix)
     }
 
-    fn from_key_files_with_legacy(
-        app_dir: &std::path::Path,
-        legacy_dirs: &[std::path::PathBuf],
-        prefix: &str,
-    ) -> Result<Self> {
+    fn from_key_files_impl(app_dir: &std::path::Path, prefix: &str) -> Result<Self> {
         use std::fs::OpenOptions;
         use std::io::{ErrorKind, Write};
 
@@ -145,14 +140,6 @@ impl Crypto {
         lock.lock().context("Cannot lock device key files")?;
         let key_path = app_dir.join(format!("{prefix}.key"));
         let salt_path = app_dir.join(format!("{prefix}.salt"));
-        for legacy_dir in legacy_dirs.iter().filter(|dir| dir.as_path() != app_dir) {
-            migrate_legacy_key_files(legacy_dir, app_dir, prefix)?;
-            if app_dir.join(format!("{prefix}.key")).exists()
-                && app_dir.join(format!("{prefix}.salt")).exists()
-            {
-                break;
-            }
-        }
         let (key_hex, salt) = match (
             std::fs::read_to_string(&key_path),
             std::fs::read(&salt_path),
@@ -197,76 +184,6 @@ impl Crypto {
         set_private(&key_path)?;
         set_private(&salt_path)?;
         Self::from_password(key_hex, &salt)
-    }
-}
-
-fn legacy_crypto_dirs() -> Result<Vec<std::path::PathBuf>> {
-    let mut dirs = Vec::new();
-    if let Some(project) = directories::ProjectDirs::from("com", "vibeshell", "VibeShell") {
-        dirs.push(project.data_dir().to_path_buf());
-    }
-    if let Some(base) = directories::BaseDirs::new() {
-        dirs.push(base.data_dir().join("com.vibeshell.desktop"));
-    }
-    Ok(dirs)
-}
-
-fn migrate_legacy_key_files(
-    legacy_dir: &std::path::Path,
-    app_dir: &std::path::Path,
-    prefix: &str,
-) -> Result<()> {
-    let current_key = app_dir.join(format!("{prefix}.key"));
-    let current_salt = app_dir.join(format!("{prefix}.salt"));
-    if current_key.exists() || current_salt.exists() {
-        return Ok(());
-    }
-
-    let legacy_key = legacy_dir.join(format!("{prefix}.key"));
-    let legacy_salt = legacy_dir.join(format!("{prefix}.salt"));
-    match (legacy_key.exists(), legacy_salt.exists()) {
-        (false, false) => Ok(()),
-        (true, true) => {
-            let key = std::fs::read(&legacy_key).with_context(|| {
-                format!("Failed to read legacy device key {}", legacy_key.display())
-            })?;
-            let salt = std::fs::read(&legacy_salt).with_context(|| {
-                format!(
-                    "Failed to read legacy device salt {}",
-                    legacy_salt.display()
-                )
-            })?;
-            let key_tmp = current_key.with_extension("key.migration");
-            let salt_tmp = current_salt.with_extension("salt.migration");
-            use std::fs::OpenOptions;
-            use std::io::Write;
-            for (path, content) in [(&key_tmp, key.as_slice()), (&salt_tmp, salt.as_slice())] {
-                let mut options = OpenOptions::new();
-                options.write(true).create_new(true);
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::OpenOptionsExt;
-                    options.mode(0o600);
-                }
-                let mut file = options.open(path)?;
-                file.write_all(content)?;
-                file.sync_all()?;
-            }
-            if let Err(error) = std::fs::rename(&key_tmp, &current_key) {
-                let _ = std::fs::remove_file(&key_tmp);
-                let _ = std::fs::remove_file(&salt_tmp);
-                return Err(error).context("Failed to migrate legacy device key");
-            }
-            if let Err(error) = std::fs::rename(&salt_tmp, &current_salt) {
-                let _ = std::fs::remove_file(&current_key);
-                let _ = std::fs::remove_file(&salt_tmp);
-                return Err(error).context("Failed to migrate legacy device salt");
-            }
-            Ok(())
-        }
-        _ => Err(anyhow!(
-            "Legacy device key files are incomplete; refusing to generate replacement key material"
-        )),
     }
 }
 
@@ -365,25 +282,6 @@ mod tests {
         std::fs::write(directory.path().join("dbconn.salt"), &salt).unwrap();
         let loaded = Crypto::from_key_files(directory.path(), "dbconn").unwrap();
         assert_eq!(loaded.decrypt(&original).unwrap(), b"existing secret");
-    }
-
-    #[test]
-    fn legacy_key_files_migrate_to_the_canonical_app_directory() {
-        let directory = tempfile::tempdir().unwrap();
-        let legacy = directory.path().join("legacy");
-        let current = directory.path().join("current");
-        let encrypted = Crypto::from_key_files(&legacy, "test")
-            .unwrap()
-            .encrypt(b"existing secret")
-            .unwrap();
-        let loaded =
-            Crypto::from_key_files_with_legacy(&current, std::slice::from_ref(&legacy), "test")
-                .unwrap();
-        assert_eq!(loaded.decrypt(&encrypted).unwrap(), b"existing secret");
-        assert!(current.join("test.key").exists());
-        assert!(current.join("test.salt").exists());
-        assert!(legacy.join("test.key").exists());
-        assert!(legacy.join("test.salt").exists());
     }
 
     #[test]

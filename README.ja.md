@@ -6,11 +6,11 @@
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-  [![Manual CI](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml)
-  [![Release](https://img.shields.io/github/v/release/opera163zuo/vibeshell)](https://github.com/opera163zuo/vibeshell/releases)
+  [![Manual CI](https://github.com/opera163zuo/zxyssh/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/zxyssh/actions/workflows/ci.yml)
+  [![Release](https://img.shields.io/github/v/release/opera163zuo/zxyssh)](https://github.com/opera163zuo/zxyssh/releases)
   [![GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-  [ダウンロード](https://github.com/opera163zuo/vibeshell/releases) · [Agent / CLI ガイド](skills/zxyssh/SKILL.md) · [変更履歴](CHANGELOG.md) · [開発への参加](CONTRIBUTING.md)
+  [ダウンロード](https://github.com/opera163zuo/zxyssh/releases) · [Agent / CLI ガイド](skills/zxyssh/SKILL.md) · [変更履歴](CHANGELOG.md) · [開発への参加](CONTRIBUTING.md)
 </div>
 
 ![ターミナル、ホストの状態、Agent の操作履歴をまとめたワークスペース](docs/assets/screenshots/tour-collaboration.png)
@@ -135,7 +135,7 @@ zxySSH のデスクトップ版とネイティブ CLI は Linux 向けのみ提�
 Tauri 2、Rust、React、TypeScript、xterm.js で構成しています。Node.js 22.12+、stable Rust、OS ごとの [Tauri 前提条件](https://v2.tauri.app/start/prerequisites/) が必要です。
 
 ```bash
-git clone --branch dev https://github.com/opera163zuo/vibeshell.git
+git clone --branch dev https://github.com/opera163zuo/zxyssh.git
 cd zxyssh
 npm ci
 npm run tauri -- dev
@@ -151,7 +151,7 @@ Docker の一覧改善と、独立コンテナーセッション・送信プロ�
 
 [貢献ガイド](CONTRIBUTING.md) · [アーキテクチャ](AGENTS.md) · [リリース手順](docs/RELEASING.md) · [共同作業 API](docs/AGENT_COLLABORATION.md)
 
-セキュリティ上の問題は [非公開報告](https://github.com/opera163zuo/vibeshell/security/advisories/new) へ。承認はサンドボックスではなく、保護された入力もリモートプログラムのエコーを防げません。応答消失後に変更操作を自動で再実行しないでください。
+セキュリティ上の問題は [非公開報告](https://github.com/opera163zuo/zxyssh/security/advisories/new) へ。承認はサンドボックスではなく、保護された入力もリモートプログラムのエコーを防げません。応答消失後に変更操作を自動で再実行しないでください。
 
 ## ライセンス
 

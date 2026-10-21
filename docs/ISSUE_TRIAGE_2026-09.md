@@ -2,14 +2,16 @@
 
 Reviewed on **2026-09-29**. This document distinguishes implemented changes from proposed work. The application version remains 1.1.0; changing source does not update an installed application or publish a release.
 
+"upstream pull #N" and "upstream issue #N" refer to the parent repository this distribution was forked from, whose number space is separate from this repository's own issues and pull requests.
+
 ## Pull requests
 
 | PR | Decision | Evidence and remaining work |
 | --- | --- | --- |
-| [#15](https://github.com/veithly/vibeshell/pull/15) | Merged into `main` | Workflow-only annotated-tag checkout and release metadata fixes; all required checks passed. |
-| [#16](https://github.com/veithly/vibeshell/pull/16) | Merged into `dev` | Three-language product tour and five screenshots of real components using synthetic data. The fixture is a separate development-only loopback entry; all required checks passed. |
-| [#10](https://github.com/veithly/vibeshell/pull/10) | Keep open; changes required | Head `e8fd8d0` has not changed since the September 18 review and conflicts with `dev`. Do not merge by merely resolving textual conflicts. |
-| [#11](https://github.com/veithly/vibeshell/pull/11) | Keep open; changes required | Head `b81e609` is unchanged since review, conflicts with `dev`, and includes #10. Session and file-operation contracts still need implementation and regression fixtures. |
+| **upstream pull #15** | Merged into `main` | Workflow-only annotated-tag checkout and release metadata fixes; all required checks passed. |
+| **upstream pull #16** | Merged into `dev` | Three-language product tour and five screenshots of real components using synthetic data. The fixture is a separate development-only loopback entry; all required checks passed. |
+| **upstream pull #10** | Keep open; changes required | Head `e8fd8d0` has not changed since the September 18 review and conflicts with `dev`. Do not merge by merely resolving textual conflicts. |
+| **upstream pull #11** | Keep open; changes required | Head `b81e609` is unchanged since review, conflicts with `dev`, and includes #10. Session and file-operation contracts still need implementation and regression fixtures. |
 
 ### #10: preserve CLI usability without credential regressions
 
@@ -33,7 +35,7 @@ Do not replace exclusive file creation with `cat >`, binary reads with lossy tex
 
 ## #9: Docker containers as independent sessions
 
-Issue: [#9](https://github.com/veithly/vibeshell/issues/9).
+Issue: **upstream issues #9**.
 
 ### Implemented in this change
 
@@ -57,7 +59,7 @@ The UI should fetch inventory when the container panel opens, with refresh and v
 
 ## #12: outbound proxy support
 
-Issue: [#12](https://github.com/veithly/vibeshell/issues/12). **Design only; proxy protocols are not implemented by this change.** Existing SSH SOCKS forwarding is a listener for traffic through an established SSH connection, not an outbound proxy setting.
+Issue: **upstream issues #12**. **Design only; proxy protocols are not implemented by this change.** Existing SSH SOCKS forwarding is a listener for traffic through an established SSH connection, not an outbound proxy setting.
 
 ### Scope and existing network paths
 

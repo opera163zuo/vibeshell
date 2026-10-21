@@ -3,9 +3,9 @@
 zxySSH uses the shared Tauri application for desktop, iOS, and Android. The
 mobile runtime supports foreground SSH, terminal input, host-key verification,
 remote SFTP browsing, and pasted private keys. Desktop-only local shells,
-coding agents, updater/process plugins, CLI IPC, directory transfer, and
-background tunnels are disabled by the backend capability contract and mobile
-ACL.
+updater/process plugins, service IPC and directory transfer are disabled by the
+backend capability contract and mobile ACL. The 2.0 narrowing also removed the
+tunnel and coding-agent surfaces, so they are not expected to reappear here.
 
 ## Toolchain Rule
 
@@ -20,7 +20,12 @@ rustup run stable cargo check \
 
 ## iOS
 
-The generated Xcode project is committed under `src-tauri/gen/apple`.
+The Xcode project is not committed; releases ship Linux desktop and CLI
+artifacts only. Generate it locally when iOS work is actually needed:
+
+```bash
+npx tauri ios init
+```
 
 Required Rust targets:
 

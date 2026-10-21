@@ -11,6 +11,8 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+// Detection also recognises the pre-rebrand directories, so an old install
+// is reported (and later uninstalled) instead of being silently duplicated.
 const SKILL_DIR_NAMES: [&str; 3] = ["zxyssh", "vibeshell", "vshell"];
 
 /// Represents an AI coding tool that can have the zxySSH skill installed.
@@ -540,7 +542,7 @@ mod tests {
     }
 
     #[test]
-    fn test_skill_dir_names_include_current_and_legacy_names() {
+    fn test_skill_dir_names_cover_the_current_and_previous_installs() {
         assert!(SKILL_DIR_NAMES.contains(&"zxyssh"));
         assert!(SKILL_DIR_NAMES.contains(&"vibeshell"));
         assert!(SKILL_DIR_NAMES.contains(&"vshell"));

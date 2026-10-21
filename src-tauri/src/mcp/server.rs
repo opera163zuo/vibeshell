@@ -1897,7 +1897,7 @@ fn allowed_download_roots() -> Vec<std::path::PathBuf> {
         roots.push(downloads);
     }
     if let Some(data_dir) = directories::BaseDirs::new().map(|dirs| dirs.data_dir().to_path_buf()) {
-        // Mirrors platform::APP_BUNDLE_IDENTIFIER (cfg'd out on mobile targets).
+        // Mirrors platform::app_data's bundle identifier directory (cfg'd out on mobile targets).
         roots.push(data_dir.join("com.zxyssh.desktop"));
     }
     roots

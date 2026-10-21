@@ -59,8 +59,8 @@ mod tests {
     #[test]
     fn external_url_validation_allows_http_urls() {
         assert_eq!(
-            validate_external_url(" https://github.com/opera163zuo/vibeshell ").unwrap(),
-            "https://github.com/opera163zuo/vibeshell"
+            validate_external_url(" https://github.com/opera163zuo/zxyssh ").unwrap(),
+            "https://github.com/opera163zuo/zxyssh"
         );
         assert!(validate_external_url("http://localhost:1420").is_ok());
     }

@@ -6,11 +6,11 @@
 
   [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-  [![Manual CI](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/vibeshell/actions/workflows/ci.yml)
-  [![Release](https://img.shields.io/github/v/release/opera163zuo/vibeshell)](https://github.com/opera163zuo/vibeshell/releases)
+  [![Manual CI](https://github.com/opera163zuo/zxyssh/actions/workflows/ci.yml/badge.svg?branch=dev&event=workflow_dispatch)](https://github.com/opera163zuo/zxyssh/actions/workflows/ci.yml)
+  [![Release](https://img.shields.io/github/v/release/opera163zuo/zxyssh)](https://github.com/opera163zuo/zxyssh/releases)
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-  [Download](https://github.com/opera163zuo/vibeshell/releases) · [Agent / CLI guide](skills/zxyssh/SKILL.md) · [Changelog](CHANGELOG.md) · [Contribute](CONTRIBUTING.md)
+  [Download](https://github.com/opera163zuo/zxyssh/releases) · [Agent / CLI guide](skills/zxyssh/SKILL.md) · [Changelog](CHANGELOG.md) · [Contribute](CONTRIBUTING.md)
 </div>
 
 ![Terminal, host status and visible agent operations in one zxySSH workspace](docs/assets/screenshots/tour-collaboration.png)
@@ -135,7 +135,7 @@ Mobile targets remain experimental. Common OpenSSH paths are tested, but not eve
 Built with Tauri 2, Rust, React, TypeScript and xterm.js. Use Node.js 22.12+, current stable Rust and the [Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
-git clone --branch dev https://github.com/opera163zuo/vibeshell.git
+git clone --branch dev https://github.com/opera163zuo/zxyssh.git
 cd zxyssh
 npm ci
 npm run tauri -- dev
@@ -151,7 +151,7 @@ Docker inventory improvements and the remaining container-session/proxy work are
 
 [Contributing](CONTRIBUTING.md) · [Architecture](AGENTS.md) · [Release process](docs/RELEASING.md) · [Collaboration API](docs/AGENT_COLLABORATION.md)
 
-Report security concerns through [private security reporting](https://github.com/opera163zuo/vibeshell/security/advisories/new), not with real credentials in an issue. Approval controls are not a sandbox; protected input cannot prevent a remote program from echoing it. Do not automatically replay a mutating command after an ambiguous response loss.
+Report security concerns through [private security reporting](https://github.com/opera163zuo/zxyssh/security/advisories/new), not with real credentials in an issue. Approval controls are not a sandbox; protected input cannot prevent a remote program from echoing it. Do not automatically replay a mutating command after an ambiguous response loss.
 
 ## License
 
