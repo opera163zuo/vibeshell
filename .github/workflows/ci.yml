@@ -84,7 +84,7 @@ jobs:
       - name: Linux MCP service package check
         run: |
           cargo build --release --locked -p zxyssh --bin zxyssh
-          bash scripts/test-lan-mcp-gateway.sh 127.0.0.1
+          bash scripts/test-lan-mcp-gateway.sh
 
   check-clippy:
     name: Clippy Lint

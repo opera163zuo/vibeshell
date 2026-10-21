@@ -48,6 +48,9 @@ pub struct SyncExchangeResponse {
     pub has_more: bool,
 }
 
+// async_trait boxes these returns, which already carry a must_use; the macro's
+// own attribute is a duplicate clippy cannot see past.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait SyncTransport: Send + Sync {
     async fn initialize(

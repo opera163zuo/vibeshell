@@ -34,6 +34,12 @@ LAN_IP=${1:-}
 if [ -z "$LAN_IP" ]; then
   LAN_IP=$(ip -4 -o addr show scope global | awk '$2!~/^(docker|br-|veth|lo)/ {split($4,a,"/"); print a[1]; exit}')
 fi
+# Section 1 asserts the guard rejects a non-loopback listener. A loopback
+# argument would make that assertion meaningless, so refuse it here instead of
+# reporting a confusing failure later.
+case "$LAN_IP" in
+  127.*|::1|localhost) echo "argument must be a non-loopback address, got $LAN_IP" >&2; exit 2 ;;
+esac
 
 start() { # start <state-dir> <bind> [allow-lan]
   local state=$1 bind=$2 lan=${3:-false}
@@ -146,8 +152,18 @@ stop
 LAN="$LB"
 if [ -z "$LAN_IP" ]; then
   echo "skip — no global IPv4 address found, cannot exercise a LAN bind"
+elif ! start "$LAN" "$LAN_IP:$PORT" true; then
+  # A runner may report a scope-global address it cannot bind (TEST-NET, or an
+  # address added by a network namespace that rejects assignment). That is an
+  # environment limit, not a gateway regression: section 1 already proved the
+  # guard refuses non-loopback binds without a paired Agent, and sections 2-3
+  # prove transport, pairing, limits and audit over loopback.
+  if grep -q 'Cannot assign requested address' "$LAN/serve.log"; then
+    echo "skip — $LAN_IP is not bindable in this environment"
+  else
+    fail "LAN bind refused: $(tail -2 "$LAN/serve.log")"
+  fi
 else
-  start "$LAN" "$LAN_IP:$PORT" true || fail "LAN bind refused: $(tail -2 "$LAN/serve.log")"
   ok "listener opened on $LAN_IP:$PORT because an Agent was already paired"
   LEP=$LAN_IP:$PORT
   LCODE=$(mint "$LAN")
